@@ -1,17 +1,17 @@
+#include <Wire.h> 
 #include <Adafruit_GFX.h>    // 核心圖形庫
 #include <Adafruit_ST7735.h> // ST7735 TFT 驅動庫
 #include <SPI.h>
 #include "MAX30102.h"
 #include "Pulse.h"
 #include <pgmspace.h>
-#include <EEPROM.h>
 
 // 定義 TFT 接腳
 #define TFT_CS     5
 #define TFT_DC    16
 #define TFT_RST   17
 
-// 初始化 ST7735 TFT 物件
+// 初始化 ST7735 TFT 物件 (1.8吋 128x160)
 Adafruit_ST7735 tft = Adafruit_ST7735(TFT_CS, TFT_DC, TFT_RST);
 
 MAX30102 sensor;
@@ -20,8 +20,7 @@ Pulse pulseRed;
 MAFilter bpm;
 
 #define LED LED_BUILTIN
-#define BUTTON 15  // 按鍵 GPIO 15
-#define OPTIONS 7  // EEPROM 讀寫位址
+#define BUTTON 15  // 按鍵 GPIO 15 (僅保留休眠喚醒功能)
 
 static const uint8_t heart_bits[] PROGMEM = { 
     0x00, 0x00, 0x38, 0x38, 0x7c, 0x7c, 0xfe, 0xfe, 0xfe, 0xff, 
@@ -44,63 +43,40 @@ const uint8_t spo2_table[184] PROGMEM = {
     3, 2, 1 
 };
 
-// 改用 TFT 的 drawChar 機制，並設定背景色為黑色以防閃爍
-void print_digit(int x, int y, long val, char c=' ', uint8_t field = 3, const int BIG = 2) {  
-    uint8_t ff = field;
-    do { 
-        char ch = (val!=0) ? val%10+'0': c; 
-        tft.drawChar(x+BIG*(ff-1)*6, y, ch, ST7735_WHITE, ST7735_BLACK, BIG); // 帶有背景色刷新
-        val = val/10; 
-        --ff;
-    } while (ff>0); 
-}
-
-const uint8_t MAXWAVE = 72; 
+const uint8_t MAXWAVE = 120; 
 class Waveform {
   public:
-    Waveform(void) {wavep = 0;} 
+    Waveform(void) { wavep = 0; memset(waveform, 128, MAXWAVE); } 
 
     void record(int waveval) {
-        waveval = waveval/8; 
+        waveval = waveval / 8; 
         waveval += 128; 
-        waveval = waveval<0? 0 : waveval; 
-        waveform[wavep] = (uint8_t) (waveval>255)?255:waveval; 
-        wavep = (wavep+1) % MAXWAVE; 
+        waveval = waveval < 0 ? 0 : (waveval > 255 ? 255 : waveval); 
+        waveform[wavep] = (uint8_t)waveval; 
+        wavep = (wavep + 1) % MAXWAVE; 
     }
   
     void scale() {
         uint8_t maxw = 0;
         uint8_t minw = 255; 
-        for (int i=0; i<MAXWAVE; i++) { 
-            maxw = waveform[i]>maxw?waveform[i]:maxw; 
-            minw = waveform[i]<minw?waveform[i]:minw; 
+        for (int i = 0; i < MAXWAVE; i++) { 
+            maxw = waveform[i] > maxw ? waveform[i] : maxw; 
+            minw = waveform[i] < minw ? waveform[i] : minw; 
         }
-        uint8_t scale8 = (maxw-minw)/4 + 1;
+        uint8_t range = maxw - minw;
+        if (range == 0) range = 1;
+
         uint8_t index = wavep; 
-        for (int i=0; i<MAXWAVE; i++) {
-            disp_wave[i] = 31-((uint16_t)(waveform[index]-minw)*8)/scale8; 
+        for (int i = 0; i < MAXWAVE; i++) {
+            disp_wave[i] = 68 - ((uint16_t)(waveform[index] - minw) * 44) / range; 
             index = (index + 1) % MAXWAVE; 
         }
     }
 
     void draw(uint8_t X) {
-        // 在繪製新波形前，局部清空波形顯示區域（X到X+MAXWAVE, Y從0到32）避免殘影
-        tft.fillRect(X, 0, MAXWAVE, 32, ST7735_BLACK); 
-
-        for (int i=0; i<MAXWAVE; i++) {
-            uint8_t y = disp_wave[i];
-            tft.drawPixel(X+i, y, ST7735_GREEN); // 改成亮綠色波形
-            if (i<MAXWAVE-1) {
-                uint8_t nexty = disp_wave[i+1]; 
-                if (nexty>y) {
-                    for (uint8_t iy = y+1; iy<nexty; ++iy)  
-                        tft.drawPixel(X+i, iy, ST7735_GREEN); 
-                } 
-                else if (nexty<y) {
-                    for (uint8_t iy = nexty+1; iy<y; ++iy)  
-                        tft.drawPixel(X+i, iy, ST7735_GREEN); 
-                }
-            }
+        tft.fillRect(X, 22, MAXWAVE, 48, ST7735_BLACK); 
+        for (int i = 0; i < MAXWAVE - 1; i++) {
+            tft.drawLine(X + i, disp_wave[i], X + i + 1, disp_wave[i + 1], ST7735_GREEN);
         } 
     }
 
@@ -112,100 +88,99 @@ class Waveform {
 
 int  beatAvg;
 int  SPO2, SPO2f;
-int  voltage;
-bool filter_for_graph = false;
-bool draw_Red = false; 
-uint8_t pcflag =0;
-uint8_t istate = 0;
 uint8_t sleep_counter = 0; 
-
-void button(void){ 
-    pcflag = 1; 
-}
-
-void checkbutton(){ 
-    if (pcflag == 1 && digitalRead(BUTTON) == LOW) {
-        istate = (istate +1) % 4; 
-        filter_for_graph = istate & 0x01; 
-        draw_Red = istate & 0x02;
-        EEPROM.write(OPTIONS, filter_for_graph); 
-        EEPROM.write(OPTIONS+1, draw_Red); 
-        EEPROM.commit(); // 修正：ESP32 必須執行 commit 才會真正寫入 Flash
-    }
-    pcflag = 0; 
-}
-
-void Display_5(){ 
-   if(pcflag == 1 && digitalRead(BUTTON) == LOW){
-     draw_oled(5); 
-     delay(3000); 
-     ESP.restart();
-   }
-   pcflag = 0; 
-}
 
 void go_sleep() { 
     tft.fillScreen(ST7735_BLACK);
-    tft.enableDisplay(false); // 關閉 TFT 顯示驅動省電
+    tft.enableDisplay(false); 
     delay(10);
     sensor.off(); 
     delay(10); 
-    pinMode(0,INPUT);
-    pinMode(2,INPUT);
+    pinMode(0, INPUT);
+    pinMode(2, INPUT);
     esp_deep_sleep_start();
 }
 
-int last_msg = -1; // 用來記錄上一次的畫面狀態
+int last_msg = -1; 
 
 void draw_oled(int msg) {
-    // 只有當頁面狀態改變時才清除全螢幕，防止動態重繪時劇烈閃爍
     if (msg != last_msg) {
         tft.fillScreen(ST7735_BLACK);
         last_msg = msg;
+        
+        if (msg == 2) {
+            tft.fillRect(0, 0, 128, 20, ST7735_BLUE);
+            tft.setTextSize(1);
+            tft.setTextColor(ST7735_WHITE, ST7735_BLUE);
+            tft.setCursor(4, 6); tft.print(F("PULSE OXIMETER  IR-Avg"));
+            
+            tft.drawFastHLine(0, 72, 128, ST7735_WHITE);
+            
+            tft.drawXBitmap(6, 88, heart_bits, 16, 16, ST7735_RED);
+            tft.setTextColor(ST7735_RED, ST7735_BLACK);
+            tft.setCursor(26, 92); tft.print(F("BPM"));
+            
+            tft.setTextColor(ST7735_CYAN, ST7735_BLACK);
+            tft.setCursor(6, 134); tft.print(F("SpO2"));
+            tft.setTextSize(2);
+            tft.setCursor(112, 130); tft.setTextColor(ST7735_YELLOW, ST7735_BLACK);
+            tft.print(F("%"));
+        }
     }
 
-    tft.setTextSize(1);
-    tft.setTextColor(ST7735_WHITE, ST7735_BLACK); // 設定文字前景與背景色
-
     switch(msg){
-        case 0:  
-            tft.setCursor(10, 0); tft.setTextColor(ST7735_RED, ST7735_BLACK);
-            tft.print(F("Device error")); 
+        case 0: 
+            tft.setTextSize(2); tft.setTextColor(ST7735_RED, ST7735_BLACK);
+            tft.setCursor(10, 60); tft.print(F("DEVICE ERROR")); 
+            tft.setTextSize(1); tft.setCursor(16, 90); tft.setTextColor(ST7735_WHITE, ST7735_BLACK);
+            tft.print(F("Check I2C Wire!"));
             break;
-        case 1:  
-            tft.setCursor(13, 10); tft.print(F("PLACE")); 
-            tft.setCursor(10, 20); tft.print(F("FINGER"));
-            tft.setCursor(84, 14); tft.print(F("Display")); 
-            tft.setCursor(84, 24);
-            if (draw_Red) tft.print(F("Red")); else tft.print(F("IR ")); // 加空格覆蓋舊字
-            tft.setCursor(108, 24); 
-            if (filter_for_graph) tft.print(F("Avg")); else tft.print(F("Raw")); 
+            
+        case 1: 
+            tft.fillRect(0, 0, 128, 20, 0x52AA); 
+            tft.setTextSize(1); tft.setTextColor(ST7735_WHITE, 0x52AA);
+            tft.setCursor(34, 6); tft.print(F("STATUS BAR"));
+            
+            tft.setTextSize(2); tft.setTextColor(ST7735_YELLOW, ST7735_BLACK);
+            tft.setCursor(34, 50); tft.print(F("PLACE")); 
+            tft.setCursor(28, 75); tft.print(F("FINGER"));
+            
+            tft.fillRect(0, 140, 128, 20, ST7735_BLACK);
+            tft.setTextSize(1); tft.setTextColor(ST7735_GREEN, ST7735_BLACK);
+            tft.setCursor(16, 145); tft.print(F("Mode: IR Filter: Avg"));
             break;
-        case 2:  
-            print_digit(86, 0, beatAvg); 
-            wave.draw(8); 
-            print_digit(98, 16, SPO2f, ' ', 3, 1); 
-            tft.drawChar(116, 16, '%', ST7735_YELLOW, ST7735_BLACK, 1);
-            print_digit(98, 24, SPO2, ' ', 3, 1); 
-            tft.drawChar(116, 24, '%', ST7735_YELLOW, ST7735_BLACK, 1);
+            
+        case 2: 
+            wave.draw(4); 
+            
+            tft.setTextSize(4); tft.setTextColor(ST7735_WHITE, ST7735_BLACK);
+            tft.setCursor(52, 80);
+            if (beatAvg < 10) tft.print(F("  "));
+            else if (beatAvg < 100) tft.print(F(" "));
+            tft.print(beatAvg); 
+            
+            tft.setTextSize(4); tft.setTextColor(ST7735_YELLOW, ST7735_BLACK);
+            tft.setCursor(52, 120);
+            if (SPO2 < 10) tft.print(F("  "));
+            else if (SPO2 < 100) tft.print(F(" "));
+            tft.print(SPO2); 
             break;
-        case 3:  
-            tft.setTextColor(ST7735_CYAN, ST7735_BLACK);
-            tft.setCursor(30, 9);  tft.print(F("Heart-Rate&")); 
-            tft.setCursor(30, 20); tft.print(F("Blood Oxygen")); 
-            tft.drawXBitmap(6, 8, heart_bits, 16, 16, ST7735_RED); // 畫出紅色的愛心
+            
+        case 3: 
+            tft.drawXBitmap(48, 30, heart_bits, 16, 16, ST7735_RED);
+            tft.setTextSize(2); tft.setTextColor(ST7735_CYAN, ST7735_BLACK);
+            tft.setCursor(16, 65);  tft.print(F("HEART RATE")); 
+            tft.setCursor(22, 90);  tft.print(F("OXYMETER")); 
+            tft.setTextSize(1); tft.setTextColor(ST7735_WHITE, ST7735_BLACK);
+            tft.setCursor(34, 130); tft.print(F("Initializing..."));
             break;
-        case 4:  
-            tft.setCursor(28, 12); tft.print(F("OFF IN")); 
-            tft.drawChar(76, 12, 10-sleep_counter/10+'0', ST7735_YELLOW, ST7735_BLACK, 1);
-            tft.drawChar(82, 12, 's', ST7735_YELLOW, ST7735_BLACK, 1); 
-            break;
-        case 5:  
-            tft.setCursor(0, 0); tft.print(F("BMP:")); 
-            print_digit(25, 0, beatAvg);
-            tft.setCursor(0, 15); tft.print(F("SpO2:")); 
-            print_digit(25, 15, SPO2);
-            tft.drawXBitmap(106, 8, heart_bits, 16, 16, ST7735_RED);
+            
+        case 4: 
+            tft.setTextSize(2); tft.setTextColor(ST7735_RED, ST7735_BLACK);
+            tft.setCursor(28, 50); tft.print(F("POWER OFF")); 
+            tft.setTextSize(4); tft.setTextColor(ST7735_YELLOW, ST7735_BLACK);
+            tft.setCursor(40, 85); tft.print(10 - sleep_counter / 10);
+            tft.setTextSize(2); tft.print(F("s"));
             break;
     }
 }
@@ -214,29 +189,25 @@ void setup(void) {
   pinMode(LED, OUTPUT); 
   pinMode(BUTTON, INPUT_PULLUP); 
 
-  EEPROM.begin(32); // 初始化 ESP32 的 EEPROM 模擬空間
-  filter_for_graph = EEPROM.read(OPTIONS);  
-  draw_Red = EEPROM.read(OPTIONS+1); 
-
-  // 初始化 ST7735 螢幕
   tft.initR(INITR_BLACKTAB); 
-  tft.setRotation(0); // 0度直向（寬128, 高160），維持原 OLED 的寬度比例
+  tft.setRotation(0); 
   tft.fillScreen(ST7735_BLACK);
 
   draw_oled(3); 
   delay(3000); 
 
-  Wire.begin(21, 22);
+  Wire.begin(21, 22); 
   
   if (!sensor.begin())  { 
     draw_oled(0);         
     while (1); 
   }
 
-  attachInterrupt(15, button, FALLING);  
-  esp_sleep_enable_ext0_wakeup(GPIO_NUM_15, 0); 
+  // 💡 已移除 attachInterrupt 中斷綁定，按鈕在開機狀態下無任何作用
+  esp_sleep_enable_ext0_wakeup(GPIO_NUM_15, 0); // 僅保留 Deep Sleep 的喚醒配置
   sensor.setup();  
 }
+
 
 long lastBeat = 0; 
 long displaytime = 0; 
@@ -251,60 +222,48 @@ void loop()  {
     uint32_t redValue = sensor.getRed(); 
     sensor.nextSample();
 
-    if (irValue<5000) { 
-        checkbutton();
-        draw_oled(sleep_counter<=50 ? 1 : 4); 
+    if (irValue < 5000) { 
+        draw_oled(sleep_counter <= 50 ? 1 : 4); 
         delay(200); 
         ++sleep_counter;
-        if (sleep_counter>100) { 
+        if (sleep_counter > 100) { 
           go_sleep(); 
           sleep_counter = 0; 
         }
     } else {
         sleep_counter = 0; 
-        int16_t IR_signal, Red_signal;
-        bool beatRed, beatIR; 
+        
+        int16_t IR_signal  = pulseIR.ma_filter(pulseIR.dc_filter(irValue));  
+        int16_t Red_signal = pulseRed.ma_filter(pulseRed.dc_filter(redValue)); 
+        
+        bool beatIR  = pulseIR.isBeat(IR_signal); 
 
-        // 修正：將訊號對調回來（IR對IR，Red對Red）
-        if (!filter_for_graph) {
-            IR_signal =  pulseIR.dc_filter(irValue);  
-            Red_signal = pulseRed.dc_filter(redValue); 
-            beatRed = pulseRed.isBeat(pulseRed.ma_filter(Red_signal)); 
-            beatIR =  pulseIR.isBeat(pulseIR.ma_filter(IR_signal)); 
-        } else {
-            IR_signal =  pulseIR.ma_filter(pulseIR.dc_filter(irValue));  
-            Red_signal = pulseRed.ma_filter(pulseRed.dc_filter(redValue)); 
-            beatRed = pulseRed.isBeat(Red_signal); 
-            beatIR =  pulseIR.isBeat(IR_signal); 
-        }
-
-        wave.record(draw_Red ? -Red_signal : -IR_signal ); 
+        wave.record(-IR_signal); 
    
-        if (draw_Red ? beatRed : beatIR){ 
-            long btpm = 60000/(now - lastBeat); 
+        if (beatIR){ 
+            long btpm = 60000 / (now - lastBeat); 
             if (btpm > 0 && btpm < 200) beatAvg = bpm.filter((int16_t)btpm); 
             lastBeat = now; 
             digitalWrite(LED, HIGH); 
             led_on = true; 
 
-            long numerator   = (pulseRed.avgAC() * pulseIR.avgDC())/256; 
-            long denominator = (pulseRed.avgDC() * pulseIR.avgAC())/256; 
-            int RX100 = (denominator>0) ? (numerator * 100)/denominator : 999; 
+            long numerator   = (pulseRed.avgAC() * pulseIR.avgDC()) / 256; 
+            long denominator = (pulseRed.avgDC() * pulseIR.avgAC()) / 256; 
+            int RX100 = (denominator > 0) ? (numerator * 100) / denominator : 999; 
 
-            SPO2f = (10400 - RX100*17+50)/100; 
-            if ((RX100>=0) && (RX100<184)) 
+            SPO2f = (10400 - RX100 * 17 + 50) / 100; 
+            if ((RX100 >= 0) && (RX100 < 184)) 
               SPO2 = pgm_read_byte_near(&spo2_table[RX100]); 
         }
 
-        if (now-displaytime>50) { 
+        if (now - displaytime > 50) { 
             displaytime = now;
             wave.scale(); 
-            draw_oled(2);
+            draw_oled(2); 
         }
-        Display_5(); 
     }
 
-    if (led_on && (now - lastBeat)>25){ 
+    if (led_on && (now - lastBeat) > 25){ 
         digitalWrite(LED, LOW);
         led_on = false; 
     }
