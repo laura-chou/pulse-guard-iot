@@ -1,4 +1,5 @@
 # PulseGuard IoT
+
 ## Smart Heart Rate Monitoring and Analysis System
 
 ---
@@ -9,16 +10,17 @@
 
 系統功能：
 
-- 即時量測 BPM 與 SpO₂
-- TFT 顯示即時資訊
-- LED 顯示健康狀態
-- 蜂鳴器提供心跳提示音
-- MQTT 即時傳輸資料
-- Node-RED 即時監控
-- MySQL 儲存歷史資料
-- Python 進行資料分析與狀態判斷
-- Streamlit 顯示分析結果
-- LINE 發送每日 / 每月摘要通知
+* 即時量測 BPM 與 SpO₂
+* TFT 顯示即時資訊
+* LED 顯示健康狀態
+* 蜂鳴器提供心跳提示音
+* MQTT 即時傳輸資料
+* 自訂 Web Dashboard 即時監控
+* MySQL 儲存歷史資料
+* Python 進行資料分析與狀態判斷
+* Streamlit 顯示分析結果
+* LINE 發送每日 / 每月摘要通知
+* Railway 雲端部署
 
 ---
 
@@ -36,13 +38,13 @@ ESP32 (Arduino Framework)
  ├─ Wi-Fi
  └─ MQTT Publish
         ↓
-   MQTT Broker
+   HiveMQ Broker
       ↙      ↘
- Node-RED   Python
-    ↓          ↓
-Dashboard   smoothing
-即時監控      狀態判斷
-             平均化分析
+ Web Dashboard   Python Analysis
+(MQTT.js +        ↓
+ Chart.js)     smoothing
+    ↓          狀態判斷
+即時監控      平均化分析
                  ↓
                MySQL
                  ↓
@@ -55,34 +57,37 @@ Dashboard   smoothing
 
 # 3. 系統技術棧（Tech Stack）
 
-| 層級 | 技術 |
-|---|---|
-| Edge Device | ESP32 |
-| Firmware | Arduino Framework |
-| Sensor | MAX30102 |
-| IoT Protocol | MQTT |
-| Dashboard | Node-RED |
-| Backend Analysis | Python |
-| Database | MySQL |
-| Visualization | Streamlit |
-| Notification | LINE |
-| Cloud Platform | Railway |
+| 層級                    | 技術                      |
+| --------------------- | ----------------------- |
+| Edge Device           | ESP32                   |
+| Firmware              | Arduino Framework       |
+| Sensor                | MAX30102                |
+| IoT Protocol          | MQTT                    |
+| MQTT Broker           | HiveMQ                  |
+| Frontend Dashboard    | HTML / CSS / JavaScript |
+| Real-time MQTT Client | MQTT.js                 |
+| Chart Visualization   | Chart.js                |
+| Backend Analysis      | Python                  |
+| Database              | MySQL                   |
+| Data Visualization    | Streamlit               |
+| Notification          | LINE Messaging API      |
+| Cloud Platform        | Railway                 |
 
 ---
 
 # 4. 使用硬體
 
-| 元件 | 用途 |
-|---|---|
-| ESP32 NodeMCU | 主控制器 |
-| MAX30102 | 心率 / 血氧感測 |
-| TFT 彩色螢幕 | 即時顯示 |
-| LED ×3 | 狀態燈 |
-| 有源蜂鳴器 | 心跳提示音 |
-| Button ×1 | 開始 / Reset |
-| 麵包板 | 電路連接 |
-| 杜邦線 | 接線 |
-| USB供電 | 電源 |
+| 元件            | 用途         |
+| ------------- | ---------- |
+| ESP32 NodeMCU | 主控制器       |
+| MAX30102      | 心率 / 血氧感測  |
+| TFT 彩色螢幕      | 即時顯示       |
+| LED ×3        | 狀態燈        |
+| 有源蜂鳴器         | 心跳提示音      |
+| Button ×1     | 開始 / Reset |
+| 麵包板           | 電路連接       |
+| 杜邦線           | 接線         |
+| USB供電         | 電源         |
 
 ---
 
@@ -98,27 +103,30 @@ ESP32 使用：
 
 ## ESP32 功能
 
-| 功能 | 說明 |
-|---|---|
-| MAX30102 讀取 | BPM / SpO₂ |
-| TFT 控制 | 即時顯示 |
-| LED 控制 | 狀態燈 |
-| 蜂鳴器控制 | heartbeat beep |
-| Button 控制 | 開始 / Reset |
-| 狀態機控制 | WAITING / MEASURING / NO_FINGER |
-| Wi-Fi 連線 | 網路連線 |
-| MQTT Publish | 傳送感測資料 |
+| 功能               | 說明                              |
+| ---------------- | ------------------------------- |
+| MAX30102 讀取      | BPM / SpO₂                      |
+| TFT 控制           | 即時顯示                            |
+| LED 控制           | 狀態燈                             |
+| 蜂鳴器控制            | heartbeat beep                  |
+| Button 控制        | 開始 / Reset                      |
+| 狀態機控制            | WAITING / MEASURING / NO_FINGER |
+| Wi-Fi 連線         | 網路連線                            |
+| MQTT Publish     | 傳送感測資料                          |
+| MQTT Reconnect   | Broker 重連                       |
+| Finger Detection | 手指離開偵測                          |
 
 ---
 
 # 6. Arduino 使用 Library
 
-| Library | 用途 |
-|---|---|
+| Library           | 用途       |
+| ----------------- | -------- |
 | SparkFun MAX3010x | MAX30102 |
-| TFT_eSPI | TFT 顯示 |
-| PubSubClient | MQTT |
-| WiFi.h | Wi-Fi |
+| heartRate.h       | BPM 計算   |
+| TFT_eSPI          | TFT 顯示   |
+| PubSubClient      | MQTT     |
+| WiFi.h            | Wi-Fi    |
 
 ---
 
@@ -126,9 +134,9 @@ ESP32 使用：
 
 僅保留 1 顆按鈕。
 
-| 操作 | 功能 |
-|---|---|
-| 短按 | 開始量測 |
+| 操作 | 功能       |
+| -- | -------- |
+| 短按 | 開始量測     |
 | 長按 | Reset 系統 |
 
 ---
@@ -137,12 +145,14 @@ ESP32 使用：
 
 長按後：
 
-- 清空 BPM buffer
-- 清空 SpO₂ cache
-- 停止 MQTT Publish
-- 停止 MySQL 寫入
-- TFT 回待機畫面
-- LED 回初始狀態
+* 清空 BPM buffer
+* 清空 SpO₂ cache
+* 停止 MQTT Publish
+* 停止 MySQL 寫入
+* TFT 回待機畫面
+* LED 回初始狀態
+* 清空 elapsed time
+* 重置狀態機
 
 ---
 
@@ -150,11 +160,14 @@ ESP32 使用：
 
 ## 狀態
 
-| 狀態 | 說明 |
-|---|---|
-| WAITING | 等待開始 |
-| MEASURING | 正在量測 |
-| NO_FINGER | 手指離開 |
+| 狀態             | 說明       |
+| -------------- | -------- |
+| WAITING        | 等待開始     |
+| MEASURING      | 正在量測     |
+| NO_FINGER      | 手指離開     |
+| WIFI_LOST      | Wi-Fi 中斷 |
+| MQTT_RECONNECT | MQTT 重連中 |
+| SENSOR_ERROR   | 感測器異常    |
 
 ---
 
@@ -198,19 +211,17 @@ Measurement Paused
 
 ## 無手指時系統行為
 
-| 功能 | 行為 |
-|---|---|
-| BPM更新 | 停止 |
-| SpO₂更新 | 停止 |
-| MQTT | 暫停 |
-| MySQL | 不寫入 |
-| 蜂鳴器 | 不響 |
+| 功能     | 行為  |
+| ------ | --- |
+| BPM更新  | 停止  |
+| SpO₂更新 | 停止  |
+| MQTT   | 暫停  |
+| MySQL  | 不寫入 |
+| 蜂鳴器    | 不響  |
 
 ---
 
 # 11. TFT 顯示內容
-
----
 
 ## 待機畫面
 
@@ -250,8 +261,8 @@ Time:
 
 系統：
 
-- 至少量測 1 分鐘
-- 超過 1 分鐘後仍可持續量測
+* 至少量測 1 分鐘
+* 超過 1 分鐘後仍可持續量測
 
 TFT 顯示：
 
@@ -263,11 +274,11 @@ Time: 01:24
 
 # 13. LED 狀態燈
 
-| LED | 狀態 |
-|---|---|
-| 綠燈 | NORMAL |
-| 黃燈 | WARNING |
-| 紅燈 | DANGER |
+| LED | 狀態      |
+| --- | ------- |
+| 綠燈  | NORMAL  |
+| 黃燈  | WARNING |
+| 紅燈  | DANGER  |
 
 ---
 
@@ -289,11 +300,12 @@ Heartbeat Beep
 
 ## 蜂鳴器規則
 
-| 狀態 | 行為 |
-|---|---|
-| WAITING | 不響 |
-| MEASURING | heartbeat beep |
-| NO_FINGER | 不響 |
+| 狀態           | 行為             |
+| ------------ | -------------- |
+| WAITING      | 不響             |
+| MEASURING    | heartbeat beep |
+| NO_FINGER    | 不響             |
+| SENSOR_ERROR | 不響             |
 
 ---
 
@@ -303,44 +315,147 @@ ESP32 每秒 publish：
 
 ```json
 {
+  "device_id": "pulseguard_01",
   "bpm": 79,
   "spo2": 98,
   "status": "NORMAL",
-  "elapsed_time": 84
+  "elapsed_time": 84,
+  "signal_quality": 92
 }
+```
+
+---
+
+## MQTT Topic 設計
+
+```text
+pulseguard/device01/vitals
+pulseguard/device01/status
+pulseguard/device01/system
 ```
 
 ---
 
 ## MQTT 分工
 
-| 系統 | 功能 |
-|---|---|
-| ESP32 | Publish |
-| Node-RED | Subscribe |
-| Python | Subscribe |
+| 系統            | 功能        |
+| ------------- | --------- |
+| ESP32         | Publish   |
+| Web Dashboard | Subscribe |
+| Python        | Subscribe |
 
 ---
 
-# 16. Node-RED 功能
+# 16. HiveMQ Broker
 
-Node-RED 負責：
+系統使用：
 
-- MQTT 訂閱
-- 即時 Dashboard
-- BPM Gauge
-- 即時折線圖
-- SpO₂ 顯示
-- 狀態顯示
+## HiveMQ Cloud
+
+作為 MQTT Broker。
 
 ---
 
-# 17. 資料處理方式
+## HiveMQ 功能
+
+| 功能                    | 用途        |
+| --------------------- | --------- |
+| MQTT Broker           | IoT 資料交換  |
+| Client Authentication | MQTT 帳號驗證 |
+| TLS Encryption        | 加密傳輸      |
+| Multi-client Support  | 多裝置連線     |
+| Cloud Deployment      | 雲端運行      |
+
+---
+
+## ESP32 連線流程
+
+```text
+ESP32
+   ↓
+Wi-Fi Connect
+   ↓
+Connect HiveMQ
+   ↓
+MQTT Authentication
+   ↓
+Publish Sensor Data
+```
+
+---
+
+# 17. Web Dashboard 架構
+
+使用：
+
+* HTML
+* CSS
+* JavaScript
+* MQTT.js
+* Chart.js
+
+建立自訂即時監控網頁。
+
+---
+
+## Dashboard 功能
+
+| 功能             | 說明                        |
+| -------------- | ------------------------- |
+| MQTT Subscribe | 即時接收資料                    |
+| BPM 即時顯示       | 心率監控                      |
+| SpO₂ 即時顯示      | 血氧監控                      |
+| 即時折線圖          | BPM 趨勢                    |
+| 狀態顯示           | NORMAL / WARNING / DANGER |
+| 時間顯示           | Elapsed Time              |
+| 連線狀態           | MQTT 狀態                   |
+
+---
+
+## Dashboard 即時流程
+
+```text
+HiveMQ Broker
+      ↓
+ MQTT.js Subscribe
+      ↓
+ JavaScript Parse JSON
+      ↓
+ Chart.js Update
+      ↓
+ Web Dashboard 即時更新
+```
+
+---
+
+# 18. Chart.js 圖表功能
+
+Chart.js 負責：
+
+* BPM 即時折線圖
+* SpO₂ 即時折線圖
+* 歷史趨勢顯示
+* 資料動態更新
+
+---
+
+## 即時折線圖內容
+
+```text
+X-axis : Time
+Y-axis : BPM / SpO₂
+```
+
+---
+
+# 19. 資料處理方式
 
 採用：
 
-- 即時更新
-- 20 秒平均儲存
+* 即時更新
+* 20 秒平均儲存
+* EMA smoothing
+* Outlier filtering
 
 ---
 
@@ -350,8 +465,9 @@ ESP32：
 
 每秒：
 
-- 更新 TFT
-- 發送 MQTT
+* 更新 TFT
+* 發送 MQTT
+* 更新 heartbeat beep
 
 ---
 
@@ -361,44 +477,45 @@ Python：
 
 每 20 秒：
 
-- 收集 BPM 資料
-- 計算平均值
-- 判斷 Status
-- 寫入 MySQL
+* 收集 BPM 資料
+* 計算 EMA 平均
+* 移除異常值
+* 判斷 Status
+* 寫入 MySQL
 
 ---
 
-# 18. BPM 平均公式
+# 20. BPM 平均公式
 
-\[
-\bar{x}=\frac{x_1+x_2+x_3+\cdots+x_{20}}{20}
-\]
+使用 EMA（Exponential Moving Average）：
+
+[
+EMA_t = \alpha x_t + (1-\alpha)EMA_{t-1}
+]
 
 ---
 
-# 19. 心率與血氧聯合判斷流程
+# 21. BPM 變化量公式
 
-## BPM 變化量公式
-
-\[
+[
 \Delta BPM = BPM_{current} - BPM_{previous}
-\]
+]
 
 ---
+
+# 22. 心率與血氧聯合判斷流程
 
 ## 狀態分級表
 
-| 狀態 | 心率條件 (ΔBPM) | 血氧條件 (SpO₂) | 臨床意義 |
-|---|---|---|---|
-| NORMAL | \|ΔBPM\| < 10 且 BPM > 50 | ≥ 95% | 穩定，供氧正常 |
-| WARNING | \|ΔBPM\| ≥ 10 且 < 50 | 91–94% | 需注意，可能有供氧不足或心律不整 |
-| DANGER | BPM ≤ 50 或 \|ΔBPM\| ≥ 50 | ≤ 90% | 高風險，可能是心臟衰竭、呼吸障礙或急性事件 |
+| 狀態      | 心率條件 (ΔBPM)            | 血氧條件 (SpO₂) | 臨床意義                  |
+| ------- | ---------------------- | ----------- | --------------------- |
+| NORMAL  | |ΔBPM| < 10 且 BPM > 50 | 95% ~ 100%  | 穩定，供氧正常               |
+| WARNING | |ΔBPM| ≥ 10 且 < 50     | 90% ~ 94%   | 需注意，可能有供氧不足或心律不整      |
+| DANGER  | BPM ≤ 50 或 |ΔBPM| ≥ 50 | < 90%       | 高風險，可能是心臟衰竭、呼吸障礙或急性事件 |
 
 ---
 
-# 20. 判斷邏輯
-
----
+# 23. 判斷邏輯
 
 ## NORMAL
 
@@ -431,60 +548,72 @@ SpO₂ ≤ 90%
 
 ---
 
-# 21. Status 同步顯示
+# 24. Status 同步顯示
 
 Python 判斷完成後：
 
 Status 同步至：
 
-- TFT
-- LED
-- Node-RED Dashboard
-- MySQL
-- Streamlit
+* TFT
+* LED
+* Web Dashboard
+* MySQL
+* Streamlit
 
 ---
 
-# 22. MySQL 資料表
+# 25. MySQL 資料表
 
 ## heart_rate_data
 
-| 欄位 | 用途 |
-|---|---|
-| timestamp | 時間 |
-| bpm_avg | 20秒平均 BPM |
-| spo2 | 血氧 |
-| status | NORMAL / WARNING / DANGER |
+| 欄位             | 用途                        |
+| -------------- | ------------------------- |
+| id             | Primary Key               |
+| timestamp      | 時間                        |
+| device_id      | 裝置 ID                     |
+| raw_bpm        | 原始 BPM                    |
+| bpm_avg        | EMA BPM                   |
+| spo2           | 血氧                        |
+| delta_bpm      | BPM 變化量                   |
+| signal_quality | 訊號品質                      |
+| status         | NORMAL / WARNING / DANGER |
+| elapsed_time   | 已量測秒數                     |
 
 ---
 
-# 23. Python 功能
+# 26. Python 功能
 
 Python 負責：
 
-- smoothing
-- 平均化
-- ΔBPM 計算
-- Status 判斷
-- MySQL 寫入
-- 長期分析
-- 趨勢分析
-- 統計分析
+* MQTT Subscribe
+* smoothing
+* EMA 計算
+* outlier filtering
+* ΔBPM 計算
+* Status 判斷
+* MySQL 寫入
+* 長期分析
+* 趨勢分析
+* 統計分析
+* 異常事件分析
 
 ---
 
-# 24. Streamlit 功能
+# 27. Streamlit 功能
 
 Streamlit 負責：
 
-- 視覺化分析
-- 歷史趨勢
-- 每日分析
-- 每月分析
+* 視覺化分析
+* 歷史趨勢
+* 每日分析
+* 每月分析
+* 危險事件統計
+* BPM 趨勢圖
+* SpO₂ 趨勢圖
 
 ---
 
-# 25. LINE 通知功能
+# 28. LINE 通知功能
 
 LINE 僅負責摘要通知。
 
@@ -518,31 +647,152 @@ Average SpO₂: 97%
 
 ---
 
-# 26. Cloud 架構
+# 29. Cloud 架構
 
 使用 Railway 部署：
 
-| 服務 | 用途 |
-|---|---|
-| MySQL | 資料庫 |
-| Node-RED | Dashboard |
-| Python | 分析服務 |
-| Streamlit | 視覺化平台 |
+| 服務            | 用途          |
+| ------------- | ----------- |
+| HiveMQ        | MQTT Broker |
+| MySQL         | 資料庫         |
+| Python        | 分析服務        |
+| Streamlit     | 視覺化平台       |
+| Web Dashboard | 即時監控頁面      |
 
 ---
 
-# 27. 專題定位
+# 30. 系統安全性
+
+## MQTT 安全機制
+
+| 功能                  | 用途      |
+| ------------------- | ------- |
+| Username / Password | MQTT 驗證 |
+| TLS                 | 加密傳輸    |
+| Device ID           | 裝置識別    |
+
+---
+
+## Database 安全性
+
+* 使用環境變數保存帳號密碼
+* 不公開 MySQL Port
+* Railway Private Network
+
+---
+
+# 31. 錯誤處理機制
+
+| 問題                | 系統行為            |
+| ----------------- | --------------- |
+| Wi-Fi 中斷          | 自動重新連線          |
+| MQTT 中斷           | 自動 reconnect    |
+| MAX30102 無回應      | 進入 SENSOR_ERROR |
+| 手指移開              | 停止量測            |
+| MQTT Publish Fail | Retry publish   |
+
+---
+
+# 32. 系統資料流
+
+```text
+MAX30102
+   ↓
+ESP32
+   ↓ MQTT Publish
+HiveMQ Broker
+   ↓
+Python Subscribe
+   ↓
+EMA + Analysis
+   ↓
+MySQL
+   ↓
+Streamlit Analytics
+   ↓
+LINE Summary
+```
+
+---
+
+# 33. Web Dashboard 資料流
+
+```text
+HiveMQ Broker
+      ↓
+ MQTT.js
+      ↓
+ JSON Parsing
+      ↓
+ Chart.js Update
+      ↓
+ Web Real-time Dashboard
+```
+
+---
+
+# 34. 專題定位
 
 PulseGuard IoT 屬於：
 
-## IoT 智慧健康監控與資料分析平台
+# IoT 智慧健康監控與資料分析平台
 
 具備：
 
-- 即時監測
-- IoT傳輸
-- 長期資料分析
-- 視覺化 Dashboard
-- 雲端部署
-- 健康摘要通知
-- 心率與血氧聯合判斷
+* 即時生理監測
+* IoT 即時傳輸
+* Web Dashboard
+* 雲端 MQTT 架構
+* 即時資料視覺化
+* 長期資料分析
+* 異常狀態判斷
+* 健康摘要通知
+* 雲端部署
+* 可擴充 IoT 架構
+
+---
+
+# 35. 專題特色
+
+## Embedded System
+
+* ESP32 State Machine
+* Real-time Sensor Reading
+* TFT UI
+* Heartbeat Beep
+
+---
+
+## IoT Architecture
+
+* MQTT Protocol
+* HiveMQ Cloud Broker
+* Multi-client Subscription
+* Real-time Streaming
+
+---
+
+## Web Technology
+
+* MQTT.js
+* Chart.js
+* JavaScript Real-time Update
+* Web Dashboard
+
+---
+
+## Data Analysis
+
+* EMA smoothing
+* Outlier Filtering
+* Status Classification
+* Trend Analysis
+
+---
+
+## Cloud Platform
+
+* Railway Deployment
+* Cloud Database
+* Streamlit Analytics
+* LINE Notification
