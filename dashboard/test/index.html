@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MQTT Testing Tool - PulseGuard</title>
+    <link rel="icon" type="image/png" href="../icon.png">
+    <link rel="stylesheet" href="../styles.css">
+    <script src="../lib/mqttws31.min.js" type="text/javascript"></script>
+    <style>
+        .test-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 2rem;
+        }
+        .header-status {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 0.5rem 1rem;
+            border-radius: 2rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .grid-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        @media (max-width: 768px) {
+            .grid-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        .form-group label {
+            display: block;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.25rem;
+        }
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 0.65rem;
+            background: #0f172a;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 0.5rem;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+            transition: border-color 0.2s;
+        }
+        .form-group input:focus, .form-group select:focus {
+            border-color: var(--neon-blue);
+            outline: none;
+        }
+        .btn-group {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+        button {
+            padding: 0.7rem 1.2rem;
+            border-radius: 0.5rem;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+            background: var(--card-bg);
+            color: var(--text-primary);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+        button:hover:not(:disabled) {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+        button:disabled { opacity: 0.4; cursor: not-allowed; }
+        button.primary {
+            background: var(--neon-blue);
+            color: #000;
+            border: none;
+        }
+        button.primary:hover:not(:disabled) {
+            box-shadow: 0 0 15px rgba(56, 189, 248, 0.4);
+            opacity: 0.9;
+        }
+        button.warning {
+            background: transparent;
+            color: var(--neon-yellow);
+            border: 1px solid var(--neon-yellow);
+        }
+        button.warning:hover:not(:disabled) {
+            background: var(--neon-yellow);
+            color: #000;
+        }
+        button.active {
+            border-color: var(--neon-green);
+            box-shadow: 0 0 10px rgba(74, 222, 128, 0.3);
+            color: var(--neon-green);
+        }
+
+        .status-dot {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #4b5563;
+        }
+        .status-dot.connected { background: var(--neon-green); box-shadow: 0 0 8px var(--neon-green); }
+        .status-dot.disconnected { background: var(--neon-red); }
+
+        .log-area {
+            background: #000;
+            color: #4ade80; /* neon-green */
+            font-family: 'Fira Code', 'Courier New', Courier, monospace;
+            padding: 1rem;
+            height: 400px;
+            overflow-y: auto;
+            border-radius: 0.75rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 0.85rem;
+            line-height: 1.5;
+            box-shadow: inset 0 2px 10px rgba(0,0,0,0.5);
+        }
+        .log-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .card {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        /* Multilingual rules are inherited from styles.css */
+    </style>
+</head>
+<body class="lang-en">
+    <div class="test-container">
+        <header>
+            <div class="header-main">
+                <h1>
+                    <span data-lang="en">MQTT Testing Tool</span>
+                    <span data-lang="zh">MQTT 測試工具</span>
+                </h1>
+                <p class="refresh-warning">
+                    <span data-lang="en">PulseGuard System Integration & Defense Test Suite</span>
+                    <span data-lang="zh">PulseGuard 系統整合與防禦測試套件</span>
+                </p>
+            </div>
+            <div class="header-status">
+                <div id="conn-indicator" class="status-dot"></div>
+                <span id="conn-text" style="font-size: 0.8rem; font-weight: 600;">
+                    <span data-lang="en">Connecting...</span>
+                    <span data-lang="zh">連線中...</span>
+                </span>
+            </div>
+        </header>
+
+        <main>
+            <div class="grid-layout">
+                <!-- Manual Section -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2>
+                            <span data-lang="en">MANUAL SEND</span>
+                            <span data-lang="zh">手動發送</span>
+                        </h2>
+                    </div>
+
+                    <div class="form-group">
+                        <label>
+                            <span data-lang="en">Quick Presets</span>
+                            <span data-lang="zh">快速預設</span>
+                        </label>
+                        <select id="presetSelect">
+                            <option value="" data-en="-- Select a preset... --" data-zh="-- 請選擇預設值... --">-- Select a preset... --</option>
+                            <option value="normal" data-en="Normal (70 BPM, 98% SpO2)" data-zh="正常 (70 BPM, 98% SpO2)">Normal (70 BPM, 98% SpO2)</option>
+                            <option value="low_spo2" data-en="Low SpO2 (75 BPM, 92% SpO2)" data-zh="低血氧 (75 BPM, 92% SpO2)">Low SpO2 (75 BPM, 92% SpO2)</option>
+                            <option value="high_bpm" data-en="High BPM (110 BPM, 97% SpO2)" data-zh="高心率 (110 BPM, 97% SpO2)">High BPM (110 BPM, 97% SpO2)</option>
+                            <option value="severe_low_spo2" data-en="Severe Low SpO2 (80 BPM, 85% SpO2)" data-zh="嚴重低血氧 (80 BPM, 85% SpO2)">Severe Low SpO2 (80 BPM, 85% SpO2)</option>
+                            <option value="acute_tachycardia" data-en="Acute Tachycardia (140 BPM, 96% SpO2)" data-zh="急性心動過速 (140 BPM, 96% SpO2)">Acute Tachycardia (140 BPM, 96% SpO2)</option>
+                        </select>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div class="form-group">
+                            <label>BPM</label>
+                            <input type="number" id="manual-bpm" value="70">
+                        </div>
+                        <div class="form-group">
+                            <label>SpO2 (%)</label>
+                            <input type="number" id="manual-spo2" value="98">
+                        </div>
+                    </div>
+
+                    <div class="btn-group">
+                        <button class="primary" id="sendManualBtn" style="flex: 1;">
+                            <span data-lang="en">Send Single</span>
+                            <span data-lang="zh">單次發送</span>
+                        </button>
+                        <button id="autoSendBtn" class="warning" style="flex: 1;">
+                            <span data-lang="en">Start Auto (2s)</span>
+                            <span data-lang="zh">啟動自動發送</span>
+                        </button>
+                    </div>
+                    <div class="btn-group">
+                        <button id="sendResetBtn" style="width: 100%; border-color: var(--neon-yellow); color: var(--neon-yellow);">
+                            <span data-lang="en">Send Reset Status</span>
+                            <span data-lang="zh">發送重置狀態</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Scenarios Section -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2>
+                            <span data-lang="en">TEST SCENARIOS</span>
+                            <span data-lang="zh">測試場景</span>
+                        </h2>
+                    </div>
+
+                    <div class="form-group">
+                        <label>
+                            <span data-lang="en">Select Scenario</span>
+                            <span data-lang="zh">選擇場景</span>
+                        </label>
+                        <select id="scenarioSelect">
+                            <option value="" data-en="-- Select a scenario... --" data-zh="-- 請選擇場景... --">-- Select a scenario... --</option>
+                            <option value="A" data-en="Scenario A: First Valid Write Test" data-zh="場景 A: 首次有效寫入測試">Scenario A: First Valid Write Test</option>
+                            <option value="B" data-en="Scenario B: Sensor Detachment Defense" data-zh="場景 B: 感測器脫落防禦">Scenario B: Sensor Detachment Defense</option>
+                            <option value="C" data-en="Scenario C: SpO2 Drop Zero-Latency Write" data-zh="場景 C: 血氧下降零延遲寫入">Scenario C: SpO2 Drop Zero-Latency Write</option>
+                            <option value="D" data-en="Scenario D: Acute BPM Surge (ΔBPM)" data-zh="場景 D: 急性心率突增 (ΔBPM)">Scenario D: Acute BPM Surge (ΔBPM)</option>
+                            <option value="E" data-en="Scenario E: Timer Interception Test" data-zh="場景 E: 定時器截斷測試">Scenario E: Timer Interception Test</option>
+                        </select>
+                    </div>
+
+                    <div id="scenarioDescription" style="font-size: 0.8rem; color: var(--text-secondary); line-height: 1.4; min-height: 4em; margin-bottom: 1rem;">
+                        <div data-lang="en" id="desc-en">Please select a scenario to see details.</div>
+                        <div data-lang="zh" id="desc-zh">請選擇場景以查看詳情。</div>
+                    </div>
+
+                    <div class="btn-group">
+                        <button class="primary" id="executeScenarioBtn" style="width: 100%; justify-content: center;">
+                            <span data-lang="en">Execute Scenario</span>
+                            <span data-lang="zh">執行場景</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Log Section -->
+            <div class="log-container">
+                    <div class="log-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                        <h2 style="margin: 0; font-size: 0.875rem; color: var(--text-secondary); text-transform: uppercase;">
+                        <span data-lang="en">MESSAGE LOG</span>
+                        <span data-lang="zh">訊息日誌</span>
+                    </h2>
+                        <button id="clearLogBtn" style="font-size: 0.7rem; padding: 0.3rem 0.8rem;">
+                            <span data-lang="en">Clear Log</span>
+                            <span data-lang="zh">清除日誌</span>
+                        </button>
+                </div>
+                <div id="log" class="log-area"></div>
+            </div>
+        </main>
+    </div>
+
+    <script type="module" src="/test/test-logic.js"></script>
+</body>
+</html>
