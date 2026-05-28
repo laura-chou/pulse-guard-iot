@@ -19,7 +19,8 @@ Pulse pulseRed;
 MAFilter bpm;
 
 #define LED LED_BUILTIN
-#define BUTTON 15  // 按鍵 GPIO 15
+#define BUTTON 15       // 按鍵 GPIO 15
+#define BUZZER_PIN 19   // 蜂鳴器 GPIO 19 (可依需求修改)
 
 // ─── 狀態判斷條件與定義 ───
 enum DeviceStatus { STATUS_NORMAL, STATUS_WARNING, STATUS_DANGER };
@@ -39,6 +40,13 @@ const unsigned long DEBOUNCE_TIME = 50;     // 按鍵彈跳過濾
 
 bool isShowingReset = false;             // 是否正在顯示重置訊息
 unsigned long resetMessageStartTime = 0; // 重置訊息開始顯示的時間點
+
+// ─── 蜂鳴器非阻塞控制變數 ───
+int beepsToPlay = 0;             // 剩餘需要響的次數
+bool isBuzzerOn = false;         // 目前蜂鳴器是否正在發聲
+uint32_t lastBuzzerToggleTime = 0; // 上次切換聲音狀態的時間
+const int BEEP_ON_TIME = 50;     // 每次短響持續時間 (毫秒)
+const int BEEP_OFF_TIME = 50;    // 連響時的間隔時間 (毫秒)
 
 // (♥) 心率圖標 16x16 XBM
 static const uint8_t heart_bits[] PROGMEM = { 
@@ -126,6 +134,7 @@ uint8_t sleep_counter = 0;
 void go_sleep() { 
     tft.fillScreen(ST7735_BLACK);
     tft.enableDisplay(false);
+    noTone(BUZZER_PIN); // 休眠前強制關閉蜂鳴器
     delay(10);
     sensor.off();
     delay(10);
@@ -230,8 +239,6 @@ void draw_oled(int msg) {
                 }
             }
             
-            // ─── 下方大數字動態局部刷新 (含修復沒數據留白問題) ───
-            // 【左半邊：心率數值】
             if (beatAvg != last_printed_bpm) {
                 last_printed_bpm = beatAvg;
                 tft.fillRect(5, 82, 70, 24, ST7735_BLACK);
@@ -245,7 +252,6 @@ void draw_oled(int msg) {
                     tft.setCursor(numX, 82);
                     tft.print(beatAvg);
                 } else {
-                    // 若數據尚在計算(等於0)，顯示 "---" 佔位符
                     int numWidth = 3 * 18;
                     int numX = (80 - numWidth) / 2;
                     tft.setCursor(numX, 82);
@@ -253,7 +259,6 @@ void draw_oled(int msg) {
                 }
             }
             
-            // 【右半邊：血氧數值】
             if (SPO2 != last_printed_spo2) {
                 last_printed_spo2 = SPO2;
                 tft.fillRect(85, 82, 70, 24, ST7735_BLACK);
@@ -267,7 +272,6 @@ void draw_oled(int msg) {
                     tft.setCursor(numX, 82);
                     tft.print(SPO2);
                 } else {
-                    // 若數據尚在計算(等於0)，顯示 "---" 佔位符
                     int numWidth = 3 * 18;
                     int numX = 80 + (80 - numWidth) / 2;
                     tft.setCursor(numX, 82);
@@ -310,13 +314,18 @@ void handleShortPress() {
     draw_oled(1);  
 }
 
-// ─── 按鈕操作：長按 8 項 Reset 功能 (無阻塞安全版) ───
+// ─── 按鈕操作：長按 8 項 Reset 功能 ───
 void handleLongPress() {
     beatAvg = 0;
     SPO2 = 0;
     SPO2f = 0;
     last_printed_bpm = -1;
     last_printed_spo2 = -1;
+
+    // 清空並強制關閉蜂鳴器
+    beepsToPlay = 0;
+    isBuzzerOn = false;
+    noTone(BUZZER_PIN);
 
     digitalWrite(LED, LOW);
     
@@ -345,6 +354,8 @@ void handleLongPress() {
 void setup(void) {
   pinMode(LED, OUTPUT);
   pinMode(BUTTON, INPUT_PULLUP);
+  pinMode(BUZZER_PIN, OUTPUT); // 初始化蜂鳴器腳位
+  noTone(BUZZER_PIN);
 
   tft.initR(INITR_BLACKTAB);
   tft.setRotation(1); 
@@ -390,7 +401,7 @@ void loop()  {
     }
     lastButtonState = currentButtonState;
 
-    // ─── 2. 攔截與清空感測器 Buffer (防卡死機制) ───
+    // ─── 2. 攔截與清空感測器 Buffer ───
     if (isShowingReset) {
         if (millis() - resetMessageStartTime < 1500) {
             sensor.check();
@@ -420,12 +431,15 @@ void loop()  {
     if (irValue < 5000) { 
         lastTimerUpdate = 0; 
         
-        // 【新增優化】當手指離開，主動將數據清空為 0
-        // 確保下一次重新量測時，數據從 "---" 乾淨地重新計算，不閃爍舊資料
+        // 手指離開：主動清空資料與蜂鳴器排程，保持安靜
         beatAvg = 0;
         SPO2 = 0;
         SPO2f = 0;
         currentStatus = STATUS_NORMAL;
+        
+        beepsToPlay = 0;
+        isBuzzerOn = false;
+        noTone(BUZZER_PIN);
         
         int current_msg = (sleep_counter <= 50 ? 1 : 4);
         draw_oled(current_msg);
@@ -477,6 +491,22 @@ void loop()  {
                     currentStatus = STATUS_NORMAL;
                 }
             }
+            
+            // ─── 觸發蜂鳴器排程 ───
+            if (currentStatus == STATUS_NORMAL) {
+                beepsToPlay = 1; // 單響
+            } else if (currentStatus == STATUS_WARNING) {
+                beepsToPlay = 2; // 雙響
+            } else if (currentStatus == STATUS_DANGER) {
+                beepsToPlay = 4; // 連續急促 4 響
+            }
+            
+            // 啟動第一響
+            if (beepsToPlay > 0) {
+                isBuzzerOn = true;
+                lastBuzzerToggleTime = now;
+                tone(BUZZER_PIN, 2000); // 頻率 2000Hz
+            }
         }
 
         if (now - displaytime > 50) { 
@@ -489,5 +519,28 @@ void loop()  {
     if (led_on && (now - lastBeat) > 25){
         digitalWrite(LED, LOW);
         led_on = false;
+    }
+    
+    // ─── 4. 非阻塞蜂鳴器播放狀態機 ───
+    if (beepsToPlay > 0) {
+        uint32_t timePassed = millis() - lastBuzzerToggleTime;
+        if (isBuzzerOn) {
+            // 響聲時間結束，關閉並切換為安靜間隔
+            if (timePassed >= BEEP_ON_TIME) {
+                noTone(BUZZER_PIN);
+                isBuzzerOn = false;
+                lastBuzzerToggleTime = millis();
+                beepsToPlay--; // 消耗一次響聲扣打
+            }
+        } else {
+            // 安靜間隔結束，如果還有剩餘扣打，就繼續發聲
+            if (timePassed >= BEEP_OFF_TIME && beepsToPlay > 0) {
+                tone(BUZZER_PIN, 2000);
+                isBuzzerOn = true;
+                lastBuzzerToggleTime = millis();
+            }
+        }
+    } else {
+        noTone(BUZZER_PIN); // 確保未排程時絕對安靜
     }
 }
