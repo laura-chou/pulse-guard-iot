@@ -19,7 +19,7 @@ Pulse pulseRed;
 MAFilter bpm;
 
 #define LED LED_BUILTIN
-#define BUTTON 15  // 按鍵 GPIO 15 (僅保留休眠喚醒功能)
+#define BUTTON 15  // 按鍵 GPIO 15
 
 // ─── 狀態判斷條件與定義 ───
 enum DeviceStatus { STATUS_NORMAL, STATUS_WARNING, STATUS_DANGER };
@@ -30,6 +30,15 @@ uint32_t totalFingerSeconds = 0; // 累計有手指的量測秒數
 uint32_t lastTimerUpdate = 0;    // 上次計時更新的時間點
 int last_printed_seconds = -1;   // 上次繪製的秒數快取 (防閃爍)
 int last_printed_status = -1;    // 上次繪製的狀態快取 (防閃爍)
+
+// ─── 按鍵偵測與畫面停留變數 ───
+unsigned long buttonPressStart = 0;
+bool lastButtonState = HIGH;
+const unsigned long LONG_PRESS_TIME = 2000; // 長按定義為 2000 毫秒
+const unsigned long DEBOUNCE_TIME = 50;     // 按鍵彈跳過濾
+
+bool isShowingReset = false;             // 是否正在顯示重置訊息
+unsigned long resetMessageStartTime = 0; // 重置訊息開始顯示的時間點
 
 // (♥) 心率圖標 16x16 XBM
 static const uint8_t heart_bits[] PROGMEM = { 
@@ -84,8 +93,7 @@ class Waveform {
         uint8_t maxw = 0;
         uint8_t minw = 255;
         for (int i = 0; i < MAXWAVE; i++) { 
-            maxw = waveform[i] > maxw ?
-            waveform[i] : maxw;
+            maxw = waveform[i] > maxw ? waveform[i] : maxw;
             minw = waveform[i] < minw ? waveform[i] : minw;
         }
         uint8_t range = maxw - minw;
@@ -142,15 +150,11 @@ void draw_oled(int msg) {
         last_printed_status = -1;  
         
         if (msg == 2) {
-            // ─── 頂部狀態列背景 (0 ~ 15px) ───
             tft.fillRect(0, 0, 160, 15, ST7735_BLACK);
-            
-            // ─── 全新 UI 分割線系統 ───
-            tft.drawFastHLine(0, 15, 160, ST7735_WHITE); // 狀態列與波形分隔線 (Y:15)
-            tft.drawFastHLine(0, 75, 160, ST7735_WHITE); // 波形與數據區分隔線 (Y:75)
-            tft.drawFastVLine(80, 75, 53, ST7735_WHITE); // 左右數據中央分隔線 (X:80)
+            tft.drawFastHLine(0, 15, 160, ST7735_WHITE); 
+            tft.drawFastHLine(0, 75, 160, ST7735_WHITE); 
+            tft.drawFastVLine(80, 75, 53, ST7735_WHITE); 
 
-            // 下方 Icon 與單位固定渲染
             tft.drawXBitmap(21, 110, heart_bits, 16, 16, ST7735_RED);
             tft.setTextSize(1); tft.setTextColor(ST7735_RED, ST7735_BLACK);
             tft.setCursor(21 + 16 + 4, 114); tft.print(F("BPM"));
@@ -185,14 +189,12 @@ void draw_oled(int msg) {
         case 2: 
             wave.draw(0);
             
-            // ─── 上半部狀態與計時動態局部刷新 (Y: 0 ~ 15) ───
             if ((int)currentStatus != last_printed_status || (int)totalFingerSeconds != last_printed_seconds) {
                 tft.setTextSize(1);
                 
-                // A. 當狀態有變更時，才局部重繪左側狀態區
                 if ((int)currentStatus != last_printed_status) {
                     last_printed_status = (int)currentStatus;
-                    tft.fillRect(0, 0, 110, 15, ST7735_BLACK); // 清除舊狀態字
+                    tft.fillRect(0, 0, 110, 15, ST7735_BLACK); 
                     
                     uint16_t dotColor = ST7735_GREEN;
                     const char* statusStr = "NORMAL";
@@ -205,17 +207,15 @@ void draw_oled(int msg) {
                         statusStr = "DANGER";
                     }
                     
-                    // 繪製 🟢 實心燈號替代點 (X:8, Y:7, 半徑:3)
                     tft.fillCircle(8, 7, 3, dotColor);
                     tft.setTextColor(ST7735_WHITE, ST7735_BLACK);
                     tft.setCursor(18, 4);
                     tft.print(statusStr);
                 }
                 
-                // B. 當秒數有變更時，才局部重繪右側時間區 (MM:SS)
                 if ((int)totalFingerSeconds != last_printed_seconds) {
                     last_printed_seconds = (int)totalFingerSeconds;
-                    tft.fillRect(120, 0, 40, 15, ST7735_BLACK); // 清除舊時間
+                    tft.fillRect(120, 0, 40, 15, ST7735_BLACK); 
                     
                     int mins = totalFingerSeconds / 60;
                     int secs = totalFingerSeconds % 60;
@@ -230,34 +230,49 @@ void draw_oled(int msg) {
                 }
             }
             
-            // ─── 下方大數字動態局部刷新 ───
+            // ─── 下方大數字動態局部刷新 (含修復沒數據留白問題) ───
             // 【左半邊：心率數值】
-            if (beatAvg != last_printed_bpm && beatAvg > 0) {
+            if (beatAvg != last_printed_bpm) {
                 last_printed_bpm = beatAvg;
                 tft.fillRect(5, 82, 70, 24, ST7735_BLACK);
                 
-                int numDigits = (beatAvg < 10) ? 1 : ((beatAvg < 100) ? 2 : 3);
-                int numWidth = numDigits * 18;
-                int numX = (80 - numWidth) / 2;
                 tft.setTextSize(3);
                 tft.setTextColor(ST7735_WHITE, ST7735_BLACK);
-                tft.setCursor(numX, 82);
-                tft.print(beatAvg);
+                if (beatAvg > 0) {
+                    int numDigits = (beatAvg < 10) ? 1 : ((beatAvg < 100) ? 2 : 3);
+                    int numWidth = numDigits * 18;
+                    int numX = (80 - numWidth) / 2;
+                    tft.setCursor(numX, 82);
+                    tft.print(beatAvg);
+                } else {
+                    // 若數據尚在計算(等於0)，顯示 "---" 佔位符
+                    int numWidth = 3 * 18;
+                    int numX = (80 - numWidth) / 2;
+                    tft.setCursor(numX, 82);
+                    tft.print(F("---"));
+                }
             }
             
             // 【右半邊：血氧數值】
-            if (SPO2 != last_printed_spo2 && SPO2 > 0) {
+            if (SPO2 != last_printed_spo2) {
                 last_printed_spo2 = SPO2;
                 tft.fillRect(85, 82, 70, 24, ST7735_BLACK);
                 
-                int numDigits = (SPO2 < 10) ? 1 : ((SPO2 < 100) ? 2 : 3);
-                int numWidth = numDigits * 18;
-                int numX = 80 + (80 - numWidth) / 2;
-                
                 tft.setTextSize(3);
                 tft.setTextColor(ST7735_WHITE, ST7735_BLACK);
-                tft.setCursor(numX, 82);
-                tft.print(SPO2);
+                if (SPO2 > 0) {
+                    int numDigits = (SPO2 < 10) ? 1 : ((SPO2 < 100) ? 2 : 3);
+                    int numWidth = numDigits * 18;
+                    int numX = 80 + (80 - numWidth) / 2;
+                    tft.setCursor(numX, 82);
+                    tft.print(SPO2);
+                } else {
+                    // 若數據尚在計算(等於0)，顯示 "---" 佔位符
+                    int numWidth = 3 * 18;
+                    int numX = 80 + (80 - numWidth) / 2;
+                    tft.setCursor(numX, 82);
+                    tft.print(F("---"));
+                }
             }
             break;
 
@@ -288,18 +303,43 @@ void draw_oled(int msg) {
     }
 }
 
-// ─── 呼叫動態顏色計算 (已移除畫面上的實體點) ───
-void update_breathing_dot(int msg) {
-    static uint32_t lastBreathTime = 0;
-    if (millis() - lastBreathTime < 30) return; 
-    lastBreathTime = millis();
+// ─── 按鈕操作：短按 ───
+void handleShortPress() {
+    sleep_counter = 0; 
+    last_msg = -1; 
+    draw_oled(1);  
+}
 
-    uint32_t t = millis() / 3; 
-    uint16_t breath = t % 512;
-    if (breath > 255) breath = 511 - breath; 
+// ─── 按鈕操作：長按 8 項 Reset 功能 (無阻塞安全版) ───
+void handleLongPress() {
+    beatAvg = 0;
+    SPO2 = 0;
+    SPO2f = 0;
+    last_printed_bpm = -1;
+    last_printed_spo2 = -1;
 
-    // 計算出顏色後不再繪製 tft.fillRect，避免在 BPM 數字右下角產生誤導性的點
-    // 若未來有其他 UI 需要用到這個呼吸顏色，可在此擴充。
+    digitalWrite(LED, LOW);
+    
+    totalFingerSeconds = 0;
+    lastTimerUpdate = 0;
+    last_printed_seconds = -1;
+
+    currentStatus = STATUS_NORMAL;
+    last_printed_status = -1;
+
+    // 顯示成功重置畫面
+    tft.fillScreen(ST7735_BLACK);
+    tft.setTextSize(2);
+    tft.setTextColor(ST7735_GREEN, ST7735_BLACK);
+    tft.setCursor(8, 45); 
+    tft.print(F("SYSTEM RESET"));
+    tft.setTextSize(1);
+    tft.setTextColor(ST7735_WHITE, ST7735_BLACK);
+    tft.setCursor(52, 75);
+    tft.print(F("SUCCESS !"));
+
+    isShowingReset = true;
+    resetMessageStartTime = millis();
 }
 
 void setup(void) {
@@ -307,7 +347,7 @@ void setup(void) {
   pinMode(BUTTON, INPUT_PULLUP);
 
   tft.initR(INITR_BLACKTAB);
-  tft.setRotation(1); // 橫向 160x128 模式
+  tft.setRotation(1); 
   tft.fillScreen(ST7735_BLACK);
 
   draw_oled(3);
@@ -326,8 +366,50 @@ void setup(void) {
 long lastBeat = 0;
 long displaytime = 0;
 bool led_on = false;
+uint32_t lastSleepCounterTime = 0; 
 
 void loop()  {
+    // ─── 1. 按鍵狀態掃描 ───
+    bool currentButtonState = digitalRead(BUTTON);
+    
+    if (lastButtonState == HIGH && currentButtonState == LOW) {
+        buttonPressStart = millis(); 
+    } 
+    else if (lastButtonState == LOW && currentButtonState == HIGH) {
+        unsigned long pressDuration = millis() - buttonPressStart;
+        if (pressDuration >= DEBOUNCE_TIME && pressDuration < LONG_PRESS_TIME && buttonPressStart > 0) {
+            if (isShowingReset) isShowingReset = false; 
+            handleShortPress();
+        }
+        buttonPressStart = 0;
+    }
+
+    if (currentButtonState == LOW && buttonPressStart > 0 && (millis() - buttonPressStart >= LONG_PRESS_TIME)) {
+        handleLongPress();    
+        buttonPressStart = 0; 
+    }
+    lastButtonState = currentButtonState;
+
+    // ─── 2. 攔截與清空感測器 Buffer (防卡死機制) ───
+    if (isShowingReset) {
+        if (millis() - resetMessageStartTime < 1500) {
+            sensor.check();
+            while (sensor.available()) {
+                sensor.getIR();
+                sensor.getRed();
+                sensor.nextSample(); 
+            }
+            return; 
+        } else {
+            isShowingReset = false;
+            sleep_counter = 0;
+            lastSleepCounterTime = millis();
+            last_msg = -1;
+            draw_oled(1); 
+        }
+    }
+
+    // ─── 3. 感測器量測核心邏輯 ───
     sensor.check();
     long now = millis();
     if (!sensor.available()) return;
@@ -336,18 +418,25 @@ void loop()  {
     sensor.nextSample();
 
     if (irValue < 5000) { 
-        // ─── 手指離開：暫停計時 (不再歸零秒數) ───
         lastTimerUpdate = 0; 
+        
+        // 【新增優化】當手指離開，主動將數據清空為 0
+        // 確保下一次重新量測時，數據從 "---" 乾淨地重新計算，不閃爍舊資料
+        beatAvg = 0;
+        SPO2 = 0;
+        SPO2f = 0;
+        currentStatus = STATUS_NORMAL;
         
         int current_msg = (sleep_counter <= 50 ? 1 : 4);
         draw_oled(current_msg);
-        update_breathing_dot(current_msg);
         
-        delay(200);
-        ++sleep_counter;
-        if (sleep_counter > 100) {
-          go_sleep();
-          sleep_counter = 0;
+        if (now - lastSleepCounterTime >= 200) {
+            lastSleepCounterTime = now;
+            ++sleep_counter;
+            if (sleep_counter > 100) {
+              go_sleep();
+              sleep_counter = 0;
+            }
         }
     } else {
         sleep_counter = 0;
@@ -357,7 +446,6 @@ void loop()  {
         bool beatIR  = pulseIR.isBeat(IR_signal);
         wave.record(-IR_signal);
 
-        // ─── 手指在上面：開始/接續計時 ───
         if (lastTimerUpdate == 0) {
             lastTimerUpdate = now; 
         }
@@ -380,7 +468,6 @@ void loop()  {
             if ((RX100 >= 0) && (RX100 < 184))
               SPO2 = pgm_read_byte_near(&spo2_table[RX100]);
 
-            // ─── 根據得到的真實血氧 (SPO2) 與 心率 (beatAvg) 綜合判定狀態 ───
             if (SPO2 > 0 && beatAvg > 0) { 
                 if (SPO2 < 90 || beatAvg < 50 || beatAvg > 120) {
                     currentStatus = STATUS_DANGER;
@@ -397,8 +484,6 @@ void loop()  {
             wave.scale();
             draw_oled(2);
         }
-        
-        update_breathing_dot(2);
     }
 
     if (led_on && (now - lastBeat) > 25){
