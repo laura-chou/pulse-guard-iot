@@ -7,6 +7,7 @@
 #include <pgmspace.h>
 
 // 定義 TFT 接腳
+#define TFT_BLK    4
 #define TFT_CS     5
 #define TFT_DC    16
 #define TFT_RST   17
@@ -135,6 +136,7 @@ void go_sleep() {
     tft.fillScreen(ST7735_BLACK);
     tft.enableDisplay(false);
     noTone(BUZZER_PIN); // 休眠前強制關閉蜂鳴器
+    digitalWrite(TFT_BLK, LOW); // 關閉背光
     delay(10);
     sensor.off();
     delay(10);
@@ -360,6 +362,8 @@ void setup(void) {
   tft.initR(INITR_BLACKTAB);
   tft.setRotation(1); 
   tft.fillScreen(ST7735_BLACK);
+  pinMode(TFT_BLK, OUTPUT);
+  digitalWrite(TFT_BLK, HIGH); // 開機時點亮背光
 
   draw_oled(3);
   delay(3000);
