@@ -1,0 +1,214 @@
+{
+  "type": "bubble",
+  "size": "mega",
+  "header": {
+    "type": "box",
+    "layout": "vertical",
+    "contents": [
+      {
+        "type": "text",
+        "text": "📊 PulseGuard 量測報告",
+        "weight": "bold",
+        "size": "lg",
+        "color": "#111111"
+      },
+      {
+        "type": "text",
+        "text": "Measurement Report",
+        "size": "xs",
+        "color": "#999999",
+        "margin": "xs"
+      }
+    ],
+    "paddingBottom": "md"
+  },
+  "body": {
+    "type": "box",
+    "layout": "vertical",
+    "contents": [
+      {
+        "type": "box",
+        "layout": "vertical",
+        "backgroundColor": "#F8F9FA",
+        "cornerRadius": "md",
+        "paddingAll": "md",
+        "contents": [
+          {
+            "type": "box",
+            "layout": "horizontal",
+            "contents": [
+              {
+                "type": "box",
+                "layout": "vertical",
+                "flex": 5,
+                "contents": [
+                  { "type": "text", "text": "⏱️ 量測時長", "color": "#333333", "size": "sm", "weight": "bold" },
+                  { "type": "text", "text": "Duration", "color": "#999999", "size": "xs" }
+                ]
+              },
+              {
+                "type": "box",
+                "layout": "vertical",
+                "flex": 5,
+                "contents": [
+                  { "type": "text", "text": "0分30秒", "color": "#333333", "size": "sm", "weight": "bold", "align": "end" },
+                  { "type": "text", "text": "30 seconds", "color": "#999999", "size": "xs", "align": "end" }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "box",
+            "layout": "horizontal",
+            "margin": "lg",
+            "contents": [
+              {
+                "type": "box",
+                "layout": "vertical",
+                "flex": 5,
+                "contents": [
+                  { "type": "text", "text": "🩺 整體評級", "color": "#333333", "size": "sm", "weight": "bold" },
+                  { "type": "text", "text": "Overall Status", "color": "#999999", "size": "xs" }
+                ]
+              },
+              {
+                "type": "box",
+                "layout": "vertical",
+                "flex": 5,
+                "contents": [
+                  { "type": "text", "text": "🚨 危險", "color": "#DC3545", "size": "sm", "weight": "bold", "align": "end" },
+                  { "type": "text", "text": "DANGER", "color": "#DC3545", "size": "xs", "weight": "bold", "align": "end" }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "separator",
+        "margin": "lg"
+      },
+      {
+        "type": "box",
+        "layout": "horizontal",
+        "margin": "lg",
+        "spacing": "md",
+        "contents": [
+          {
+            "type": "box",
+            "layout": "vertical",
+            "backgroundColor": "#FFF5F5",
+            "cornerRadius": "md",
+            "paddingAll": "md",
+            "alignItems": "center",
+            "flex": 1,
+            "contents": [
+              {
+                "type": "text",
+                "text": "❤️ 心率",
+                "size": "sm",
+                "color": "#C92A2A",
+                "weight": "bold",
+                "contents": [
+                  { "type": "span", "text": "❤️ 心率 " },
+                  { "type": "span", "text": "HR", "size": "xs", "color": "#E57373" }
+                ]
+              },
+              { "type": "text", "text": "89", "size": "xxl", "weight": "bold", "color": "#C92A2A", "margin": "xs" },
+              { "type": "text", "text": "BPM", "size": "xs", "color": "#C92A2A" }
+            ]
+          },
+          {
+            "type": "box",
+            "layout": "vertical",
+            "backgroundColor": "#E7F5FF",
+            "cornerRadius": "md",
+            "paddingAll": "md",
+            "alignItems": "center",
+            "flex": 1,
+            "contents": [
+              {
+                "type": "text",
+                "text": "💧 血氧",
+                "size": "sm",
+                "color": "#1C7ED6",
+                "weight": "bold",
+                "contents": [
+                  { "type": "span", "text": "💧 血氧 " },
+                  { "type": "span", "text": "SpO2", "size": "xs", "color": "#64B5F6" }
+                ]
+              },
+              { "type": "text", "text": "95", "size": "xxl", "weight": "bold", "color": "#1C7ED6", "margin": "xs" },
+              { "type": "text", "text": "%", "size": "xs", "color": "#1C7ED6" }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "box",
+        "layout": "vertical",
+        "margin": "lg",
+        "spacing": "sm",
+        "contents": [
+          {
+            "type": "box",
+            "layout": "horizontal",
+            "backgroundColor": "#FFF9DB",
+            "cornerRadius": "sm",
+            "paddingAll": "sm",
+            "contents": [
+              {
+                "type": "box",
+                "layout": "vertical",
+                "flex": 7,
+                "contents": [
+                  { "type": "text", "text": "⚠️ 警告次數", "weight": "bold", "size": "sm", "color": "#F08C00" },
+                  { "type": "text", "text": "Warning Count", "size": "xs", "color": "#F5B041" }
+                ]
+              },
+              {
+                "type": "box",
+                "layout": "vertical",
+                "flex": 3,
+                "contents": [
+                  { "type": "text", "text": "1 次", "weight": "bold", "size": "sm", "color": "#F08C00", "align": "end" },
+                  { "type": "text", "text": "1 time", "size": "xs", "color": "#F5B041", "align": "end" }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "box",
+            "layout": "horizontal",
+            "backgroundColor": "#FFE3E3",
+            "cornerRadius": "sm",
+            "paddingAll": "sm",
+            "contents": [
+              {
+                "type": "box",
+                "layout": "vertical",
+                "flex": 7,
+                "contents": [
+                  { "type": "text", "text": "🚨 危險次數", "weight": "bold", "size": "sm", "color": "#E03131" },
+                  { "type": "text", "text": "Danger Count", "size": "xs", "color": "#E86464" }
+                ]
+              },
+              {
+                "type": "box",
+                "layout": "vertical",
+                "flex": 3,
+                "contents": [
+                  { "type": "text", "text": "1 次", "weight": "bold", "size": "sm", "color": "#E03131", "align": "end" },
+                  { "type": "text", "text": "1 time", "size": "xs", "color": "#E86464", "align": "end" }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "styles": {
+    "header": { "separator": true }
+  }
+}

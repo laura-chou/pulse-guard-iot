@@ -1,0 +1,7 @@
+paho-mqtt
+pymongo
+numpy
+dnspython
+python-dotenv
+requests
+pytest
