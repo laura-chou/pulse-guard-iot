@@ -3,7 +3,7 @@ import json
 import time
 from unittest.mock import MagicMock, patch
 from datetime import datetime, timezone
-import backend.subscriber as subscriber
+import subscriber as subscriber
 
 # Mock environment variables before importing or running logic
 @pytest.fixture(autouse=True)
