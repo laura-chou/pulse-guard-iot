@@ -2,6 +2,7 @@ import os
 import json
 import time
 import logging
+from datetime import datetime, timezone
 from collections import deque
 import numpy as np
 import paho.mqtt.client as mqtt
@@ -145,7 +146,7 @@ def on_message(client, userdata, msg):
 
         if should_write:
             record = {
-                "timestamp": current_time,
+                "timestamp": datetime.fromtimestamp(current_time, tz=timezone.utc),
                 "avg_bpm": xt_bpm,
                 "ema_bpm": float(ema_bpm),
                 "delta_bpm": float(delta_bpm),
