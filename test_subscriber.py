@@ -43,6 +43,8 @@ def simulate_mqtt_message(payload_dict):
 def test_scenario_a_first_valid_write(reset_globals):
     captured_writes = reset_globals
 
+    # 72 BPM, 98% SpO2. EMA will be 72. Delta will be 0.
+    # Meets NORMAL: SpO2 >= 95, 60 <= EMA <= 100, Delta < 15.
     simulate_mqtt_message({"bpm": 72, "spo2": 98})
 
     assert len(captured_writes) == 1
@@ -101,7 +103,8 @@ def test_scenario_d_heart_rate_spike(reset_globals):
     subscriber.last_write_time = time.time()
     initial_write_count = len(captured_writes)
 
-    # 2. Sudden spike to 125 BPM. xt_bpm is 70. delta = 55.
+    # 2. Sudden spike to 125 BPM. prev_xt_bpm is 70. delta = 55.
+    # New logic: delta_bpm >= 50 triggers DANGER
     simulate_mqtt_message({"bpm": 125, "spo2": 98})
 
     # Assert immediate DANGER write
@@ -109,6 +112,24 @@ def test_scenario_d_heart_rate_spike(reset_globals):
     assert captured_writes[-1]["status"] == "DANGER"
     # delta_bpm = abs(125 - 70) = 55
     assert captured_writes[-1]["delta_bpm"] == 55.0
+
+# Additional Test for Gradual Tachycardia (EMA >= 140)
+def test_tachycardia_detection(reset_globals):
+    captured_writes = reset_globals
+
+    # Use 135 BPM (Warning zone, EMA < 140) to build window without triggering DANGER via delta_bpm
+    for _ in range(15):
+        simulate_mqtt_message({"bpm": 135, "spo2": 98})
+
+    # Now window average (xt) is 135. EMA will gradually climb to 135.
+    # To reach 140 without a large delta, we can use 140 BPM
+    for _ in range(30):
+        simulate_mqtt_message({"bpm": 142, "spo2": 98})
+        if captured_writes[-1]["status"] == "DANGER":
+            break
+
+    assert captured_writes[-1]["status"] == "DANGER"
+    assert subscriber.last_ema_bpm >= 140
 
 # Scenario E: Timer mechanism
 def test_scenario_e_timer_mechanism(reset_globals):

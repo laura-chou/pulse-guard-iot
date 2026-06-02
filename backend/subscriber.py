@@ -46,13 +46,37 @@ def is_valid_spo2(spo2):
     return 50 <= spo2 <= 100
 
 def get_status(raw_bpm, ema_t, delta_bpm, raw_spo2):
-    if ema_t <= 50 or delta_bpm >= 50 or raw_spo2 <= 90:
+    """
+    Hierarchical Medical Status Logic:
+    1. DANGER (Highest Priority - Any condition triggers)
+       - SpO2 <= 90%
+       - EMA <= 50 BPM
+       - EMA >= 140 BPM
+       - |ΔBPM| >= 50
+    2. WARNING (If not DANGER - Any condition triggers)
+       - 91% <= SpO2 <= 94%
+       - 51 <= EMA <= 59
+       - 101 <= EMA <= 139
+       - 15 <= |ΔBPM| < 50
+    3. NORMAL (Must satisfy ALL conditions)
+       - SpO2 >= 95%
+       - 60 <= EMA <= 100
+       - |ΔBPM| < 15
+    Fallback: WARNING
+    """
+    # 1. DANGER
+    if raw_spo2 <= 90 or ema_t <= 50 or ema_t >= 140 or delta_bpm >= 50:
         return "DANGER"
-    elif (10 <= delta_bpm < 50) or (91 <= raw_spo2 <= 94):
+
+    # 2. WARNING
+    if (91 <= raw_spo2 <= 94) or (51 <= ema_t <= 59) or (101 <= ema_t <= 139) or (15 <= delta_bpm < 50):
         return "WARNING"
-    elif delta_bpm < 10 and ema_t > 50 and raw_spo2 >= 95:
+
+    # 3. NORMAL (All must be True)
+    if raw_spo2 >= 95 and (60 <= ema_t <= 100) and delta_bpm < 15:
         return "NORMAL"
-    return "NORMAL"
+
+    return "WARNING"
 
 def on_connect(client, userdata, flags, rc):
     config = get_config()
