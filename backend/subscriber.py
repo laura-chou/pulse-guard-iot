@@ -18,14 +18,14 @@ load_dotenv()
 
 # Configuration
 MQTT_BROKER = os.getenv("MQTT_BROKER")
-MQTT_PORT = int(os.getenv("MQTT_PORT", 8883))
+MQTT_PORT = int(os.getenv("MQTT_PORT"))
 MQTT_USER = os.getenv("MQTT_USER")
 MQTT_PASSWORD = os.getenv("MQTT_PASSWORD")
-MQTT_TOPIC = os.getenv("MQTT_TOPIC", "pulseguard/data")
+MQTT_TOPIC = os.getenv("MQTT_TOPIC")
 
 MONGO_URI = os.getenv("MONGO_URI")
-MONGO_DB_NAME = os.getenv("MONGO_DB_NAME", "pulseguard_db")
-MONGO_COL_NAME = os.getenv("MONGO_COL_NAME", "health_metrics")
+MONGO_DB_NAME = os.getenv("MONGO_DB_NAME")
+MONGO_COL_NAME = os.getenv("MONGO_COL_NAME")
 
 # Global variables
 bpm_window = deque(maxlen=15)
