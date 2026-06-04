@@ -84,7 +84,7 @@ local_tz = pytz.timezone('Asia/Taipei')
 @st.cache_resource
 def init_connection():
     """初始化 MongoDB 連線"""
-    mongo_uri = st.secrets.get("MONGO_URI") or os.getenv("MONGO_URI")
+    mongo_uri = os.getenv("MONGO_URI")
     return MongoClient(mongo_uri)
 
 client = init_connection()
@@ -92,8 +92,8 @@ client = init_connection()
 @st.cache_data(ttl=600)
 def fetch_data(start_date, end_date):
     """從 MongoDB 讀取數據並進行預處理"""
-    db_name = st.secrets.get("MONGO_DB_NAME") or os.getenv("MONGO_DB_NAME")
-    col_name = st.secrets.get("MONGO_COL_NAME") or os.getenv("MONGO_COL_NAME")
+    db_name = os.getenv("MONGO_DB_NAME")
+    col_name = os.getenv("MONGO_COL_NAME")
 
     # 將日期轉換為 UTC 時間戳進行查詢
     start_dt = datetime.combine(start_date, datetime.min.time()).replace(tzinfo=local_tz).astimezone(pytz.utc)
@@ -109,8 +109,12 @@ def fetch_data(start_date, end_date):
 
     df = pd.DataFrame(list(cursor))
     if not df.empty:
-        # 轉換回 Asia/Taipei 時區
-        df['timestamp'] = pd.to_datetime(df['timestamp']).dt.tz_convert(local_tz)
+        # 處理時區轉換，防止 tz-naive 錯誤
+        df['timestamp'] = pd.to_datetime(df['timestamp'])
+        if df['timestamp'].dt.tz is None:
+            df['timestamp'] = df['timestamp'].dt.tz_localize(pytz.utc)
+        df['timestamp'] = df['timestamp'].dt.tz_convert(local_tz)
+
         # 移除 MongoDB 內部 ID
         if '_id' in df.columns:
             df.drop(columns=['_id'], inplace=True)
