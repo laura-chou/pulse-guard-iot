@@ -273,7 +273,7 @@ else:
                 else: color = ''
                 return color
 
-            st.dataframe(display_df.style.applymap(color_status, subset=['status']), use_container_width=True)
+            st.dataframe(display_df.style.map(color_status, subset=['status']), use_container_width=True)
 
             # CSV 下載按鈕
             csv = df.to_csv(index=False).encode('utf-8-sig')
