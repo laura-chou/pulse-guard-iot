@@ -13,6 +13,78 @@ load_dotenv()
 
 local_tz = pytz.timezone('Asia/Taipei')
 
+# --- 多語系設定 ---
+def get_translations(lang_code):
+    translations = {
+        'en': {
+            'title': 'PulseGuard: Remote Health Analytics Dashboard',
+            'sidebar_filters': 'Filters',
+            'date_range': 'Date Range',
+            'status_filter': 'Status Filter',
+            'kpi_total': 'Total Samples',
+            'kpi_danger': 'Danger Events',
+            'kpi_warning': 'Warning Events',
+            'tab_trends': '📈 Physiological Trends',
+            'tab_stats': '📊 Status Statistics',
+            'tab_logs': '📋 Abnormal Logs & Export',
+            'bpm_trend_title': 'Heart Rate Trend (Avg BPM & EMA BPM)',
+            'spo2_trend_title': 'Oxygen Saturation Trend (SpO2)',
+            'status_dist_title': 'Overall Health Status Distribution',
+            'abnormal_dist_title': 'Abnormal Status Distribution by Time of Day',
+            'download_csv': 'Download Filtered Data as CSV',
+            'morning': 'Morning (00-11)',
+            'afternoon': 'Afternoon (11-17)',
+            'night': 'Night (17-24)',
+            'status_map': {"NORMAL": "NORMAL", "WARNING": "WARNING", "DANGER": "DANGER"},
+            'time_bins': ["Morning", "Afternoon", "Night"],
+            'col_time': 'Timestamp',
+            'col_status': 'Status',
+            'col_avg_bpm': 'Avg BPM',
+            'col_ema_bpm': 'EMA BPM',
+            'col_spo2': 'SpO2 (%)'
+        },
+        'zh': {
+            'title': 'PulseGuard：遠端醫療歷史數據分析看板',
+            'sidebar_filters': '篩選條件',
+            'date_range': '日期範圍',
+            'status_filter': '狀態過濾',
+            'kpi_total': '總樣本數',
+            'kpi_danger': '危險次數',
+            'kpi_warning': '警告次數',
+            'tab_trends': '📈 生理趨勢圖',
+            'tab_stats': '📊 狀態統計',
+            'tab_logs': '📋 異常日誌與匯出',
+            'bpm_trend_title': '心率趨勢（移動平均與 EMA）',
+            'spo2_trend_title': '血氧趨勢（SpO2）',
+            'status_dist_title': '整體健康狀態佔比',
+            'abnormal_dist_title': '不同時段異常狀態分佈',
+            'download_csv': '下載篩選後的資料為 CSV',
+            'morning': '早上 (00-11)',
+            'afternoon': '中午 (11-17)',
+            'night': '晚上 (17-24)',
+            'status_map': {"NORMAL": "正常", "WARNING": "警告", "DANGER": "危險"},
+            'time_bins': ["早上", "中午", "晚上"],
+            'col_time': '時間戳記',
+            'col_status': '狀態',
+            'col_avg_bpm': '平均心率',
+            'col_ema_bpm': 'EMA心率',
+            'col_spo2': '血氧飽和度 (%)'
+        }
+    }
+    lang = "zh" if lang_code == "zh" else "en"
+    return translations[lang], lang
+
+def categorize_hour(hour, time_bins):
+    if 0 <= hour < 11: return time_bins[0]
+    elif 11 <= hour < 17: return time_bins[1]
+    else: return time_bins[2]
+
+def color_status(val, t):
+    if val == t['status_map']['DANGER']: color = 'background-color: crimson; color: white'
+    elif val == t['status_map']['WARNING']: color = 'background-color: orange; color: black'
+    else: color = ''
+    return color
+
 # --- 資料庫連線 ---
 @st.cache_resource
 def init_connection():
@@ -96,67 +168,7 @@ def main():
     # 從 URL 參數獲取語言設定 (?lang=zh)
     query_params = st.query_params
     lang_code = query_params.get("lang", "en")
-    lang = "zh" if lang_code == "zh" else "en"
-
-    # 多語系字典
-    translations = {
-        'en': {
-            'title': 'PulseGuard: Remote Health Analytics Dashboard',
-            'sidebar_filters': 'Filters',
-            'date_range': 'Date Range',
-            'status_filter': 'Status Filter',
-            'kpi_total': 'Total Samples',
-            'kpi_danger': 'Danger Events',
-            'kpi_warning': 'Warning Events',
-            'tab_trends': '📈 Physiological Trends',
-            'tab_stats': '📊 Status Statistics',
-            'tab_logs': '📋 Abnormal Logs & Export',
-            'bpm_trend_title': 'Heart Rate Trend (Avg BPM & EMA BPM)',
-            'spo2_trend_title': 'Oxygen Saturation Trend (SpO2)',
-            'status_dist_title': 'Overall Health Status Distribution',
-            'abnormal_dist_title': 'Abnormal Status Distribution by Time of Day',
-            'download_csv': 'Download Filtered Data as CSV',
-            'morning': 'Morning (00-11)',
-            'afternoon': 'Afternoon (11-17)',
-            'night': 'Night (17-24)',
-            'status_map': {"NORMAL": "NORMAL", "WARNING": "WARNING", "DANGER": "DANGER"},
-            'time_bins': ["Morning", "Afternoon", "Night"],
-            'col_time': 'Timestamp',
-            'col_status': 'Status',
-            'col_avg_bpm': 'Avg BPM',
-            'col_ema_bpm': 'EMA BPM',
-            'col_spo2': 'SpO2 (%)'
-        },
-        'zh': {
-            'title': 'PulseGuard：遠端醫療歷史數據分析看板',
-            'sidebar_filters': '篩選條件',
-            'date_range': '日期範圍',
-            'status_filter': '狀態過濾',
-            'kpi_total': '總樣本數',
-            'kpi_danger': '危險次數',
-            'kpi_warning': '警告次數',
-            'tab_trends': '📈 生理趨勢圖',
-            'tab_stats': '📊 狀態統計',
-            'tab_logs': '📋 異常日誌與匯出',
-            'bpm_trend_title': '心率趨勢（移動平均與 EMA）',
-            'spo2_trend_title': '血氧趨勢（SpO2）',
-            'status_dist_title': '整體健康狀態佔比',
-            'abnormal_dist_title': '不同時段異常狀態分佈',
-            'download_csv': '下載篩選後的資料為 CSV',
-            'morning': '早上 (00-11)',
-            'afternoon': '中午 (11-17)',
-            'night': '晚上 (17-24)',
-            'status_map': {"NORMAL": "正常", "WARNING": "警告", "DANGER": "危險"},
-            'time_bins': ["早上", "中午", "晚上"],
-            'col_time': '時間戳記',
-            'col_status': '狀態',
-            'col_avg_bpm': '平均心率',
-            'col_ema_bpm': 'EMA心率',
-            'col_spo2': '血氧飽和度 (%)'
-        }
-    }
-
-    t = translations[lang]
+    t, lang = get_translations(lang_code)
 
     # --- UI 頁面標題 ---
     st.title(t['title'])
@@ -232,14 +244,9 @@ def main():
             with col_s2:
                 st.subheader(t['abnormal_dist_title'])
 
-                def categorize_hour(hour):
-                    if 0 <= hour < 11: return t['time_bins'][0]
-                    elif 11 <= hour < 17: return t['time_bins'][1]
-                    else: return t['time_bins'][2]
-
                 abnormal_df = df[df['status'].isin(["WARNING", "DANGER"])].copy()
                 if not abnormal_df.empty:
-                    abnormal_df['TimeOfDay'] = abnormal_df['timestamp'].dt.hour.apply(categorize_hour)
+                    abnormal_df['TimeOfDay'] = abnormal_df['timestamp'].dt.hour.apply(lambda x: categorize_hour(x, t['time_bins']))
                     time_stats = abnormal_df.groupby(['TimeOfDay', 'status']).size().reset_index(name='count')
                     time_stats['status_label'] = time_stats['status'].map(t['status_map'])
                     translated_color_map = {t['status_map'][k]: v for k, v in color_map.items()}
@@ -261,13 +268,7 @@ def main():
                 display_df['timestamp'] = display_df['timestamp'].dt.strftime('%Y-%m-%d %H:%M:%S')
                 display_df['status'] = display_df['status'].map(t['status_map'])
 
-                def color_status(val):
-                    if val == t['status_map']['DANGER']: color = 'background-color: crimson; color: white'
-                    elif val == t['status_map']['WARNING']: color = 'background-color: orange; color: black'
-                    else: color = ''
-                    return color
-
-                st.dataframe(display_df.style.applymap(color_status, subset=['status']), use_container_width=True)
+                st.dataframe(display_df.style.map(color_status, subset=['status'], t=t), use_container_width=True)
 
                 csv = df.to_csv(index=False).encode('utf-8-sig')
                 st.download_button(
