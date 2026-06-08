@@ -20,7 +20,7 @@
             margin-bottom: 2rem;
         }
         .header-status {
-            display: flex;
+            flex-direction: row;
             align-items: center;
             gap: 0.5rem;
             background: rgba(0, 0, 0, 0.3);
@@ -32,7 +32,7 @@
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 1.5rem;
-            margin-bottom: 2rem;
+            margin-bottom: 5rem;
         }
         @media (max-width: 768px) {
             .grid-layout {
@@ -89,13 +89,13 @@
         }
         button:disabled { opacity: 0.4; cursor: not-allowed; }
         button.primary {
-            background: var(--neon-blue);
-            color: #000;
-            border: none;
+            background: transparent;
+            color: var(--neon-blue);
+            border: 1px solid var(--neon-blue);
         }
         button.primary:hover:not(:disabled) {
-            box-shadow: 0 0 15px rgba(56, 189, 248, 0.4);
-            opacity: 0.9;
+            background: var(--neon-blue);
+            color: #000;
         }
         button.warning {
             background: transparent;
@@ -104,6 +104,15 @@
         }
         button.warning:hover:not(:disabled) {
             background: var(--neon-yellow);
+            color: #000;
+        }
+        button.danger {
+            background: transparent;
+            color: var(--neon-red);
+            border: 1px solid var(--neon-red);
+        }
+        button.danger:hover:not(:disabled) {
+            background: var(--neon-red);
             color: #000;
         }
         button.active {
@@ -147,7 +156,10 @@
             flex-direction: column;
             height: 100%;
         }
-
+        #manual-bpm,
+        #manual-spo2 {
+            width: 90%;
+        }
         /* Multilingual rules are inherited from styles.css */
     </style>
 </head>
@@ -221,7 +233,7 @@
                         </button>
                     </div>
                     <div class="btn-group">
-                        <button id="sendResetBtn" style="width: 100%; border-color: var(--neon-yellow); color: var(--neon-yellow);">
+                        <button id="sendResetBtn" class="danger" style="width: 100%;">
                             <span data-lang="en">Send Reset Status</span>
                             <span data-lang="zh">發送重置狀態</span>
                         </button>
@@ -252,7 +264,7 @@
                         </select>
                     </div>
 
-                    <div id="scenarioDescription" style="font-size: 0.8rem; color: var(--text-secondary); line-height: 1.4; min-height: 4em; margin-bottom: 1rem;">
+                    <div id="scenarioDescription" style="width: 300px; font-size: 0.8rem; color: var(--text-secondary); line-height: 1.4; min-height: 4em; margin-bottom: 1rem;">
                         <div data-lang="en" id="desc-en">Please select a scenario to see details.</div>
                         <div data-lang="zh" id="desc-zh">請選擇場景以查看詳情。</div>
                     </div>
@@ -269,11 +281,11 @@
             <!-- Log Section -->
             <div class="log-container">
                     <div class="log-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
-                        <h2 style="margin: 0; font-size: 0.875rem; color: var(--text-secondary); text-transform: uppercase;">
+                        <h2 style="margin: 0; font-size: 1.3rem; color: var(--text-secondary); text-transform: uppercase;">
                         <span data-lang="en">MESSAGE LOG</span>
                         <span data-lang="zh">訊息日誌</span>
                     </h2>
-                        <button id="clearLogBtn" style="font-size: 0.7rem; padding: 0.3rem 0.8rem;">
+                        <button id="clearLogBtn" style="font-size: 0.9rem; padding: 0.5rem 0.8rem;">
                             <span data-lang="en">Clear Log</span>
                             <span data-lang="zh">清除日誌</span>
                         </button>
