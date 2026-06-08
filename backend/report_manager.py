@@ -34,37 +34,50 @@ def load_report_template():
         logger.error(f"Failed to parse template JSON: {e}")
         return None
 
-def generate_and_send_report(duration_sec):
+def generate_and_send_report(session_id, duration_sec):
     """
-    Retrieves records from MongoDB for the measured duration,
+    Retrieves records from MongoDB for the given session_id,
     calculates statistics, and sends a report via LINE Messaging API (Flex Message).
     """
-    if not duration_sec or duration_sec <= 0:
-        logger.warning("Invalid duration provided for report.")
+    if not session_id:
+        logger.warning("No session_id provided for report.")
         return
 
-    # 1. Time range calculation
-    end_time = datetime.now(timezone.utc)
-    start_time = end_time - timedelta(seconds=duration_sec)
-
-    # 2. Data Retrieval
+    # 1. Data Retrieval
     try:
         client = MongoClient(MONGO_URI)
         db = client[MONGO_DB_NAME]
         collection = db[MONGO_COL_NAME]
 
         query = {
-            "timestamp": {"$gte": start_time, "$lte": end_time},
+            "session_id": session_id,
             "status": {"$nin": ["OFF-CHIP", "RESET"]}
         }
         records = list(collection.find(query).sort("timestamp", 1))
     except Exception as e:
-        logger.error(f"Failed to fetch data from MongoDB for report: {e}")
+        logger.error(f"Failed to fetch data from MongoDB for session {session_id}: {e}")
         return
 
     if not records:
-        logger.warning(f"No records found between {start_time} and {end_time} for reporting.")
+        logger.warning(f"No valid records found for session {session_id} for reporting.")
         return
+
+    # 2. Precise Time and Duration Calculation
+    start_time_utc = records[0]["timestamp"]
+    end_time_utc = records[-1]["timestamp"]
+
+    # Calculate actual duration based on first and last record timestamps
+    actual_duration = (end_time_utc - start_time_utc).total_seconds()
+
+    # Pre-calculate localized times (for future template rendering)
+    local_tz = timezone(timedelta(hours=8)) # Asia/Taipei
+    start_time_local = start_time_utc.astimezone(local_tz)
+    end_time_local = end_time_utc.astimezone(local_tz)
+
+    # Format for template (Asia/Taipei)
+    measure_time_str = start_time_local.strftime("%Y/%m/%d %H:%M")
+
+    logger.info(f"Report for session {session_id}: {measure_time_str} ({actual_duration:.1f}s)")
 
     # 3. Statistics Calculation
     bpms = [r.get("avg_bpm") or r.get("ema_bpm") for r in records if (r.get("avg_bpm") or r.get("ema_bpm"))]
@@ -77,11 +90,7 @@ def generate_and_send_report(duration_sec):
     avg_bpm = sum(bpms) / len(bpms)
     avg_spo2 = sum(spo2s) / len(spo2s)
 
-    warning_count = 0
-    danger_count = 0
     highest_risk = "NORMAL"
-    prev_status = None
-
     for r in records:
         status = r.get("status", "NORMAL")
         if status == "DANGER":
@@ -89,28 +98,19 @@ def generate_and_send_report(duration_sec):
         elif status == "WARNING" and highest_risk == "NORMAL":
             highest_risk = "WARNING"
 
-        if status != prev_status:
-            if status == "WARNING":
-                warning_count += 1
-            elif status == "DANGER":
-                danger_count += 1
-        prev_status = status
-
     # 4. Fill Template
     template = load_report_template()
     if not template:
         return
 
-    m, s = divmod(int(duration_sec), 60)
-    duration_zh = f"{m}分{s}秒"
-    duration_en = f"{duration_sec} seconds" if m == 0 else f"{m} min {s} sec"
+    # Format duration
+    duration_str = f"{int(actual_duration)} sec"
 
-    # Define dynamic translations and colors
-    # DANGER: #DC3545, WARNING: #FD7E14, NORMAL: #28A745
+    # Status mapping
     status_config = {
-        "DANGER":  {"zh": "🚨 危險", "en": "DANGER",  "color": "#DC3545"},
-        "WARNING": {"zh": "⚠️ 警告", "en": "WARNING", "color": "#FD7E14"},
-        "NORMAL":  {"zh": "✅ 正常", "en": "NORMAL",  "color": "#28A745"}
+        "DANGER":  {"text": "🔴 DANGER",  "color": "#DC3545"},
+        "WARNING": {"text": "🟡 WARNING", "color": "#FD7E14"},
+        "NORMAL":  {"text": "🟢 NORMAL",  "color": "#2B8A3E"}
     }
     config = status_config.get(highest_risk, status_config["NORMAL"])
 
@@ -118,29 +118,19 @@ def generate_and_send_report(duration_sec):
     body_contents = template["body"]["contents"]
 
     # Body -> Box 0 (Summary Box)
-    info_box = body_contents[0]["contents"]
-    # Row 0: Duration
-    info_box[0]["contents"][1]["contents"][0]["text"] = duration_zh
-    info_box[0]["contents"][1]["contents"][1]["text"] = duration_en
-    # Row 1: Status
-    info_box[1]["contents"][1]["contents"][0]["text"] = config["zh"]
-    info_box[1]["contents"][1]["contents"][0]["color"] = config["color"]
-    info_box[1]["contents"][1]["contents"][1]["text"] = config["en"]
-    info_box[1]["contents"][1]["contents"][1]["color"] = config["color"]
+    summary_box_contents = body_contents[0]["contents"]
+    # Row 0: Measurement Time
+    summary_box_contents[0]["contents"][1]["contents"][0]["text"] = measure_time_str
+    # Row 1: Duration
+    summary_box_contents[1]["contents"][1]["contents"][0]["text"] = duration_str
+    # Row 2: Status
+    summary_box_contents[2]["contents"][1]["contents"][0]["text"] = config["text"]
+    summary_box_contents[2]["contents"][1]["contents"][0]["color"] = config["color"]
 
-    # Body -> Box 2 (Averages Row)
-    stats_row = body_contents[2]["contents"]
-    stats_row[0]["contents"][1]["text"] = f"{avg_bpm:.0f}" # BPM
-    stats_row[1]["contents"][1]["text"] = f"{avg_spo2:.0f}" # SpO2
-
-    # Body -> Box 3 (Counts Column)
-    counts_box = body_contents[3]["contents"]
-    # Row 0: Warning
-    counts_box[0]["contents"][1]["contents"][0]["text"] = f"{warning_count} 次"
-    counts_box[0]["contents"][1]["contents"][1]["text"] = f"{warning_count} {'time' if warning_count <= 1 else 'times'}"
-    # Row 1: Danger
-    counts_box[1]["contents"][1]["contents"][0]["text"] = f"{danger_count} 次"
-    counts_box[1]["contents"][1]["contents"][1]["text"] = f"{danger_count} {'time' if danger_count <= 1 else 'times'}"
+    # Body -> Box 1 (Averages Row)
+    stats_row_contents = body_contents[1]["contents"]
+    stats_row_contents[0]["contents"][1]["text"] = f"{avg_bpm:.0f}" # BPM
+    stats_row_contents[1]["contents"][1]["text"] = f"{avg_spo2:.0f}" # SpO2
 
     # 5. Send to LINE Messaging API
     if not LINE_CHANNEL_ACCESS_TOKEN or not LINE_USER_ID:
@@ -156,7 +146,7 @@ def generate_and_send_report(duration_sec):
         "messages": [
             {
                 "type": "flex",
-                "altText": f"PulseGuard 量測報告: {highest_risk}",
+                "altText": f"量測報告: {highest_risk}",
                 "contents": template
             }
         ]
