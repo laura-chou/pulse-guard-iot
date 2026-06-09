@@ -125,20 +125,38 @@ def test_scenario_g_completed_signal(reset_globals):
         subscriber.last_status = "NORMAL"
         subscriber.last_write_time = 1234.5
         simulate_mqtt_message({"bpm": 70, "spo2": 98})
+        session_id = subscriber.current_session_id
+        assert session_id is not None
         assert len(subscriber.bpm_window) == 1
+
         simulate_mqtt_message({"status": "COMPLETED", "duration_sec": 120})
         assert len(subscriber.bpm_window) == 0
         assert subscriber.first_write_done is False
         assert subscriber.last_status is None
         assert subscriber.last_write_time == 0
-        mock_report.assert_called_once_with(120)
+        assert subscriber.current_session_id is None
+        mock_report.assert_called_once_with(session_id, 120)
 
 def test_scenario_h_reset_signal_ignored(reset_globals):
     with patch('report_manager.generate_and_send_report') as mock_report:
         simulate_mqtt_message({"bpm": 70, "spo2": 98})
+        session_id = subscriber.current_session_id
+        assert session_id is not None
+
         simulate_mqtt_message({"status": "RESET", "duration_sec": 120})
-        assert len(subscriber.bpm_window) == 1
+        assert len(subscriber.bpm_window) == 0
+        assert subscriber.current_session_id is None
         mock_report.assert_not_called()
+
+        # Verify RESET recorded in DB
+        assert reset_globals[-1]["status"] == "RESET"
+        assert reset_globals[-1]["session_id"] == session_id
+
+def test_on_message_reset_db_failure(reset_globals, caplog):
+    subscriber.collection.insert_one.side_effect = Exception("RESET DB Fail")
+    with caplog.at_level(logging.ERROR):
+        simulate_mqtt_message({"status": "RESET"})
+        assert "MongoDB Insert Error (RESET): RESET DB Fail" in caplog.text
 
 # --- NEW TESTS ---
 

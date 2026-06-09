@@ -34,37 +34,50 @@ def load_report_template():
         logger.error(f"Failed to parse template JSON: {e}")
         return None
 
-def generate_and_send_report(duration_sec):
+def generate_and_send_report(session_id, duration_sec):
     """
-    Retrieves records from MongoDB for the measured duration,
+    Retrieves records from MongoDB for the given session_id,
     calculates statistics, and sends a report via LINE Messaging API (Flex Message).
     """
-    if not duration_sec or duration_sec <= 0:
-        logger.warning("Invalid duration provided for report.")
+    if not session_id:
+        logger.warning("No session_id provided for report.")
         return
 
-    # 1. Time range calculation
-    end_time = datetime.now(timezone.utc)
-    start_time = end_time - timedelta(seconds=duration_sec)
-
-    # 2. Data Retrieval
+    # 1. Data Retrieval
     try:
         client = MongoClient(MONGO_URI)
         db = client[MONGO_DB_NAME]
         collection = db[MONGO_COL_NAME]
 
         query = {
-            "timestamp": {"$gte": start_time, "$lte": end_time},
+            "session_id": session_id,
             "status": {"$nin": ["OFF-CHIP", "RESET"]}
         }
         records = list(collection.find(query).sort("timestamp", 1))
     except Exception as e:
-        logger.error(f"Failed to fetch data from MongoDB for report: {e}")
+        logger.error(f"Failed to fetch data from MongoDB for session {session_id}: {e}")
         return
 
     if not records:
-        logger.warning(f"No records found between {start_time} and {end_time} for reporting.")
+        logger.warning(f"No valid records found for session {session_id} for reporting.")
         return
+
+    # 2. Precise Time and Duration Calculation
+    start_time_utc = records[0]["timestamp"]
+    end_time_utc = records[-1]["timestamp"]
+
+    # Calculate actual duration based on first and last record timestamps
+    actual_duration = (end_time_utc - start_time_utc).total_seconds()
+
+    # Pre-calculate localized times (for future template rendering)
+    local_tz = timezone(timedelta(hours=8)) # Asia/Taipei
+    start_time_local = start_time_utc.astimezone(local_tz)
+    end_time_local = end_time_utc.astimezone(local_tz)
+
+    start_time_str = start_time_local.strftime("%Y-%m-%d %H:%M:%S")
+    end_time_str = end_time_local.strftime("%Y-%m-%d %H:%M:%S")
+
+    logger.info(f"Report for session {session_id}: {start_time_str} to {end_time_str} ({actual_duration:.1f}s)")
 
     # 3. Statistics Calculation
     bpms = [r.get("avg_bpm") or r.get("ema_bpm") for r in records if (r.get("avg_bpm") or r.get("ema_bpm"))]
@@ -101,9 +114,9 @@ def generate_and_send_report(duration_sec):
     if not template:
         return
 
-    m, s = divmod(int(duration_sec), 60)
+    m, s = divmod(int(actual_duration), 60)
     duration_zh = f"{m}分{s}秒"
-    duration_en = f"{duration_sec} seconds" if m == 0 else f"{m} min {s} sec"
+    duration_en = f"{int(actual_duration)} seconds" if m == 0 else f"{m} min {s} sec"
 
     # Define dynamic translations and colors
     # DANGER: #DC3545, WARNING: #FD7E14, NORMAL: #28A745

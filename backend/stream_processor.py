@@ -2,6 +2,7 @@ import os
 import json
 import time
 import logging
+import uuid
 from datetime import datetime, timezone
 import report_manager
 from collections import deque
@@ -36,6 +37,7 @@ spo2_window = deque(maxlen=15)
 
 last_ema_bpm = None
 last_status = None
+current_session_id = None
 first_write_done = False
 last_write_time = 0
 collection = None
@@ -88,7 +90,7 @@ def on_connect(client, userdata, flags, rc):
         logger.error(f"Failed to connect, return code {rc}")
 
 def on_message(client, userdata, msg):
-    global last_ema_bpm, first_write_done, last_write_time, last_status, collection
+    global last_ema_bpm, first_write_done, last_write_time, last_status, collection, current_session_id
 
     try:
         payload = msg.payload.decode()
@@ -99,21 +101,42 @@ def on_message(client, userdata, msg):
             duration = data.get("duration_sec", 0)
             logger.info(f"COMPLETED signal received. Duration: {duration}s. Generating report...")
 
-            # Clear internal buffers
+            # Generate and send report (only if duration > 0 and session exists)
+            if duration > 0 and current_session_id:
+                report_manager.generate_and_send_report(current_session_id, duration)
+
+            # Clear internal buffers and reset session
             bpm_window.clear()
             spo2_window.clear()
             last_ema_bpm = None
             last_status = None
             last_write_time = 0
             first_write_done = False
-
-            # Generate and send report (only if duration > 0)
-            if duration > 0:
-                report_manager.generate_and_send_report(duration)
+            current_session_id = None
             return
 
-        # Ignore RESET signal as per requirement
+        # Handle RESET signal
         if data.get("status") == "RESET":
+            logger.info("RESET signal received. Clearing buffers and session...")
+            if collection is not None:
+                record = {
+                    "timestamp": datetime.fromtimestamp(time.time(), tz=timezone.utc),
+                    "status": "RESET",
+                    "session_id": current_session_id
+                }
+                try:
+                    collection.insert_one(record)
+                except Exception as e:
+                    logger.error(f"MongoDB Insert Error (RESET): {e}")
+
+            # Clear internal buffers and reset session
+            bpm_window.clear()
+            spo2_window.clear()
+            last_ema_bpm = None
+            last_status = None
+            last_write_time = 0
+            first_write_done = False
+            current_session_id = None
             return
 
         raw_bpm = data.get("bpm")
@@ -155,9 +178,13 @@ def on_message(client, userdata, msg):
             should_write = True
 
         if should_write and collection is not None:
+            if current_session_id is None:
+                current_session_id = str(uuid.uuid4())
+
             record = {
                 "timestamp": datetime.fromtimestamp(current_time, tz=timezone.utc),
-                "status": status
+                "status": status,
+                "session_id": current_session_id
             }
             if status != "OFF-CHIP":
                 record.update({
