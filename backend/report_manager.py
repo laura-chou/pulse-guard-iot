@@ -74,10 +74,11 @@ def generate_and_send_report(session_id, duration_sec):
     start_time_local = start_time_utc.astimezone(local_tz)
     end_time_local = end_time_utc.astimezone(local_tz)
 
-    start_time_str = start_time_local.strftime("%Y-%m-%d %H:%M:%S")
-    end_time_str = end_time_local.strftime("%Y-%m-%d %H:%M:%S")
+    # Format for template
+    measure_date_str = start_time_local.strftime("%Y/%m/%d")
+    time_interval_str = f"{start_time_local.strftime('%H:%M:%S')} ~ {end_time_local.strftime('%H:%M:%S')} (共 {int(actual_duration)} 秒)"
 
-    logger.info(f"Report for session {session_id}: {start_time_str} to {end_time_str} ({actual_duration:.1f}s)")
+    logger.info(f"Report for session {session_id}: {measure_date_str} {time_interval_str}")
 
     # 3. Statistics Calculation
     bpms = [r.get("avg_bpm") or r.get("ema_bpm") for r in records if (r.get("avg_bpm") or r.get("ema_bpm"))]
@@ -140,6 +141,10 @@ def generate_and_send_report(session_id, duration_sec):
     info_box[1]["contents"][1]["contents"][0]["color"] = config["color"]
     info_box[1]["contents"][1]["contents"][1]["text"] = config["en"]
     info_box[1]["contents"][1]["contents"][1]["color"] = config["color"]
+    # Row 2: Date
+    info_box[2]["contents"][1]["contents"][0]["text"] = measure_date_str
+    # Row 3: Time Interval
+    info_box[3]["contents"][1]["contents"][0]["text"] = time_interval_str
 
     # Body -> Box 2 (Averages Row)
     stats_row = body_contents[2]["contents"]
