@@ -20,13 +20,10 @@
             margin-bottom: 2rem;
         }
         .header-status {
-            flex-direction: row;
-            align-items: center;
-            gap: 0.5rem;
-            background: rgba(0, 0, 0, 0.3);
-            padding: 0.5rem 1rem;
-            border-radius: 2rem;
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 0.25rem;
         }
         .grid-layout {
             display: grid;
@@ -39,97 +36,6 @@
                 grid-template-columns: 1fr;
             }
         }
-        .form-group {
-            margin-bottom: 1rem;
-        }
-        .form-group label {
-            display: block;
-            font-size: 0.8rem;
-            color: var(--text-secondary);
-            margin-bottom: 0.25rem;
-        }
-        .form-group input, .form-group select {
-            width: 100%;
-            padding: 0.65rem;
-            background: #0f172a;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 0.5rem;
-            color: var(--text-primary);
-            font-size: 0.9rem;
-            transition: border-color 0.2s;
-        }
-        .form-group input:focus, .form-group select:focus {
-            border-color: var(--neon-blue);
-            outline: none;
-        }
-        .btn-group {
-            display: flex;
-            gap: 0.5rem;
-            margin-top: 1rem;
-        }
-        button {
-            padding: 0.7rem 1.2rem;
-            border-radius: 0.5rem;
-            border: none;
-            cursor: pointer;
-            font-weight: 600;
-            transition: all 0.2s;
-            background: var(--card-bg);
-            color: var(--text-primary);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            font-size: 0.9rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
-        }
-        button:hover:not(:disabled) {
-            background: rgba(255, 255, 255, 0.05);
-            border-color: rgba(255, 255, 255, 0.3);
-        }
-        button:disabled { opacity: 0.4; cursor: not-allowed; }
-        button.primary {
-            background: transparent;
-            color: var(--neon-blue);
-            border: 1px solid var(--neon-blue);
-        }
-        button.primary:hover:not(:disabled) {
-            background: var(--neon-blue);
-            color: #000;
-        }
-        button.warning {
-            background: transparent;
-            color: var(--neon-yellow);
-            border: 1px solid var(--neon-yellow);
-        }
-        button.warning:hover:not(:disabled) {
-            background: var(--neon-yellow);
-            color: #000;
-        }
-        button.danger {
-            background: transparent;
-            color: var(--neon-red);
-            border: 1px solid var(--neon-red);
-        }
-        button.danger:hover:not(:disabled) {
-            background: var(--neon-red);
-            color: #000;
-        }
-        button.active {
-            border-color: var(--neon-green);
-            box-shadow: 0 0 10px rgba(74, 222, 128, 0.3);
-            color: var(--neon-green);
-        }
-
-        .status-dot {
-            display: inline-block;
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            background: #4b5563;
-        }
-        .status-dot.connected { background: var(--neon-green); box-shadow: 0 0 8px var(--neon-green); }
-        .status-dot.disconnected { background: var(--neon-red); }
 
         .log-area {
             background: #000;
@@ -177,11 +83,10 @@
                 </p>
             </div>
             <div class="header-status">
-                <div id="conn-indicator" class="status-dot"></div>
-                <span id="conn-text" style="font-size: 0.8rem; font-weight: 600;">
+                <div id="connection-status" class="status-indicator">
                     <span data-lang="en">Connecting...</span>
                     <span data-lang="zh">連線中...</span>
-                </span>
+                </div>
             </div>
         </header>
 
@@ -228,7 +133,7 @@
                             <span data-lang="zh">單次發送</span>
                         </button>
                         <button id="autoSendBtn" class="warning" style="flex: 1;">
-                            <span data-lang="en">Start Auto (2s)</span>
+                            <span data-lang="en">Start Auto (1s)</span>
                             <span data-lang="zh">啟動自動發送</span>
                         </button>
                     </div>

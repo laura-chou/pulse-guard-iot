@@ -257,3 +257,103 @@ h1 {
 .lang-en i[data-lang="en"], .lang-zh i[data-lang="zh"] {
     display: inline !important;
 }
+
+/* Shared UI Components */
+.form-group {
+    margin-bottom: 1rem;
+}
+
+.form-group label {
+    display: block;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.25rem;
+}
+
+.form-group input, .form-group select {
+    width: 100%;
+    padding: 0.65rem;
+    background: #0f172a;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 0.5rem;
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    transition: border-color 0.2s;
+}
+
+.form-group input:focus, .form-group select:focus {
+    border-color: var(--neon-blue);
+    outline: none;
+}
+
+.btn-group {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+button {
+    padding: 0.7rem 1.2rem;
+    border-radius: 0.5rem;
+    border: none;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.2s;
+    background: var(--card-bg);
+    color: var(--text-primary);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+button:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.3);
+}
+
+button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+button.primary {
+    background: transparent;
+    color: var(--neon-blue);
+    border: 1px solid var(--neon-blue);
+}
+
+button.primary:hover:not(:disabled) {
+    background: var(--neon-blue);
+    color: #000;
+}
+
+button.warning {
+    background: transparent;
+    color: var(--neon-yellow);
+    border: 1px solid var(--neon-yellow);
+}
+
+button.warning:hover:not(:disabled) {
+    background: var(--neon-yellow);
+    color: #000;
+}
+
+button.danger {
+    background: transparent;
+    color: var(--neon-red);
+    border: 1px solid var(--neon-red);
+}
+
+button.danger:hover:not(:disabled) {
+    background: var(--neon-red);
+    color: #000;
+}
+
+button.active {
+    border-color: var(--neon-green);
+    box-shadow: 0 0 10px rgba(74, 222, 128, 0.3);
+    color: var(--neon-green);
+}

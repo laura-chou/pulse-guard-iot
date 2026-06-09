@@ -8,6 +8,10 @@ let mqttTopic = "";
 
 // Init language
 const currentLang = initLang();
+const isZh = currentLang === 'zh';
+
+// UI Elements
+const connStatus = document.getElementById('connection-status');
 
 // Localize selects
 document.querySelectorAll('select option').forEach(opt => {
@@ -48,17 +52,15 @@ async function autoConnect() {
         const options = {
             onSuccess: () => {
                 connected = true;
-                document.getElementById('conn-indicator').className = 'status-dot connected';
-                const textEl = document.getElementById('conn-text');
-                textEl.querySelector('[data-lang="en"]').textContent = 'Connected';
-                textEl.querySelector('[data-lang="zh"]').textContent = '已連線';
+                connStatus.textContent = isZh ? '🟢 已連線' : '🟢 Connected';
+                connStatus.style.borderColor = neonGreen;
+                connStatus.style.color = neonGreen;
                 log(`<span style="color:${neonGreen}">Secure MQTT Connected</span>`);
             },
             onFailure: (err) => {
-                document.getElementById('conn-indicator').className = 'status-dot disconnected';
-                const textEl = document.getElementById('conn-text');
-                textEl.querySelector('[data-lang="en"]').textContent = 'Connection Failed';
-                textEl.querySelector('[data-lang="zh"]').textContent = '連線失敗';
+                connStatus.textContent = isZh ? '🔴 連線錯誤' : '🔴 Connection Error';
+                connStatus.style.borderColor = neonRed;
+                connStatus.style.color = neonRed;
                 log(`<span style="color:${neonRed}">Connection failed: ${err.errorMessage}</span>`);
             },
             useSSL: true
@@ -69,10 +71,9 @@ async function autoConnect() {
 
         mqttClient.onConnectionLost = (err) => {
             connected = false;
-            document.getElementById('conn-indicator').className = 'status-dot disconnected';
-            const textEl = document.getElementById('conn-text');
-            textEl.querySelector('[data-lang="en"]').textContent = 'Connection Lost';
-            textEl.querySelector('[data-lang="zh"]').textContent = '連線中斷';
+            connStatus.textContent = isZh ? '🔴 連線中斷' : '🔴 Connection Lost';
+            connStatus.style.borderColor = neonRed;
+            connStatus.style.color = neonRed;
             log(`<span style="color:${neonRed}">Connection lost: ${err.errorMessage}</span>`);
         };
 
@@ -192,11 +193,11 @@ window.toggleAutoSend = function() {
     if (autoSendInterval) {
         clearInterval(autoSendInterval);
         autoSendInterval = null;
-        btn.querySelector('[data-lang="en"]').textContent = 'Start Auto (2s)';
+        btn.querySelector('[data-lang="en"]').textContent = 'Start Auto (1s)';
         btn.querySelector('[data-lang="zh"]').textContent = '啟動自動發送';
         btn.classList.remove('active');
     } else {
-        autoSendInterval = setInterval(window.publishManual, 2000);
+        autoSendInterval = setInterval(window.publishManual, 1000);
         btn.querySelector('[data-lang="en"]').textContent = 'Stop Auto';
         btn.querySelector('[data-lang="zh"]').textContent = '停止發送';
         btn.classList.add('active');
