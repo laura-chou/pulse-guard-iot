@@ -103,6 +103,8 @@ def on_message(client, userdata, msg):
             bpm_window.clear()
             spo2_window.clear()
             last_ema_bpm = None
+            last_status = None
+            last_write_time = 0
             first_write_done = False
 
             # Generate and send report (only if duration > 0)
