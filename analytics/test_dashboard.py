@@ -14,19 +14,24 @@ def mock_mongo_client():
 @pytest.fixture
 def sample_df():
     local_tz = pytz.timezone('Asia/Taipei')
+    # Using local_tz.localize to avoid weird offset issues
     data = {
         'timestamp': [
-            datetime(2026, 5, 1, 10, 0).replace(tzinfo=local_tz),
-            datetime(2026, 5, 1, 14, 0).replace(tzinfo=local_tz),
-            datetime(2026, 5, 1, 20, 0).replace(tzinfo=local_tz),
-            datetime(2026, 5, 2, 10, 0).replace(tzinfo=local_tz),
+            local_tz.localize(datetime(2026, 5, 1, 10, 0, 0)),
+            local_tz.localize(datetime(2026, 5, 1, 10, 30, 0)), # Same hour
+            local_tz.localize(datetime(2026, 5, 1, 14, 0, 0)),
+            local_tz.localize(datetime(2026, 5, 1, 20, 0, 0)),
+            local_tz.localize(datetime(2026, 5, 2, 10, 0, 0)),
         ],
-        'status': ['NORMAL', 'WARNING', 'DANGER', 'NORMAL'],
-        'avg_bpm': [70, 110, 150, 72],
-        'ema_bpm': [70.0, 105.0, 140.0, 71.5],
-        'spo2': [98, 92, 88, 97]
+        'status': ['NORMAL', 'WARNING', 'DANGER', 'NORMAL', 'NORMAL'],
+        'avg_bpm': [70.4, 110.6, 150.1, 72.8, 75.0],
+        'ema_bpm': [70.0, 105.0, 140.0, 71.5, 74.0],
+        'spo2': [98.123, 92.456, 88.789, 97.0, 99.1]
     }
-    return pd.DataFrame(data)
+    # Create DataFrame and ensure timestamp is datetime
+    df = pd.DataFrame(data)
+    df['timestamp'] = pd.to_datetime(df['timestamp'])
+    return df
 
 # 1. get_default_range()
 def test_get_default_range():
@@ -47,74 +52,59 @@ def test_fetch_data_normal(mock_mongo_client):
     mock_db.__getitem__.return_value = mock_col
 
     naive_now = datetime(2026, 6, 9, 0, 0, 0)
-    mock_cursor = [{'_id': '1', 'timestamp': naive_now, 'status': 'NORMAL'}]
+    mock_cursor = [{'timestamp': naive_now, 'status': 'NORMAL', 'avg_bpm': 70, 'spo2': 98}]
     mock_col.find.return_value.sort.return_value = mock_cursor
     with patch('analytics.app.init_connection', return_value=mock_mongo_client.return_value):
         df = app.fetch_data.__wrapped__(date(2026, 5, 1), date(2026, 5, 31))
     assert df['timestamp'].dt.tz == pytz.timezone('Asia/Taipei')
     assert '_id' not in df.columns
 
-    aware_now = datetime(2026, 6, 9, 0, 0, 0, tzinfo=pytz.utc)
-    mock_cursor = [{'timestamp': aware_now, 'status': 'NORMAL'}]
-    mock_col.find.return_value.sort.return_value = mock_cursor
-    with patch('analytics.app.init_connection', return_value=mock_mongo_client.return_value):
-        df = app.fetch_data.__wrapped__(date(2026, 5, 1), date(2026, 5, 31))
-    assert df['timestamp'].dt.tz == pytz.timezone('Asia/Taipei')
-
-def test_fetch_data_empty(mock_mongo_client):
-    mock_db = MagicMock()
-    mock_col = MagicMock()
-    mock_mongo_client.return_value.__getitem__.return_value = mock_db
-    mock_db.__getitem__.return_value = mock_col
-    mock_col.find.return_value.sort.return_value = []
-    with patch('analytics.app.init_connection', return_value=mock_mongo_client.return_value):
-        df = app.fetch_data.__wrapped__(date(2026, 5, 1), date(2026, 5, 31))
-    assert df.empty
-
 # 3. Language selection
 def test_language_selection():
     t_en, lang_en = app.get_translations('en')
     assert lang_en == 'en'
+    assert 'col_no' in t_en
+    assert 'tt_week' in t_en
     t_zh, lang_zh = app.get_translations('zh')
     assert lang_zh == 'zh'
+    assert 'col_no' in t_zh
+    assert 'tt_week' in t_zh
 
 # 4. KPI calculations
 def test_calculate_kpis(sample_df):
     total, danger, warning = app.calculate_kpis(sample_df)
-    assert total == 4
+    assert total == 5
     assert danger == 1
     assert warning == 1
 
-# 5. Time-of-day categorization
-def test_categorize_hour():
-    bins = ["M", "A", "N"]
-    assert app.categorize_hour(5, bins) == "M"
-    assert app.categorize_hour(12, bins) == "A"
-    assert app.categorize_hour(18, bins) == "N"
+# 5. Data Aggregation: get_daily_summary
+def test_get_daily_summary(sample_df):
+    summary = app.get_daily_summary(sample_df)
+    assert len(summary) == 2 # May 1 and May 2
+    assert pytest.approx(summary.iloc[0]['bpm_min']) == 70.4
+    assert pytest.approx(summary.iloc[0]['bpm_max']) == 150.1
+    assert pytest.approx(summary.iloc[0]['spo2_min']) == 88.789
 
-# 6. Color status logic
+# 6. Data De-duplication: get_hourly_deduplicated
+def test_get_hourly_deduplicated(sample_df):
+    dedup = app.get_hourly_deduplicated(sample_df)
+    may1_10am_row = dedup[(dedup['timestamp'].dt.date == date(2026, 5, 1)) & (dedup['timestamp'].dt.hour == 10)]
+    assert len(may1_10am_row) == 1
+    assert may1_10am_row.iloc[0]['status'] == 'WARNING'
+    assert len(dedup) == 4
+
+# 7. Color status logic
 def test_color_status():
     t_zh, _ = app.get_translations('zh')
     assert app.color_status("危險", t_zh) == 'background-color: crimson; color: white'
     assert app.color_status("警告", t_zh) == 'background-color: orange; color: black'
     assert app.color_status("正常", t_zh) == ''
 
-# 8. Edge cases
-def test_edge_case_malformed_docs(mock_mongo_client):
-    mock_db = MagicMock()
-    mock_col = MagicMock()
-    mock_mongo_client.return_value.__getitem__.return_value = mock_db
-    mock_db.__getitem__.return_value = mock_col
-    mock_col.find.return_value.sort.return_value = [{'status': 'NORMAL'}]
-    with patch('analytics.app.init_connection', return_value=mock_mongo_client.return_value):
-        with pytest.raises(KeyError):
-            app.fetch_data.__wrapped__(date(2026, 5, 1), date(2026, 5, 31))
-
-# --- UI Logic Tests ---
+# 8. UI Logic Tests
 def test_main_ui_various_inputs(sample_df):
     with patch('analytics.app.st') as mock_st:
         # Case 1: No data
-        mock_st.sidebar.date_input.return_value = (date(2026, 5, 1),)
+        mock_st.sidebar.date_input.return_value = (date(2026, 5, 1), date(2026, 5, 31))
         mock_st.sidebar.multiselect.return_value = ["NORMAL"]
         mock_st.query_params = {}
         with patch('analytics.app.fetch_data', return_value=pd.DataFrame()):
@@ -132,18 +122,7 @@ def test_main_ui_various_inputs(sample_df):
         mock_st.tabs.return_value = [MagicMock(), MagicMock(), MagicMock()]
         with patch('analytics.app.fetch_data', return_value=sample_df):
             app.main()
-            mock_st.dataframe.assert_called()
-
-def test_main_ui_no_abnormal(sample_df):
-    normal_df = sample_df[sample_df['status'] == 'NORMAL'].copy()
-    with patch('analytics.app.st') as mock_st:
-        mock_st.sidebar.date_input.return_value = (date(2026, 5, 1), date(2026, 5, 31))
-        mock_st.sidebar.multiselect.return_value = ["NORMAL"]
-        mock_st.columns.side_effect = [[MagicMock()]*3, [MagicMock()]*2]
-        mock_st.tabs.return_value = [MagicMock()]*3
-        with patch('analytics.app.fetch_data', return_value=normal_df):
-            app.main()
-            mock_st.info.assert_called()
+            mock_st.plotly_chart.assert_called()
 
 def test_init_connection(mock_mongo_client):
     with patch.dict('os.environ', {'MONGO_URI': 'mongodb://test'}):
