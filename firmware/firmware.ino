@@ -200,9 +200,9 @@ void updateDisplay(int msg) {
             tft.setCursor((160 - w) / 2, 113); tft.print(mode); 
             break;
         }
-        case 2: // 正常測量中畫面 (已新增 5 秒專業熱身期隱藏波形修正)
+        case 2: // 正常測量中畫面
         {
-            // 判斷當前是否處於 5 秒熱身收斂期 (未開始計時，或開始計時未滿 5 秒)
+            // 判斷當前是否處於 5 秒熱身收斂期
             bool isWarmingUp = (fingerOnStartTime == 0 || (millis() - fingerOnStartTime < 5000));
             static bool lastWarmingUpState = false;
             static unsigned long lastWarmUpDraw = 0;
@@ -488,7 +488,7 @@ void setup(void) {
     while (1);
   }
 
-  // 顯式設定為 SpO2 混合測量模式（雙燈全開）
+  // 顯式設定為 SpO2 混合測量模式
   sensor.setup();
   dataQueue = xQueueCreate(5, sizeof(SensorData));
   if (dataQueue != NULL) { 
@@ -565,8 +565,8 @@ void loop()  {
     if (irValue < 5000) { 
         // 【情況 A：手指移開】
         lastTimerUpdate = 0;
-        fingerOnStartTime = 0; // 重置熱身計時錨點
-
+        fingerOnStartTime = 0;  // 歸零熱身時間
+        totalFingerSeconds = 0; // 歸零計時
         beatAvg = 0; 
         SPO2 = 0; 
         currentStatus = STATUS_NORMAL;
@@ -586,20 +586,24 @@ void loop()  {
     } else {
         // 【情況 B：放上手指進行測量】
         sleep_counter = 0;
+        
+        // 只要手指一放上去，立刻錨定熱身起點時間（不等待第一下心跳）
+        if (fingerOnStartTime == 0) {
+            fingerOnStartTime = now;
+        }
+
         int16_t IR_signal  = pulseIR.ma_filter(pulseIR.dc_filter(irValue)); 
         int16_t Red_signal = pulseRed.ma_filter(pulseRed.dc_filter(redValue));
         
-        // 同時刷新兩個光源通道的 Peak-to-Peak 偵測狀態
         bool beatIR  = pulseIR.isBeat(IR_signal);
         bool beatRed = pulseRed.isBeat(Red_signal); 
         
         wave.record(-IR_signal); 
 
-        // ─── 延遲計時邏輯：只有 SPO2 穩定大於 0 時才開始計算 30 秒 ───
+        // 30 秒倒數計時累積邏輯
         if (lastTimerUpdate == 0) lastTimerUpdate = now;
         if (now - lastTimerUpdate >= 1000) {
             lastTimerUpdate += 1000;
-            // 只有當真正的血氧值有輸出時，才開始累積計時秒數
             if (SPO2 > 0) { 
                 totalFingerSeconds++;
                 if (totalFingerSeconds >= targetMeasurementSeconds) {
@@ -621,8 +625,7 @@ void loop()  {
             digitalWrite(LED, HIGH);
             led_on = true; 
 
-            // ─── 5 秒熱身過濾與精確血氧計算 ───
-            if (fingerOnStartTime == 0) fingerOnStartTime = now;
+            // ─── 血氧數據計算 ───
             float rAC = pulseRed.avgAC();
             float rDC = pulseRed.avgDC();
             float iAC = pulseIR.avgAC();
@@ -630,51 +633,46 @@ void loop()  {
 
             if (rDC > 0 && iDC > 0 && iAC > 0) {
                 float rRatio = (iAC / iDC) / (rAC / rDC);
-                
-                // 將即時算出的修正 R 值送出
-                Serial.print("rAC: "); Serial.print(rAC);
-                Serial.print(" | rDC: "); Serial.print(rDC);
-                Serial.print(" | R Ratio: "); Serial.println(rRatio);
-
-                // 使用官方更精準的二次方程式計算
                 float calculatedSpO2 = -45.060 * (rRatio * rRatio) + 30.354 * rRatio + 94.845;
                 if (calculatedSpO2 > 100.0) calculatedSpO2 = 100.0;
                 
-                // ─── 延遲輸出：判斷是否放滿 5 秒 ───
+                // 判斷是否真正放滿 5 秒
                 if (now - fingerOnStartTime >= 5000) {
-                    // 放滿 5 秒，數據已完全收斂，正式採用
                     if (calculatedSpO2 >= 50.0) {
                         SPO2 = (int)calculatedSpO2;
                     } else {
-                        SPO2 = 0; // 訊號極度異常歸零
+                        SPO2 = 0; 
                     }
                 } else {
-                    // 前 5 秒熱身期：強制歸零，畫面保持 "---"，計時停在 00:00
+                    // 熱身未滿 5 秒，強制數據歸零
                     SPO2 = 0;
                     beatAvg = 0; 
                 }
             }
             
-            if (SPO2 > 0 && beatAvg > 0) { 
-                if (SPO2 < 90 || beatAvg < 50 || beatAvg > 120) { currentStatus = STATUS_DANGER; } 
-                else if (SPO2 < 95 || beatAvg < 60 || beatAvg > 100) { currentStatus = STATUS_WARNING; } 
-                else { currentStatus = STATUS_NORMAL; } 
+            // 只有當 5 秒熱身結束，且數值有效時，才允許更新狀態、響蜂鳴器與發送 MQTT
+            if (now - fingerOnStartTime >= 5000) {
+                if (SPO2 > 0 && beatAvg > 0) { 
+                    if (SPO2 < 90 || beatAvg < 50 || beatAvg > 120) { currentStatus = STATUS_DANGER; } 
+                    else if (SPO2 < 95 || beatAvg < 60 || beatAvg > 100) { currentStatus = STATUS_WARNING; } 
+                    else { currentStatus = STATUS_NORMAL; } 
 
-                if (now - lastPublishTime > 1000) {
-                    SensorData outData;
-                    outData.bpm = beatAvg; outData.spo2 = SPO2; outData.status = currentStatus; 
-                    xQueueSend(dataQueue, &outData, 0); 
-                    lastPublishTime = now;
+                    if (now - lastPublishTime > 1000) {
+                        SensorData outData;
+                        outData.bpm = beatAvg; outData.spo2 = SPO2; outData.status = currentStatus; 
+                        xQueueSend(dataQueue, &outData, 0); 
+                        lastPublishTime = now;
+                    }
                 }
-            }
-            
-            if (currentStatus == STATUS_NORMAL) { beepsToPlay = 1; } 
-            else if (currentStatus == STATUS_WARNING) { beepsToPlay = 2; } 
-            else if (currentStatus == STATUS_DANGER) { beepsToPlay = 4; } 
-            
-            if (beepsToPlay > 0) {
-                isBuzzerOn = true;
-                lastBuzzerToggleTime = now; tone(BUZZER_PIN, 2000); 
+                
+                if (currentStatus == STATUS_NORMAL) { beepsToPlay = 1; } 
+                else if (currentStatus == STATUS_WARNING) { beepsToPlay = 2; } 
+                else if (currentStatus == STATUS_DANGER) { beepsToPlay = 4; } 
+                
+                if (beepsToPlay > 0) {
+                    isBuzzerOn = true;
+                    lastBuzzerToggleTime = now; tone(BUZZER_PIN, 2000); 
+                }
             }
         }
 
