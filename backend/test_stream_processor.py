@@ -158,8 +158,6 @@ def test_on_message_reset_db_failure(reset_globals, caplog):
         simulate_mqtt_message({"status": "RESET"})
         assert "MongoDB Insert Error (RESET): RESET DB Fail" in caplog.text
 
-# --- NEW TESTS ---
-
 @pytest.mark.parametrize("spo2, ema, delta, expected", [
     (90, 70, 0, "DANGER"), (91, 70, 0, "WARNING"),
     (94, 70, 0, "WARNING"), (95, 70, 0, "NORMAL"),

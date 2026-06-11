@@ -137,6 +137,16 @@
                             <span data-lang="zh">啟動自動發送</span>
                         </button>
                     </div>
+                    <div style="display: grid; grid-template-columns: 1fr; gap: 1rem;">
+                        <div class="form-group">
+                            <label>
+                                <span data-lang="en">Duration (sec)</span>
+                                <span data-lang="zh">測量秒數 (duration_sec)</span>
+                            </label>
+                            <input type="number" id="manual-duration" value="30">
+                        </div>
+                    </div>
+
                     <div class="btn-group">
                         <button id="sendCompletedBtn" class="primary" style="flex: 1;">
                             <span data-lang="en">Send Completed</span>
@@ -195,10 +205,18 @@
                         <span data-lang="en">MESSAGE LOG</span>
                         <span data-lang="zh">訊息日誌</span>
                     </h2>
-                        <button id="clearLogBtn" style="font-size: 0.9rem; padding: 0.5rem 0.8rem;">
-                            <span data-lang="en">Clear Log</span>
-                            <span data-lang="zh">清除日誌</span>
-                        </button>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <a href="monitor.html" target="_blank" id="monitorLink">
+                                <button class="primary" style="font-size: 0.9rem; padding: 0.5rem 0.8rem;">
+                                    <span data-lang="en">Open Monitor</span>
+                                    <span data-lang="zh">開啟監控頁面</span>
+                                </button>
+                            </a>
+                            <button id="clearLogBtn" style="font-size: 0.9rem; padding: 0.5rem 0.8rem;">
+                                <span data-lang="en">Clear Log</span>
+                                <span data-lang="zh">清除日誌</span>
+                            </button>
+                        </div>
                 </div>
                 <div id="log" class="log-area"></div>
             </div>

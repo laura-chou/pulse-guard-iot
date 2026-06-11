@@ -308,4 +308,14 @@ document.getElementById('autoSendBtn').addEventListener('click', window.toggleAu
 document.getElementById('executeScenarioBtn').addEventListener('click', window.executeScenario);
 document.getElementById('clearLogBtn').addEventListener('click', window.clearLog);
 
+// Sync language to monitor link
+const monitorLink = document.getElementById('monitorLink');
+if (monitorLink) {
+    const urlParams = new URLSearchParams(window.location.search);
+    const lang = urlParams.get('lang');
+    if (lang) {
+        monitorLink.href = `monitor.html?lang=${lang}`;
+    }
+}
+
 autoConnect();
