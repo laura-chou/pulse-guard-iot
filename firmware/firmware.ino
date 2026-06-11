@@ -425,7 +425,7 @@ void networkTask(void *pvParameters) {
         mqttClient.loop();
         if (mqttClient.connected()) { 
             if (!bootResetSent) {
-                const char* initResetPayload = "{\n  \"bpm\": 0,\n  \"spo2\": 0,\n  \"status\": \"RESET\"\n}";
+                const char* initResetPayload = "{\"status\":\"RESET\"}";
                 if (mqttClient.publish(mqtt_topic, initResetPayload)) { 
                     bootResetSent = true;
                 }
@@ -442,11 +442,14 @@ void networkTask(void *pvParameters) {
                     
                     if (dataToPublish.status == STATUS_COMPLETED) {
                         snprintf(jsonPayload, sizeof(jsonPayload), 
-                                 "{\n  \"bpm\": %d,\n  \"spo2\": %d,\n  \"status\": \"%s\",\n  \"duration_sec\": %lu\n}", 
-                                 dataToPublish.bpm, dataToPublish.spo2, sStr, (unsigned long)dataToPublish.duration_sec);
+                                 "{\"status\":\"COMPLETED\",\"duration_sec\":%lu}",
+                                 (unsigned long)dataToPublish.duration_sec);
+                    } else if (dataToPublish.bpm == 0 && dataToPublish.spo2 == 0) {
+                        snprintf(jsonPayload, sizeof(jsonPayload),
+                                 "{\"status\":\"%s\"}", sStr);
                     } else {
                         snprintf(jsonPayload, sizeof(jsonPayload), 
-                                 "{\n  \"bpm\": %d,\n  \"spo2\": %d,\n  \"status\": \"%s\"\n}", 
+                                 "{\"bpm\":%d,\"spo2\":%d,\"status\":\"%s\"}",
                                  dataToPublish.bpm, dataToPublish.spo2, sStr); 
                     }
                     mqttClient.publish(mqtt_topic, jsonPayload);
