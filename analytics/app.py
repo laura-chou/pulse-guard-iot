@@ -329,8 +329,8 @@ def main():
 
                 color_map = {"NORMAL": "green", "WARNING": "orange", "DANGER": "crimson"}
                 fig_pie = px.pie(status_counts, values='count', names='label',
-                                 color='status', color_discrete_map=color_map,
-                                 labels={'label': t['tt_status'], 'count': t['tt_count']})
+                                color='status', color_discrete_map=color_map,
+                                labels={'label': t['tt_status'], 'count': t['tt_count']})
 
                 # 徹底移除底部的原始英文標籤 (status=NORMAL)
                 fig_pie.update_traces(
