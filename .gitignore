@@ -1,2 +1,3 @@
 ﻿backend/__pycache__
 *.coverage
+analytics/__pycache__
