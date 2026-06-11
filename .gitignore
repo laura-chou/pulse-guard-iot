@@ -1,3 +1,2 @@
-﻿backend/.env
-backend/__pycache__
-analytics/.env
+﻿backend/__pycache__
+*.coverage
