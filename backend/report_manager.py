@@ -75,9 +75,10 @@ def generate_and_send_report(session_id, duration_sec):
     end_time_local = end_time_utc.astimezone(local_tz)
 
     # Format for template (Asia/Taipei)
-    measure_time_str = start_time_local.strftime("%Y/%m/%d %H:%M")
+    measure_date_str = start_time_local.strftime("%Y/%m/%d")
+    time_interval_str = f"{start_time_local.strftime('%H:%M:%S')} ~ {end_time_local.strftime('%H:%M:%S')} (共 {int(actual_duration)} 秒)"
 
-    logger.info(f"Report for session {session_id}: {measure_time_str} ({actual_duration:.1f}s)")
+    logger.info(f"Report for session {session_id}: {measure_date_str} {time_interval_str}")
 
     # 3. Statistics Calculation
     bpms = [r.get("avg_bpm") or r.get("ema_bpm") for r in records if (r.get("avg_bpm") or r.get("ema_bpm"))]
@@ -103,9 +104,6 @@ def generate_and_send_report(session_id, duration_sec):
     if not template:
         return
 
-    # Format duration
-    duration_str = f"{int(actual_duration)} sec"
-
     # Status mapping
     status_config = {
         "DANGER":  {"text": "🔴 DANGER",  "color": "#DC3545"},
@@ -119,10 +117,10 @@ def generate_and_send_report(session_id, duration_sec):
 
     # Body -> Box 0 (Summary Box)
     summary_box_contents = body_contents[0]["contents"]
-    # Row 0: Measurement Time
-    summary_box_contents[0]["contents"][1]["contents"][0]["text"] = measure_time_str
-    # Row 1: Duration
-    summary_box_contents[1]["contents"][1]["contents"][0]["text"] = duration_str
+    # Row 0: Measurement Date
+    summary_box_contents[0]["contents"][1]["contents"][0]["text"] = measure_date_str
+    # Row 1: Time Interval
+    summary_box_contents[1]["contents"][1]["contents"][0]["text"] = time_interval_str
     # Row 2: Status
     summary_box_contents[2]["contents"][1]["contents"][0]["text"] = config["text"]
     summary_box_contents[2]["contents"][1]["contents"][0]["color"] = config["color"]

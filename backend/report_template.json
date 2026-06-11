@@ -47,16 +47,16 @@
                 "contents": [
                   {
                     "type": "text",
-                    "text": "🕒 量測時間",
-                    "color": "#495057",
+                    "text": "📅 量測日期",
+                    "color": "#333333",
                     "size": "sm",
                     "weight": "bold"
                   },
                   {
                     "type": "text",
-                    "text": "Measurement Time",
-                    "color": "#868E96",
-                    "size": "xxs"
+                    "text": "Measurement Date",
+                    "color": "#999999",
+                    "size": "xs"
                   }
                 ]
               },
@@ -67,8 +67,8 @@
                 "contents": [
                   {
                     "type": "text",
-                    "text": "2026/06/09 17:50",
-                    "color": "#212529",
+                    "text": "2026/06/10",
+                    "color": "#333333",
                     "size": "sm",
                     "weight": "bold",
                     "align": "end"
@@ -80,29 +80,9 @@
           {
             "type": "box",
             "layout": "horizontal",
-            "margin": "md",
+            "margin": "lg",
             "alignItems": "center",
             "contents": [
-              {
-                "type": "box",
-                "layout": "vertical",
-                "flex": 6,
-                "contents": [
-                  {
-                    "type": "text",
-                    "text": "⏱️ 量測時長",
-                    "color": "#495057",
-                    "size": "sm",
-                    "weight": "bold"
-                  },
-                  {
-                    "type": "text",
-                    "text": "Measurement Duration",
-                    "color": "#868E96",
-                    "size": "xxs"
-                  }
-                ]
-              },
               {
                 "type": "box",
                 "layout": "vertical",
@@ -110,11 +90,32 @@
                 "contents": [
                   {
                     "type": "text",
-                    "text": "30 sec",
-                    "color": "#212529",
+                    "text": "🕒 時間區間",
+                    "color": "#333333",
                     "size": "sm",
+                    "weight": "bold"
+                  },
+                  {
+                    "type": "text",
+                    "text": "Time Interval",
+                    "color": "#999999",
+                    "size": "xs"
+                  }
+                ]
+              },
+              {
+                "type": "box",
+                "layout": "vertical",
+                "flex": 6,
+                "contents": [
+                  {
+                    "type": "text",
+                    "text": "08:30:15 ~ 08:30:45 (共 30 秒)",
+                    "color": "#333333",
+                    "size": "xs",
                     "weight": "bold",
-                    "align": "end"
+                    "align": "end",
+                    "wrap": true
                   }
                 ]
               }
@@ -123,7 +124,7 @@
           {
             "type": "box",
             "layout": "horizontal",
-            "margin": "md",
+            "margin": "lg",
             "alignItems": "center",
             "contents": [
               {
@@ -159,54 +160,6 @@
                     "weight": "bold",
                     "align": "end"
                   }
-                ]
-              }
-            ]
-          },
-          {
-            "type": "box",
-            "layout": "horizontal",
-            "margin": "lg",
-            "contents": [
-              {
-                "type": "box",
-                "layout": "vertical",
-                "flex": 5,
-                "contents": [
-                  { "type": "text", "text": "📅 量測日期", "color": "#333333", "size": "sm", "weight": "bold" },
-                  { "type": "text", "text": "Measurement Date", "color": "#999999", "size": "xs" }
-                ]
-              },
-              {
-                "type": "box",
-                "layout": "vertical",
-                "flex": 5,
-                "contents": [
-                  { "type": "text", "text": "2026/06/10", "color": "#333333", "size": "sm", "weight": "bold", "align": "end" }
-                ]
-              }
-            ]
-          },
-          {
-            "type": "box",
-            "layout": "horizontal",
-            "margin": "lg",
-            "contents": [
-              {
-                "type": "box",
-                "layout": "vertical",
-                "flex": 4,
-                "contents": [
-                  { "type": "text", "text": "🕒 量測時間", "color": "#333333", "size": "sm", "weight": "bold" },
-                  { "type": "text", "text": "Time Interval", "color": "#999999", "size": "xs" }
-                ]
-              },
-              {
-                "type": "box",
-                "layout": "vertical",
-                "flex": 6,
-                "contents": [
-                  { "type": "text", "text": "08:30:15 ~ 08:30:45 (共 30 秒)", "color": "#333333", "size": "xs", "weight": "bold", "align": "end", "wrap": true }
                 ]
               }
             ]
