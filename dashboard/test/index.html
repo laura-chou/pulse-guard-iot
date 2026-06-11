@@ -138,8 +138,12 @@
                         </button>
                     </div>
                     <div class="btn-group">
-                        <button id="sendResetBtn" class="danger" style="width: 100%;">
-                            <span data-lang="en">Send Reset Status</span>
+                        <button id="sendCompletedBtn" class="primary" style="flex: 1;">
+                            <span data-lang="en">Send Completed</span>
+                            <span data-lang="zh">發送完成狀態</span>
+                        </button>
+                        <button id="sendResetBtn" class="danger" style="flex: 1;">
+                            <span data-lang="en">Send Reset</span>
                             <span data-lang="zh">發送重置狀態</span>
                         </button>
                     </div>
@@ -166,6 +170,7 @@
                             <option value="C" data-en="Scenario C: SpO2 Drop Zero-Latency Write" data-zh="場景 C: 血氧下降零延遲寫入">Scenario C: SpO2 Drop Zero-Latency Write</option>
                             <option value="D" data-en="Scenario D: Acute BPM Surge (ΔBPM)" data-zh="場景 D: 急性心率突增 (ΔBPM)">Scenario D: Acute BPM Surge (ΔBPM)</option>
                             <option value="E" data-en="Scenario E: Timer Interception Test" data-zh="場景 E: 定時器截斷測試">Scenario E: Timer Interception Test</option>
+                            <option value="F" data-en="Scenario F: 5s Stabilization Warm-up" data-zh="場景 F: 5秒穩定預熱測試">Scenario F: 5s Stabilization Warm-up</option>
                         </select>
                     </div>
 
@@ -200,6 +205,6 @@
         </main>
     </div>
 
-    <script type="module" src="/test/test-logic.js"></script>
+    <script type="module" src="./test-logic.js"></script>
 </body>
 </html>

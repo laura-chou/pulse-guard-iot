@@ -22,6 +22,7 @@ document.querySelectorAll('select option').forEach(opt => {
 const neonGreen = getCSSVar('--neon-green');
 const neonRed = getCSSVar('--neon-red');
 const neonYellow = getCSSVar('--neon-yellow');
+const neonBlue = getCSSVar('--neon-blue');
 
 function log(msg) {
     const logArea = document.getElementById('log');
@@ -120,6 +121,18 @@ window.publishReset = function() {
     log(`<span style="color:${neonYellow}">Published Reset: ${payload}</span>`);
 }
 
+window.publishCompleted = function() {
+    if (!connected) {
+        log(`<span style="color:${neonYellow}">Not connected.</span>`);
+        return;
+    }
+    const payload = JSON.stringify({ status: "COMPLETED", duration_sec: 30 });
+    const message = new Paho.MQTT.Message(payload);
+    message.destinationName = mqttTopic;
+    mqttClient.send(message);
+    log(`<span style="color:${neonBlue}">Published Completed: ${payload}</span>`);
+}
+
 // Preset logic
 document.getElementById('presetSelect').addEventListener('change', (e) => {
     const preset = e.target.value;
@@ -171,8 +184,13 @@ const scenarios = {
     'E': {
         en: '12 normal points (70 BPM, 98% SpO2) sent every 2s. Observes 20-second interval writes.',
         zh: '每 2 秒發送一次正常數據，共 12 筆。觀察 20 秒間隔寫入。'
+    },
+    'F': {
+        en: 'Simulates 5s warm-up: Waits 5s after finger placement before sending first valid data point.',
+        zh: '模擬 5 秒預熱：放上手指後等待 5 秒才發送第一筆有效數據。'
     }
 };
+
 
 document.getElementById('scenarioSelect').addEventListener('change', (e) => {
     const val = e.target.value;
@@ -187,6 +205,9 @@ document.getElementById('scenarioSelect').addEventListener('change', (e) => {
         descZh.textContent = '請選擇場景以查看詳情。';
     }
 });
+
+// Initial trigger to show default text correctly if needed
+document.getElementById('scenarioSelect').dispatchEvent(new Event('change'));
 
 window.toggleAutoSend = function() {
     const btn = document.getElementById('autoSendBtn');
@@ -264,12 +285,25 @@ window.executeScenario = function() {
                 if (countE >= 12) stopScenarios();
             }, 2000);
             break;
+        case 'F':
+            log(`<span style="color:${neonYellow}">Finger placed. Warming up for 5 seconds...</span>`);
+            setTimeout(() => {
+                log(`<span style="color:${neonGreen}">Warm-up complete. Starting data stream.</span>`);
+                let countF = 0;
+                scenarioInterval = setInterval(() => {
+                    countF++;
+                    publish(72, 98);
+                    if (countF >= 5) stopScenarios();
+                }, 1000);
+            }, 5000);
+            break;
     }
 }
 
 // Attach event listeners
 document.getElementById('sendManualBtn').addEventListener('click', window.publishManual);
 document.getElementById('sendResetBtn').addEventListener('click', window.publishReset);
+document.getElementById('sendCompletedBtn').addEventListener('click', window.publishCompleted);
 document.getElementById('autoSendBtn').addEventListener('click', window.toggleAutoSend);
 document.getElementById('executeScenarioBtn').addEventListener('click', window.executeScenario);
 document.getElementById('clearLogBtn').addEventListener('click', window.clearLog);
