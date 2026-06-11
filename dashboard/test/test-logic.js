@@ -46,7 +46,7 @@ async function autoConnect() {
         const port = parseInt(config.MQTT_PORT);
         const user = config.MQTT_USERNAME;
         const pass = config.MQTT_PASSWORD;
-        mqttTopic = config.MQTT_TOPIC;
+        mqttTopic = config.MQTT_TEST_TOPIC;
 
         mqttClient = new Paho.MQTT.Client(host, port, "/mqtt", "tester_" + Math.random().toString(16).substr(2, 8));
 
@@ -126,7 +126,20 @@ window.publishCompleted = function() {
         log(`<span style="color:${neonYellow}">Not connected.</span>`);
         return;
     }
-    const payload = JSON.stringify({ status: "COMPLETED", duration_sec: 30 });
+
+    const durationInput = document.getElementById('manual-duration');
+    if (!durationInput) {
+        log(`<span style="color:${neonYellow}">Duration input not found.</span>`);
+        return;
+    }
+
+    const duration = parseInt(durationInput.value, 10);
+    if (!Number.isFinite(duration) || duration <= 0) {
+        log(`<span style="color:${neonYellow}">Invalid duration value.</span>`);
+        return;
+    }
+
+    const payload = JSON.stringify({ status: "COMPLETED", duration_sec: duration });
     const message = new Paho.MQTT.Message(payload);
     message.destinationName = mqttTopic;
     mqttClient.send(message);
