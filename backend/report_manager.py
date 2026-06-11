@@ -34,6 +34,20 @@ def load_report_template():
         logger.error(f"Failed to parse template JSON: {e}")
         return None
 
+def format_duration(seconds):
+    """Formats duration according to rules: <60s -> X sec, multi-60s -> Y min, else Y min X sec."""
+    seconds = int(seconds)
+    if seconds < 60:
+        return f"({seconds} sec)"
+
+    minutes = seconds // 60
+    rem_seconds = seconds % 60
+
+    if rem_seconds == 0:
+        return f"({minutes} min)"
+    else:
+        return f"({minutes} min {rem_seconds} sec)"
+
 def generate_and_send_report(session_id, duration_sec):
     """
     Retrieves records from MongoDB for the given session_id,
@@ -76,7 +90,11 @@ def generate_and_send_report(session_id, duration_sec):
 
     # Format for template (Asia/Taipei)
     measure_date_str = start_time_local.strftime("%Y/%m/%d")
-    time_interval_str = f"{start_time_local.strftime('%H:%M:%S')} ~ {end_time_local.strftime('%H:%M:%S')} (共 {int(actual_duration)} 秒)"
+
+    # Use passed duration_sec for formatted display
+    display_duration = duration_sec if duration_sec is not None else actual_duration
+    formatted_duration = format_duration(display_duration)
+    time_interval_str = f"{start_time_local.strftime('%H:%M:%S')} ~ {end_time_local.strftime('%H:%M:%S')} {formatted_duration}"
 
     logger.info(f"Report for session {session_id}: {measure_date_str} {time_interval_str}")
 

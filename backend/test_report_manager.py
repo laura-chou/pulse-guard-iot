@@ -48,9 +48,20 @@ def test_generate_and_send_report_logic(mock_getenv, mock_post, mock_mongo, mock
     # Check Row 0: Date
     assert summary_box_contents[0]["contents"][1]["contents"][0]["text"] == "2026/06/10"
     # Check Row 1: Time Interval
-    assert summary_box_contents[1]["contents"][1]["contents"][0]["text"] == "08:30:15 ~ 08:30:45 (共 30 秒)"
+    assert summary_box_contents[1]["contents"][1]["contents"][0]["text"] == "08:30:15 ~ 08:30:45 (30 sec)"
     # Check Row 2: Status
     assert "NORMAL" in summary_box_contents[2]["contents"][1]["contents"][0]["text"]
+
+@pytest.mark.parametrize("seconds, expected", [
+    (30, "(30 sec)"),
+    (60, "(1 min)"),
+    (90, "(1 min 30 sec)"),
+    (120, "(2 min)"),
+    (125, "(2 min 5 sec)"),
+])
+def test_format_duration(seconds, expected):
+    from report_manager import format_duration
+    assert format_duration(seconds) == expected
 
 def test_load_report_template():
     template = load_report_template()

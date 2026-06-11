@@ -110,7 +110,7 @@
                 "contents": [
                   {
                     "type": "text",
-                    "text": "08:30:15 ~ 08:30:45 (共 30 秒)",
+                    "text": "08:30:15 ~ 08:30:45 (30 sec)",
                     "color": "#333333",
                     "size": "xs",
                     "weight": "bold",
