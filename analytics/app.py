@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 import pytz
 import os
 from dotenv import load_dotenv
+from st_aggrid import AgGrid, GridOptionsBuilder, JsCode, GridUpdateMode, DataReturnMode
 
 # 加載環境變數
 load_dotenv()
@@ -18,10 +19,18 @@ local_tz = pytz.timezone('Asia/Taipei')
 def get_translations(lang_code):
     translations = {
         'en': {
-            'title': 'PulseGuard: Remote Health Analytics Dashboard',
+            'page_title': 'PulseGuard Analytics',
+            'title': 'PulseGuard | Remote Health Analytics Dashboard',
             'sidebar_filters': 'Filters',
             'date_range': 'Date Range',
             'status_filter': 'Status Filter',
+            'env_select': 'Environment',
+            'env_prod': 'Production',
+            'env_test': 'Test',
+            'test_mode_warning': 'Currently in Test Mode. Viewing simulated test data.',
+            'expander_title': '🔍 View Status Criteria & Column Descriptions',
+            'expander_left_title': '🩺 Health Status Criteria',
+            'expander_right_title': '📊 Algorithm Descriptions',
             'kpi_total': 'Total Samples',
             'kpi_danger': 'Danger Events',
             'kpi_warning': 'Warning Events',
@@ -44,19 +53,35 @@ def get_translations(lang_code):
             'tt_min_spo2': 'Min SpO2',
             'tt_percent': 'Percent',
             'download_csv': 'Download Filtered Data as CSV',
+            'week_format': '%G-W%V',
             'status_map': {"NORMAL": "NORMAL", "WARNING": "WARNING", "DANGER": "DANGER"},
             'col_no': '#',
             'col_time': 'Timestamp',
             'col_status': 'Status',
             'col_avg_bpm': 'Avg BPM',
             'col_ema_bpm': 'EMA BPM',
-            'col_spo2': 'SpO2 (%)'
+            'col_spo2': 'SpO2 (%)',
+            'help_status': """
+            * 🚨 **DANGER**: SpO2 ≤ 90%, EMA ≤ 50 or ≥ 140, or |ΔBPM| ≥ 50
+            * ⚠️ **WARNING**: Metrics outside normal range but not meeting danger criteria
+            * 💡 **Note**: This log automatically records non-normal events (DANGER, WARNING) for clinical tracking. Normal historical data can be viewed in the Trends and Statistics tabs..""",
+            'help_avg_bpm': "15s Moving Average BPM: Calculates the mean of the last 15 signals to smooth out noise.",
+            'help_ema_bpm': "Exponential Moving Average (EMA): Uses a time-series filtering algorithm (30% current, 70% historical) to reduce measurement errors.",
+            'help_spo2': "Oxygen Saturation (%): Displays the 15-second moving average, which is more medically representative than raw data. Normal values are usually above 95%."
         },
         'zh': {
-            'title': 'PulseGuard：遠端醫療歷史數據分析看板',
+            'page_title': '遠端健康數據分析',
+            'title': 'PulseGuard｜遠端健康智慧監控分析儀表板',
             'sidebar_filters': '篩選條件',
             'date_range': '日期範圍',
             'status_filter': '狀態過濾',
+            'env_select': '運行環境',
+            'env_prod': '正式環境',
+            'env_test': '測試環境',
+            'test_mode_warning': '目前處於測試模式，檢視的數據為模擬測試資料。',
+            'expander_title': '🔍 檢視狀態判定標準與欄位說明',
+            'expander_left_title': '🩺 狀態判定標準',
+            'expander_right_title': '📊 欄位演算法說明',
             'kpi_total': '總樣本數',
             'kpi_danger': '危險次數',
             'kpi_warning': '警告次數',
@@ -79,18 +104,27 @@ def get_translations(lang_code):
             'tt_min_spo2': '最低血氧',
             'tt_percent': '比例',
             'download_csv': '下載篩選後的資料為 CSV',
+            'week_format': '%G-週%V',
             'status_map': {"NORMAL": "正常", "WARNING": "警告", "DANGER": "危險"},
             'col_no': '序號',
             'col_time': '時間戳記',
             'col_status': '狀態',
             'col_avg_bpm': '平均心率',
             'col_ema_bpm': 'EMA心率',
-            'col_spo2': '血氧飽和度 (%)'
+            'col_spo2': '血氧飽和度 (%)',
+            'help_status': """
+            * 🚨 **危險 (DANGER)**：滿足任一條件 (SpO2 <= 90%, EMA <= 50 或 >= 140, |ΔBPM| >= 50)
+            * ⚠️ **警告 (WARNING)**：未達危急標準，但任一指標超出正常範圍
+            * 💡 **說明**：本誌僅自動節錄並留存「非正常（DANGER, WARNING）」之觸發事件，正常（NORMAL）數據請至生理趨勢與統計分頁檢視。""",
+            'help_avg_bpm': "15秒移動平均心率 (Moving Average)：計算最近 15 筆訊號均值，用以平滑即時雜訊，呈現穩定的心跳趨勢。",
+            'help_ema_bpm': "指數移動平均心率 (EMA)：導入時序濾波演算法（目前 30%，歷史 70% 權重），有效抑制單點量測誤差，精準反映心血管實際生理趨勢。",
+            'help_spo2': "血氧飽和度百分比：顯示最近 15 秒的訊號移動平均值，較純即時數值更具醫學代表性。正常值通常在 95% 以上。"
         }
     }
     lang = "zh" if lang_code == "zh" else "en"
     return translations[lang], lang
 
+# 保留 color_status 供測試與潛在回退使用
 def color_status(val, t):
     if val == t['status_map']['DANGER']: color = 'background-color: crimson; color: white'
     elif val == t['status_map']['WARNING']: color = 'background-color: orange; color: black'
@@ -105,9 +139,16 @@ def init_connection():
     return MongoClient(mongo_uri)
 
 @st.cache_data(ttl=600)
-def fetch_data(start_date, end_date):
-    """從 MongoDB 讀取數據並進行預處理"""
-    client = init_connection()
+def fetch_data(start_date, end_date, env="production"):
+    """從 MongoDB 讀取數據並進行預處理，返回 (DataFrame, 是否發生錯誤)"""
+    try:
+        client = MongoClient(os.getenv("MONGO_URI"), serverSelectionTimeoutMS=2000)
+        # 測試連線
+        client.admin.command('ping')
+    except Exception as e:
+        # 返回空 DataFrame 與 錯誤標記
+        return pd.DataFrame(), True
+
     db_name = os.getenv("MONGO_DB_NAME")
     col_name = os.getenv("MONGO_COL_NAME")
 
@@ -119,18 +160,21 @@ def fetch_data(start_date, end_date):
     collection = db[col_name]
 
     # 執行查詢並按時間排序，使用投影減少傳輸量
+    # 排除 RESET 狀態與測試數據 (data_source="test")
     projection = {
         "timestamp": 1,
-        "status": 1,
+        "analysis_status": 1,
         "avg_bpm": 1,
         "ema_bpm": 1,
         "spo2": 1,
         "_id": 0
     }
-    cursor = collection.find(
-        {"timestamp": {"$gte": start_dt, "$lte": end_dt}},
-        projection
-    ).sort("timestamp", 1)
+    query = {
+        "timestamp": {"$gte": start_dt, "$lte": end_dt},
+        "analysis_status": {"$ne": "RESET"},
+        "data_source": env
+    }
+    cursor = collection.find(query, projection).sort("timestamp", 1)
 
     df = pd.DataFrame(list(cursor))
     if not df.empty:
@@ -143,22 +187,26 @@ def fetch_data(start_date, end_date):
         # 移除 MongoDB 內部 ID
         if '_id' in df.columns:
             df.drop(columns=['_id'], inplace=True)
-    return df
+    return df, False
 
 def calculate_kpis(df):
-    """計算關鍵績效指標"""
+    """計算關鍵績效指標 (基於去重後的數據)"""
+    # 1. 醫療健康指標
     total_samples = len(df)
-    danger_count = len(df[df['status'] == "DANGER"])
-    warning_count = len(df[df['status'] == "WARNING"])
+    danger_count = len(df[df['analysis_status'] == "DANGER"])
+    warning_count = len(df[df['analysis_status'] == "WARNING"])
+
     return total_samples, danger_count, warning_count
 
 def get_daily_summary(df):
     """將原始數據按日聚合，用於趨勢圖"""
     if df.empty:
-        return df
-    df_daily = df.copy()
-    df_daily['date'] = df_daily['timestamp'].dt.date
-    summary = df_daily.groupby('date').agg({
+        # 返回具有正確結構但為空的 DataFrame，避免後續聚合報錯
+        return pd.DataFrame(columns=['date', 'bpm_min', 'bpm_max', 'bpm_mean', 'spo2_min'])
+
+    df_copy = df.copy()
+    df_copy['date'] = df_copy['timestamp'].dt.date
+    summary = df_copy.groupby('date').agg({
         'avg_bpm': ['min', 'max', 'mean'],
         'spo2': 'min'
     }).reset_index()
@@ -174,7 +222,7 @@ def get_hourly_deduplicated(df):
     # 定義優先級：DANGER > WARNING > NORMAL
     priority_map = {"DANGER": 2, "WARNING": 1, "NORMAL": 0}
     df_hourly = df.copy()
-    df_hourly['priority'] = df_hourly['status'].map(priority_map)
+    df_hourly['priority'] = df_hourly['analysis_status'].map(priority_map)
     df_hourly['hour'] = df_hourly['timestamp'].dt.floor('h')
 
     # 按小時分組，並找出每組中優先級最高的索引
@@ -239,26 +287,104 @@ def build_combined_physiological_chart(df_daily, t):
     return fig
 
 def get_default_range():
-    """計算過去兩個完整日曆月的範圍"""
-    today = datetime.now(local_tz)
-    # 本月第一天
-    first_day_this_month = today.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-    # 結束日期：上個月最後一天
-    end_date = (first_day_this_month - timedelta(seconds=1)).date()
-    # 上個月第一天
-    first_day_prev_month = (first_day_this_month - timedelta(days=1)).replace(day=1)
-    # 開始日期：前一個月的第一天
-    start_date = (first_day_prev_month - timedelta(days=1)).replace(day=1).date()
-    return start_date, end_date
+    """計算過去一個月的範圍 (90天前到今天)"""
+    today = datetime.now(local_tz).date()
+    start_date = today - timedelta(days=90)
+    return start_date, today
+
+def render_aggrid(df, t, status_col_key):
+    """
+    統一渲染 AG Grid 的輔助函式
+    """
+    gb = GridOptionsBuilder.from_dataframe(df)
+
+    # 默認配置：移除功能選單與篩選圖示，預設置中對齊
+    gb.configure_default_column(
+        suppressMenu=True,
+        suppressHeaderFilterButton=True,
+        filter=False,
+        headerClass='ag-center-aligned-header',
+        cellStyle={'textAlign': 'center'},
+        flex=1,
+        resizable=True
+    )
+
+    # 針對數值欄位：靠右對齊 (內容)
+    numeric_cols = [t['col_avg_bpm'], t['col_ema_bpm'], t['col_spo2']]
+    for col in numeric_cols:
+        if col in df.columns:
+            gb.configure_column(
+                col,
+                headerClass='ag-right-aligned-header',
+                cellStyle={'textAlign': 'right'}
+            )
+
+    # 狀態欄位特殊處理：背景顏色 (JsCode)
+    cellsytle_jscode = JsCode(f"""
+    function(params) {{
+        let baseStyle = {{ 'textAlign': 'center' }};
+        if (params.value === '{t['status_map']['DANGER']}') {{
+            return {{ ...baseStyle, 'color': 'white', 'backgroundColor': 'crimson' }};
+        }} else if (params.value === '{t['status_map']['WARNING']}') {{
+            return {{ ...baseStyle, 'color': 'black', 'backgroundColor': 'orange' }};
+        }} else {{
+            return baseStyle;
+        }}
+    }};
+    """)
+    # 狀態欄位：置中對齊且
+    gb.configure_column(
+        status_col_key,
+        cellStyle=cellsytle_jscode,
+        maxWidth=120,
+        flex=0
+    )
+    # 序號欄位：置中對齊且固定極小寬度
+    if t['col_no'] in df.columns:
+        gb.configure_column(
+            t['col_no'],
+            flex=0,
+            width=50,
+            maxWidth=60,
+            cellStyle={'textAlign': 'center'}
+        )
+
+    gridOptions = gb.build()
+
+    # 將 AgGrid 表頭文字置中
+    custom_css = {
+        ".ag-header-cell-label": {
+            "justify-content": "center !important"
+        }
+    }
+
+    return AgGrid(
+        df,
+        gridOptions=gridOptions,
+        data_return_mode=DataReturnMode.FILTERED_AND_SORTED,
+        update_mode=GridUpdateMode.MODEL_CHANGED,
+        fit_columns_on_grid_load=True,
+        allow_unsafe_jscode=True,
+        theme='streamlit',
+        height=400,
+        width='100%',
+        custom_css=custom_css
+    )
 
 def main():
-    # --- 頁面配置與多語系設定 ---
-    st.set_page_config(page_title="PulseGuard Analytics", layout="wide")
-
-    # 從 URL 參數獲取語言設定 (?lang=zh)
+    # --- 語系設定 (優先獲取以應用於頁面配置) ---
     query_params = st.query_params
     lang_code = query_params.get("lang", "en")
     t, lang = get_translations(lang_code)
+
+    # --- 頁面配置 ---
+    icon_path = os.path.join(os.path.dirname(__file__), "icon.png")
+
+    st.set_page_config(
+        page_title=t['page_title'],
+        page_icon=icon_path if os.path.exists(icon_path) else None,
+        layout="wide"
+    )
 
     # --- UI 頁面標題 ---
     st.title(t['title'])
@@ -266,12 +392,22 @@ def main():
     # --- 側邊欄篩選器 ---
     st.sidebar.header(t['sidebar_filters'])
 
+    # 環境切換
+    env_mode = st.sidebar.selectbox(
+        t['env_select'],
+        options=["production", "test"],
+        format_func=lambda x: t['env_prod'] if x == "production" else t['env_test']
+    )
+
+    if env_mode == "test":
+        st.warning(t['test_mode_warning'])
+
     default_start, default_end = get_default_range()
     date_range = st.sidebar.date_input(
         t['date_range'],
         value=(default_start, default_end),
         min_value=datetime(2020, 1, 1).date(),
-        max_value=datetime.now().date()
+        max_value=default_end
     )
 
     # 處理日期選擇器的回傳值
@@ -289,20 +425,117 @@ def main():
         format_func=lambda x: t['status_map'][x]
     )
 
+    # 底部緩衝空間：在日期選擇器下方增加垂直空間
+    # 目的：確保當使用者點擊 st.date_input 時，下方有足夠餘裕讓彈出面板顯示，
+    # 從而防止 Streamlit (及底層 BaseWeb 元件) 因為偵測到靠近視窗底部而自動將面板轉向（向上彈出）。
+    # 這裡使用 600px 的隱形區塊來確保面板能穩定向下開啟。
+    st.sidebar.markdown('<div style="height: 600px;"></div>', unsafe_allow_html=True)
+
     # --- 數據抓取與處理 ---
-    raw_df = fetch_data(start_date, end_date)
+    fetched_df, connection_error = fetch_data(start_date, end_date, env=env_mode)
+
+    # 強制過濾所有 OFF-CHIP 紀錄 (確保 legacy 數據也不會顯示)
+    if not fetched_df.empty:
+        raw_df = fetched_df[fetched_df['analysis_status'] != "OFF-CHIP"].copy()
+    else:
+        raw_df = fetched_df
 
     if raw_df.empty:
-        st.warning("所選範圍內查無數據。" if lang == 'zh' else "No data found for the selected range.")
+        if connection_error:
+            st.error("無法連線至資料庫，顯示模擬數據供參考。" if lang == 'zh' else "Database connection failed, showing mock data for reference.")
+        else:
+            st.warning("所選範圍內查無數據。" if lang == 'zh' else "No data found for the selected range.")
+            return
+
+        # --- 建立模擬數據供展示 (僅在資料庫連線失敗時) ---
+        st.info("展示功能範例數據：" if lang == 'zh' else "Displaying feature sample data:")
+
+        # 模擬數據下的 KPI 展示 (固定數值)
+        m_col1, m_col2, m_col3 = st.columns(3)
+        m_col1.metric(t['kpi_total'], 120)
+        m_col2.metric(t['kpi_danger'], 5, delta_color="inverse")
+        m_col3.metric(t['kpi_warning'], 12, delta_color="off")
+
+        if env_mode == "production":
+            mock_records = [
+                {
+                    "timestamp": datetime.now(local_tz).strftime('%Y-%m-%d %H:%M:%S'),
+                    "analysis_status": "NORMAL",
+                    "avg_bpm": 72.4,
+                    "ema_bpm": 71.8,
+                    "spo2": 98.5
+                }
+            ]
+        else:
+            mock_records = [
+                {
+                    "timestamp": datetime.now(local_tz).strftime('%Y-%m-%d %H:%M:%S'),
+                    "analysis_status": "DANGER",
+                    "avg_bpm": 145.0,
+                    "ema_bpm": 142.5,
+                    "spo2": 88.0
+                },
+                {
+                    "timestamp": (datetime.now(local_tz) - timedelta(minutes=2)).strftime('%Y-%m-%d %H:%M:%S'),
+                    "analysis_status": "WARNING",
+                    "avg_bpm": 105.0,
+                    "ema_bpm": 102.0,
+                    "spo2": 94.0
+                }
+            ]
+        mock_data = pd.DataFrame(mock_records)
+
+        # 轉換為顯示格式
+        mock_display = mock_data.copy()
+        mock_display['analysis_status'] = mock_display['analysis_status'].map(lambda x: t['status_map'].get(x, x))
+        
+        # 統一模擬數據的數值精度
+        mock_display['avg_bpm'] = mock_display['avg_bpm'].round(1)
+        mock_display['ema_bpm'] = mock_display['ema_bpm'].round(1)
+        mock_display['spo2'] = mock_display['spo2'].round(0).astype(int)
+        
+        mock_display.insert(0, t['col_no'], range(1, len(mock_display) + 1))
+        mock_display = mock_display.rename(columns={
+            'timestamp': t['col_time'],
+            'analysis_status': t['col_status'],
+            'avg_bpm': t['col_avg_bpm'],
+            'ema_bpm': t['col_ema_bpm'],
+            'spo2': t['col_spo2']
+        })
+
+        # 渲染模擬數據的說明
+        with st.expander(t['expander_title']):
+            e_col1, e_col2 = st.columns(2)
+            with e_col1:
+                st.markdown(f"**{t['expander_left_title']}**")
+                st.markdown(t['help_status'])
+            with e_col2:
+                st.markdown(f"**{t['expander_right_title']}**")
+                if lang == 'zh':
+                    st.markdown("""
+- **平均心率**：最近 15 筆訊號的移動平均值，用以平滑即時雜訊，呈現穩定的心跳趨勢。
+- **EMA心率**：指數移動平均 (EMA)，導入時序濾波演算法（目前 30%，歷史 70% 權重），有效抑制單點量測誤差。
+- **血氧飽和度 (%)**：顯示最近 15 秒的訊號移動平均值，較純即時數值更具醫學代表性。
+                    """)
+                else:
+                    st.markdown("""
+- **Avg BPM**: Moving average of the last 15 signals to smooth out noise.
+- **EMA BPM**: Exponential Moving Average (30% current, 70% historical) to suppress measurement errors.
+- **SpO2 (%)**: 15-second moving average, providing better clinical representation.
+                    """)
+
+        # 使用 AgGrid 顯示模擬數據
+        render_aggrid(mock_display, t, t['col_status'])
+
     else:
         # 根據選取狀態過濾數據
-        df = raw_df[raw_df['status'].isin(selected_statuses)].copy()
+        df = raw_df[raw_df['analysis_status'].isin(selected_statuses)].copy()
 
         # 預先生成聚合數據
         df_daily = get_daily_summary(df)
         df_hourly = get_hourly_deduplicated(df)
 
-        # 計算 KPI (使用去重後的數據以保持 UI 一致性)
+        # 計算 KPI
         total_samples, danger_count, warning_count = calculate_kpis(df_hourly)
 
         # --- KPI 卡片展示 ---
@@ -315,24 +548,25 @@ def main():
         tab1, tab2, tab3 = st.tabs([t['tab_trends'], t['tab_stats'], t['tab_logs']])
 
         with tab1:
-            st.plotly_chart(build_combined_physiological_chart(df_daily, t), use_container_width=True, config={'displayModeBar': 'hover'})
+            if not df_daily.empty:
+                st.plotly_chart(build_combined_physiological_chart(df_daily, t), use_container_width=True, config={'displayModeBar': 'hover'})
+            else:
+                st.info("所選篩選條件下無有效生理數據可供繪製趨勢圖。" if lang == 'zh' else "No valid physiological data available for trends under current filters.")
 
         with tab2:
             col_s1, col_s2 = st.columns(2)
 
             with col_s1:
                 st.subheader(t['status_dist_title'])
-                # 統計使用去重後的數據，以符合「去重後用於統計」的要求
-                status_counts = df_hourly['status'].value_counts().reset_index()
-                status_counts.columns = ['status', 'count']
-                status_counts['label'] = status_counts['status'].map(t['status_map'])
+                status_counts = df_hourly['analysis_status'].value_counts().reset_index()
+                status_counts.columns = ['analysis_status', 'count']
+                status_counts['label'] = status_counts['analysis_status'].map(t['status_map'])
 
                 color_map = {"NORMAL": "green", "WARNING": "orange", "DANGER": "crimson"}
                 fig_pie = px.pie(status_counts, values='count', names='label',
-                                color='status', color_discrete_map=color_map,
+                                color='analysis_status', color_discrete_map=color_map,
                                 labels={'label': t['tt_status'], 'count': t['tt_count']})
 
-                # 徹底移除底部的原始英文標籤 (status=NORMAL)
                 fig_pie.update_traces(
                     hovertemplate=f"%{{label}}<br>{t['tt_count']}: %{{value}}<br>{t['tt_percent']}: %{{percent:.1%}}<extra></extra>"
                 )
@@ -340,24 +574,27 @@ def main():
 
             with col_s2:
                 st.subheader(t['weekly_stats_title'])
-
-                # 長條圖僅計算 WARNING 與 DANGER
-                abnormal_df = df_hourly[df_hourly['status'].isin(["WARNING", "DANGER"])].copy()
+                abnormal_df = df_hourly[df_hourly['analysis_status'].isin(["WARNING", "DANGER"])].copy()
 
                 if not abnormal_df.empty:
-                    # 計算 ISO 週 (格式: 2026-W18)
-                    abnormal_df['week'] = abnormal_df['timestamp'].dt.strftime('%G-W%V')
+                    abnormal_df['week'] = abnormal_df['timestamp'].dt.strftime(t['week_format'])
 
-                    weekly_stats = abnormal_df.groupby(['week', 'status']).size().reset_index(name='count')
-                    weekly_stats['status_label'] = weekly_stats['status'].map(t['status_map'])
+                    weekly_stats = abnormal_df.groupby(['week', 'analysis_status']).size().reset_index(name='count')
+                    weekly_stats['status_label'] = weekly_stats['analysis_status'].map(t['status_map'])
 
-                    # 徹底隱藏 NORMAL 圖例
-                    translated_color_map = {t['status_map'][k]: v for k, v in color_map.items() if k != "NORMAL"}
+                    bar_color_map = {
+                        "WARNING": "orange",
+                        "DANGER": "crimson"
+                    }
+                    translated_color_map = {t['status_map'][k]: v for k, v in bar_color_map.items()}
 
                     fig_bar = px.bar(weekly_stats, x='week', y='count', color='status_label',
-                                     color_discrete_map=translated_color_map,
-                                     category_orders={"status_label": [t['status_map']['DANGER'], t['status_map']['WARNING']]},
-                                     labels={'week': t['tt_week'], 'status_label': t['tt_status'], 'count': t['tt_count']})
+                                    color_discrete_map=translated_color_map,
+                                    category_orders={"status_label": [
+                                        t['status_map']['DANGER'],
+                                        t['status_map']['WARNING']
+                                    ]},
+                                    labels={'week': t['tt_week'], 'status_label': t['tt_status'], 'count': t['tt_count']})
 
                     fig_bar.update_traces(
                         hovertemplate=f"{t['tt_week']}: %{{x}}<br>{t['tt_status']}: %{{fullData.name}}<br>{t['tt_count']}: %{{y}}<extra></extra>"
@@ -375,44 +612,51 @@ def main():
 
         with tab3:
             st.subheader(t['tab_logs'])
-            log_df = df_hourly[df_hourly['status'] != "NORMAL"].copy()
+
+            with st.expander(t['expander_title']):
+                e_col1, e_col2 = st.columns(2)
+                with e_col1:
+                    st.markdown(f"**{t['expander_left_title']}**")
+                    st.markdown(t['help_status'])
+                with e_col2:
+                    st.markdown(f"**{t['expander_right_title']}**")
+                    if lang == 'zh':
+                        st.markdown("""
+- **平均心率**：最近 15 筆訊號的移動平均值，用以平滑即時雜訊，呈現穩定的心跳趨勢。
+- **EMA心率**：指數移動平均 (EMA)，導入時序濾波演算法（目前 30%，歷史 70% 權重），有效抑制單點量測誤差。
+- **血氧飽和度 (%)**：顯示最近 15 秒的訊號移動平均值，較純即時數值更具醫學代表性。
+                        """)
+                    else:
+                        st.markdown("""
+- **Avg BPM**: Moving average of the last 15 signals to smooth out noise.
+- **EMA BPM**: Exponential Moving Average (30% current, 70% historical) to suppress measurement errors.
+- **SpO2 (%)**: 15-second moving average, providing better clinical representation.
+                        """)
+
+            log_df = df_hourly[df_hourly['analysis_status'] != "NORMAL"].copy()
 
             if not log_df.empty:
-                # 準備顯示用的 DataFrame
-                display_df = log_df[['timestamp', 'status', 'avg_bpm', 'ema_bpm', 'spo2']].copy()
+                display_df = log_df[['timestamp', 'analysis_status', 'avg_bpm', 'ema_bpm', 'spo2']].copy()
                 display_df['timestamp'] = display_df['timestamp'].dt.strftime('%Y-%m-%d %H:%M:%S')
-                display_df['status'] = display_df['status'].map(t['status_map'])
+                display_df['analysis_status'] = display_df['analysis_status'].map(t['status_map'])
 
-                # 數據格式化預處理
-                display_df['spo2'] = display_df['spo2'].round(1)
+                display_df['avg_bpm'] = display_df['avg_bpm'].round(1)
+                display_df['ema_bpm'] = display_df['ema_bpm'].round(1)
+                display_df['spo2'] = display_df['spo2'].round(0).astype(int)
 
-                # 插入連續序號欄位
                 display_df.insert(0, t['col_no'], range(1, len(display_df) + 1))
 
-                # 欄位名稱轉換為多語系
                 column_mapping = {
                     'timestamp': t['col_time'],
-                    'status': t['col_status'],
+                    'analysis_status': t['col_status'],
                     'avg_bpm': t['col_avg_bpm'],
                     'ema_bpm': t['col_ema_bpm'],
                     'spo2': t['col_spo2']
                 }
                 display_df = display_df.rename(columns=column_mapping)
 
-                # 使用 st.dataframe 展示，隱藏索引並優化樣式
-                st.dataframe(
-                    display_df.style.map(color_status, subset=[t['col_status']], t=t)
-                    .format({
-                        t['col_spo2']: '{:.1f}',
-                        t['col_avg_bpm']: '{:.0f}',
-                        t['col_ema_bpm']: '{:.0f}'
-                    }),
-                    use_container_width=True,
-                    hide_index=True,
-                    column_config={
-                        t['col_no']: st.column_config.Column(width="small")
-                    }
-                )
+                # 使用 AgGrid 顯示異常日誌
+                render_aggrid(display_df, t, t['col_status'])
 
                 csv = df.to_csv(index=False).encode('utf-8-sig')
                 st.download_button(
@@ -427,7 +671,6 @@ def main():
     # --- CSS 視覺美化 ---
     st.markdown("""
     <style>
-        /* 使用 Streamlit 變數實現主題動態切換 */
         [data-testid="stMetric"] {
             background-color: var(--secondary-background-color);
             color: var(--text-color);
@@ -436,9 +679,25 @@ def main():
             border-left: 6px solid #00d4ff;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
-        /* 隱藏展開器邊框 */
         div[data-testid="stExpander"] {
             border: none !important;
+        }
+
+        /* 側邊欄標籤樣式 (多語系) */
+        span[data-baseweb="tag"]:has(span[title="NORMAL"]),
+        span[data-baseweb="tag"]:has(span[title="正常"]) {
+            background-color: #2E7D32 !important;
+        }
+        span[data-baseweb="tag"]:has(span[title="WARNING"]),
+        span[data-baseweb="tag"]:has(span[title="警告"]) {
+            background-color: #EF6C00 !important;
+        }
+        span[data-baseweb="tag"]:has(span[title="DANGER"]),
+        span[data-baseweb="tag"]:has(span[title="危險"]) {
+            background-color: #C62828 !important;
+        }
+        span[data-baseweb="tag"] span {
+            color: #FFFFFF !important;
         }
     </style>
     """, unsafe_allow_html=True)

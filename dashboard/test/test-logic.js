@@ -95,7 +95,7 @@ function publish(bpm, spo2) {
     const payload = JSON.stringify({
         bpm: parseInt(bpm),
         spo2: parseInt(spo2),
-        status: status
+        device_status: status
     });
     const message = new Paho.MQTT.Message(payload);
     message.destinationName = mqttTopic;
@@ -114,7 +114,7 @@ window.publishReset = function() {
         log(`<span style="color:${neonYellow}">Not connected.</span>`);
         return;
     }
-    const payload = JSON.stringify({ status: "RESET" });
+    const payload = JSON.stringify({ device_status: "RESET" });
     const message = new Paho.MQTT.Message(payload);
     message.destinationName = mqttTopic;
     mqttClient.send(message);
@@ -139,7 +139,7 @@ window.publishCompleted = function() {
         return;
     }
 
-    const payload = JSON.stringify({ status: "COMPLETED", duration_sec: duration });
+    const payload = JSON.stringify({ device_status: "COMPLETED", duration_sec: duration });
     const message = new Paho.MQTT.Message(payload);
     message.destinationName = mqttTopic;
     mqttClient.send(message);

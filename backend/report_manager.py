@@ -63,9 +63,11 @@ def generate_and_send_report(session_id, duration_sec):
         db = client[MONGO_DB_NAME]
         collection = db[MONGO_COL_NAME]
 
+        # 同步查詢條件：status -> analysis_status，並限定 production 來源
         query = {
             "session_id": session_id,
-            "status": {"$nin": ["OFF-CHIP", "RESET"]}
+            "analysis_status": {"$ne": "RESET"},
+            "data_source": "production"
         }
         records = list(collection.find(query).sort("timestamp", 1))
     except Exception as e:
@@ -111,7 +113,7 @@ def generate_and_send_report(session_id, duration_sec):
 
     highest_risk = "NORMAL"
     for r in records:
-        status = r.get("status", "NORMAL")
+        status = r.get("analysis_status", "NORMAL")
         if status == "DANGER":
             highest_risk = "DANGER"
         elif status == "WARNING" and highest_risk == "NORMAL":

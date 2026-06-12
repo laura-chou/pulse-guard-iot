@@ -5,3 +5,4 @@ plotly
 pytz
 python-dotenv
 dnspython
+streamlit-aggrid

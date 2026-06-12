@@ -425,7 +425,7 @@ void networkTask(void *pvParameters) {
         mqttClient.loop();
         if (mqttClient.connected()) { 
             if (!bootResetSent) {
-                const char* initResetPayload = "{\"status\":\"RESET\"}";
+                const char* initResetPayload = "{\"device_status\":\"RESET\"}";
                 if (mqttClient.publish(mqtt_topic, initResetPayload)) { 
                     bootResetSent = true;
                 }
@@ -441,15 +441,18 @@ void networkTask(void *pvParameters) {
                     else if (dataToPublish.status == STATUS_COMPLETED) { sStr = "COMPLETED"; } 
                     
                     if (dataToPublish.status == STATUS_COMPLETED) {
+                        // 統一使用 "device_status" 欄位
                         snprintf(jsonPayload, sizeof(jsonPayload), 
-                                 "{\"status\":\"COMPLETED\",\"duration_sec\":%lu}",
+                                 "{\"device_status\":\"COMPLETED\",\"duration_sec\":%lu}",
                                  (unsigned long)dataToPublish.duration_sec);
-                    } else if (dataToPublish.bpm == 0 && dataToPublish.spo2 == 0) {
+                    } else if (dataToPublish.status == STATUS_RESET) {
+                        // 統一使用 "device_status" 欄位
                         snprintf(jsonPayload, sizeof(jsonPayload),
-                                 "{\"status\":\"%s\"}", sStr);
+                                 "{\"device_status\":\"RESET\"}");
                     } else {
+                        // 量測數據訊息：將硬體即時判定結果命名為 "device_status"
                         snprintf(jsonPayload, sizeof(jsonPayload), 
-                                 "{\"bpm\":%d,\"spo2\":%d,\"status\":\"%s\"}",
+                                 "{\"bpm\":%d,\"spo2\":%d,\"device_status\":\"%s\"}",
                                  dataToPublish.bpm, dataToPublish.spo2, sStr); 
                     }
                     mqttClient.publish(mqtt_topic, jsonPayload);
