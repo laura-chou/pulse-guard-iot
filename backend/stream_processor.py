@@ -50,35 +50,26 @@ def is_valid_spo2(spo2):
 
 def get_status(raw_bpm, ema_t, delta_bpm, raw_spo2):
     """
-    Hierarchical Medical Status Logic:
-    1. DANGER (Highest Priority - Any condition triggers)
+    階層式醫療狀態邏輯 (Hierarchical Medical Status Logic):
+    1. DANGER (最高優先級 - 任何一項符合即觸發)
        - SpO2 <= 90%
-       - EMA <= 50 BPM
-       - EMA >= 140 BPM
+       - EMA <= 50 BPM 或 EMA >= 140 BPM
        - |ΔBPM| >= 50
-    2. WARNING (If not DANGER - Any condition triggers)
-       - 91% <= SpO2 <= 94%
-       - 51 <= EMA <= 59
-       - 101 <= EMA <= 139
-       - 15 <= |ΔBPM| < 50
-    3. NORMAL (Must satisfy ALL conditions)
+    2. NORMAL (必須滿足所有條件)
        - SpO2 >= 95%
        - 60 <= EMA <= 100
        - |ΔBPM| < 15
-    Fallback: WARNING
+    3. WARNING (若非 DANGER 且未達 NORMAL，則歸類為 WARNING)
     """
-    # 1. DANGER
+    # 1. DANGER: 立即危險情況
     if raw_spo2 <= 90 or ema_t <= 50 or ema_t >= 140 or delta_bpm >= 50:
         return "DANGER"
 
-    # 2. WARNING
-    if (91 <= raw_spo2 <= 94) or (51 <= ema_t <= 59) or (101 <= ema_t <= 139) or (15 <= delta_bpm < 50):
-        return "WARNING"
-
-    # 3. NORMAL (All must be True)
+    # 2. NORMAL: 必須所有生理指標均在理想範圍
     if raw_spo2 >= 95 and (60 <= ema_t <= 100) and delta_bpm < 15:
         return "NORMAL"
 
+    # 3. WARNING: 介於危險與正常之間 (Fallback)，處理浮點數邊界
     return "WARNING"
 
 def on_connect(client, userdata, flags, rc):
@@ -148,6 +139,11 @@ def on_message(client, userdata, msg):
         if not is_valid_bpm(raw_bpm) or not is_valid_spo2(raw_spo2):
             status = "OFF-CHIP"
         else:
+            # 一旦收到有效量測資料，立即生成 Session ID (若尚未生成)
+            if current_session_id is None:
+                current_session_id = str(uuid.uuid4())
+                logger.info(f"New session started: {current_session_id}")
+
             prev_xt_bpm = float(np.mean(bpm_window)) if len(bpm_window) > 0 else float(raw_bpm)
             bpm_window.append(float(raw_bpm))
             spo2_window.append(float(raw_spo2))
@@ -166,20 +162,25 @@ def on_message(client, userdata, msg):
         current_time = time.time()
         should_write = False
 
+        # 決定是否寫入資料庫
         if not first_write_done and status != "OFF-CHIP":
+            # 首次有效量測，必須寫入
             should_write = True
             first_write_done = True
         elif status == "DANGER":
+            # 危險狀態，立即寫入
             should_write = True
-        elif status != last_status and status != "OFF-CHIP":
-            # Event-driven: State changed (excluding OFF-CHIP)
+        elif status != last_status:
+            # 狀態發生變化 (包含變為 OFF-CHIP)，立即寫入
             should_write = True
         elif current_time - last_write_time >= 20:
+            # 定時心跳寫入 (Heartbeat)
             should_write = True
 
         if should_write and collection is not None:
-            if current_session_id is None:
-                current_session_id = str(uuid.uuid4())
+            # 若處於 OFF-CHIP 且無 Session，則不進行寫入 (除非是 RESET)
+            if current_session_id is None and status == "OFF-CHIP":
+                return
 
             record = {
                 "timestamp": datetime.fromtimestamp(current_time, tz=timezone.utc),

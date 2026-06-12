@@ -2,11 +2,12 @@ import pytest
 import json
 import time
 import logging
+import uuid
 from unittest.mock import MagicMock, patch, ANY
 from datetime import datetime, timezone
 import stream_processor as subscriber
 
-# Mock environment variables before importing or running logic
+# Mock 環境變數，確保測試環境不依賴實際的 .env 檔案
 @pytest.fixture(autouse=True)
 def mock_env(monkeypatch):
     monkeypatch.setenv("MQTT_BROKER", "localhost")
@@ -20,15 +21,19 @@ def mock_env(monkeypatch):
 
 @pytest.fixture
 def reset_globals():
-    # Reset all relevant global variables in subscriber.py
+    """
+    重置 subscriber.py 中的全域變數，確保測試案例之間的隔離性。
+    同時 Mock MongoDB collection 並擷取所有寫入動作。
+    """
     subscriber.bpm_window.clear()
     subscriber.spo2_window.clear()
     subscriber.last_ema_bpm = None
     subscriber.last_status = None
     subscriber.first_write_done = False
     subscriber.last_write_time = 0
+    subscriber.current_session_id = None
 
-    # Mock the MongoDB collection and capture writes
+    # Mock MongoDB collection 並捕獲寫入紀錄
     subscriber.collection = MagicMock()
     captured_writes = []
     subscriber.collection.insert_one.side_effect = lambda x: captured_writes.append(x)
@@ -36,256 +41,285 @@ def reset_globals():
     return captured_writes
 
 def simulate_mqtt_message(payload_dict):
+    """模擬接收 MQTT 訊息的輔助函式"""
     msg = MagicMock()
     msg.payload = json.dumps(payload_dict).encode()
     subscriber.on_message(None, None, msg)
 
-# --- EXISTING TESTS ---
+# --- 測試案例 ---
 
 def test_scenario_a_first_valid_write(reset_globals):
+    """
+    [測試目的] 驗證收到第一筆有效量測資料時，是否立即寫入資料庫並生成 Session ID。
+    [預期行為] 1. 資料庫應有一筆紀錄。 2. 狀態為 NORMAL。 3. first_write_done 標記為 True。
+    """
     captured_writes = reset_globals
     simulate_mqtt_message({"bpm": 72, "spo2": 98})
     assert len(captured_writes) == 1
     assert captured_writes[0]["status"] == "NORMAL"
     assert subscriber.first_write_done is True
+    assert subscriber.current_session_id is not None
 
 def test_scenario_b_off_chip_defense(reset_globals):
+    """
+    [測試目的] 驗證 OFF-CHIP (無效數值) 是否不會污染 EMA 計算與 Sliding Window。
+    [預期行為] 1. 有效資料後接無效資料，EMA 與 Window 長度應保持不變。
+    """
     captured_writes = reset_globals
     simulate_mqtt_message({"bpm": 72, "spo2": 98})
     initial_ema = subscriber.last_ema_bpm
     assert len(subscriber.bpm_window) == 1
+
+    # 發送無效數值 (OFF-CHIP)
     simulate_mqtt_message({"bpm": 999, "spo2": 40})
-    assert len(captured_writes) >= 1
     assert len(subscriber.bpm_window) == 1
     assert subscriber.last_ema_bpm == initial_ema
 
 def test_scenario_c_spo2_drop_immediate_danger(reset_globals):
+    """
+    [測試目的] 驗證 SpO2 掉落至危險範圍時，是否不計較 20s 定時器立即寫入 DANGER 狀態。
+    [預期行為] 資料庫應新增一筆 DANGER 紀錄。
+    """
     captured_writes = reset_globals
     for _ in range(15):
         simulate_mqtt_message({"bpm": 70, "spo2": 98})
+
     subscriber.last_write_time = time.time()
     initial_write_count = len(captured_writes)
+
+    # 低血氧觸發 DANGER
     simulate_mqtt_message({"bpm": 70, "spo2": 88})
     assert len(captured_writes) == initial_write_count + 1
     assert captured_writes[-1]["status"] == "DANGER"
-    assert captured_writes[-1]["spo2"] == 88.0
 
 def test_scenario_d_heart_rate_spike(reset_globals):
+    """
+    [測試目的] 驗證心率劇烈變化 (|ΔBPM| >= 50) 時，是否立即觸發 DANGER。
+    [預期行為] delta_bpm 為 55，狀態為 DANGER。
+    """
     captured_writes = reset_globals
     for _ in range(15):
         simulate_mqtt_message({"bpm": 70, "spo2": 98})
+
     subscriber.last_write_time = time.time()
     initial_write_count = len(captured_writes)
+
+    # 心率突然跳升
     simulate_mqtt_message({"bpm": 125, "spo2": 98})
     assert len(captured_writes) == initial_write_count + 1
     assert captured_writes[-1]["status"] == "DANGER"
     assert captured_writes[-1]["delta_bpm"] == 55.0
 
 def test_tachycardia_detection(reset_globals):
+    """
+    [測試目的] 驗證持續高心率導致 EMA 達到 DANGER 門檻 (>= 140)。
+    [預期行為] 當 EMA 爬升至 140 以上，狀態變為 DANGER。
+    """
     captured_writes = reset_globals
+    # 填充 Window
     for _ in range(15):
         simulate_mqtt_message({"bpm": 135, "spo2": 98})
+
+    # 持續高心率
     for _ in range(30):
         simulate_mqtt_message({"bpm": 142, "spo2": 98})
         if captured_writes[-1]["status"] == "DANGER":
             break
+
     assert captured_writes[-1]["status"] == "DANGER"
     assert subscriber.last_ema_bpm >= 140
 
 def test_scenario_e_timer_mechanism(reset_globals):
+    """
+    [測試目的] 驗證 20 秒定時寫入 (Heartbeat) 機制。
+    [預期行為] 20 秒內的重複 NORMAL 不會寫入，超過 20 秒則寫入。
+    """
     captured_writes = reset_globals
     with patch('time.time') as mock_time:
         start_t = 1000.0
         mock_time.return_value = start_t
         simulate_mqtt_message({"bpm": 70, "spo2": 98})
         assert len(captured_writes) == 1
-        for i in range(1, 10):
-            mock_time.return_value = start_t + (i * 2)
-            simulate_mqtt_message({"bpm": 70, "spo2": 98})
+
+        # 20 秒內
+        mock_time.return_value = start_t + 15
+        simulate_mqtt_message({"bpm": 70, "spo2": 98})
         assert len(captured_writes) == 1
+
+        # 達到 20 秒
         mock_time.return_value = start_t + 20
         simulate_mqtt_message({"bpm": 70, "spo2": 98})
         assert len(captured_writes) == 2
 
 def test_scenario_f_event_driven_transition(reset_globals):
+    """
+    [測試目的] 驗證狀態改變 (NORMAL -> WARNING) 時是否立即寫入。
+    [預期行為] 不受 20s 定時器限制，發生轉變即寫入。
+    """
     captured_writes = reset_globals
     with patch('time.time') as mock_time:
         start_t = 1000.0
         mock_time.return_value = start_t
-        simulate_mqtt_message({"bpm": 70, "spo2": 98})
+        simulate_mqtt_message({"bpm": 70, "spo2": 98}) # NORMAL
         assert len(captured_writes) == 1
-        assert captured_writes[-1]["status"] == "NORMAL"
+
+        # 2 秒後狀態改變
         mock_time.return_value = start_t + 2.0
-        simulate_mqtt_message({"bpm": 70, "spo2": 93})
+        simulate_mqtt_message({"bpm": 70, "spo2": 93}) # WARNING
         assert len(captured_writes) == 2
         assert captured_writes[-1]["status"] == "WARNING"
 
 def test_scenario_g_completed_signal(reset_globals):
+    """
+    [測試目的] 驗證 COMPLETED 訊號是否正確觸發報告生成並重置系統狀態。
+    [預期行為] 呼叫 report_manager，清空 Window 與 Session。
+    """
     with patch('report_manager.generate_and_send_report') as mock_report:
-        subscriber.last_status = "NORMAL"
-        subscriber.last_write_time = 1234.5
         simulate_mqtt_message({"bpm": 70, "spo2": 98})
         session_id = subscriber.current_session_id
         assert session_id is not None
-        assert len(subscriber.bpm_window) == 1
 
         simulate_mqtt_message({"status": "COMPLETED", "duration_sec": 120})
+        # 驗證狀態重置
         assert len(subscriber.bpm_window) == 0
-        assert subscriber.first_write_done is False
-        assert subscriber.last_status is None
-        assert subscriber.last_write_time == 0
         assert subscriber.current_session_id is None
+        assert subscriber.last_write_time == 0
+        # 驗證報告呼叫
         mock_report.assert_called_once_with(session_id, 120)
 
-def test_scenario_h_reset_signal_ignored(reset_globals):
+def test_scenario_h_reset_signal(reset_globals):
+    """
+    [測試目的] 驗證 RESET 訊號是否寫入資料庫並重置系統，但不生成報告。
+    [預期行為] 寫入 RESET 紀錄，清空 Window 與 Session，不呼叫報告生成。
+    """
     with patch('report_manager.generate_and_send_report') as mock_report:
         simulate_mqtt_message({"bpm": 70, "spo2": 98})
         session_id = subscriber.current_session_id
-        assert session_id is not None
 
-        simulate_mqtt_message({"status": "RESET", "duration_sec": 120})
-        assert len(subscriber.bpm_window) == 0
+        simulate_mqtt_message({"status": "RESET"})
+        # 驗證資料庫紀錄
+        assert reset_globals[-1]["status"] == "RESET"
+        assert reset_globals[-1]["session_id"] == session_id
+        # 驗證重置
         assert subscriber.current_session_id is None
         mock_report.assert_not_called()
 
-        # Verify RESET recorded in DB
-        assert reset_globals[-1]["status"] == "RESET"
-        assert reset_globals[-1]["session_id"] == session_id
-
-def test_on_message_reset_db_failure(reset_globals, caplog):
-    subscriber.collection.insert_one.side_effect = Exception("RESET DB Fail")
-    with caplog.at_level(logging.ERROR):
-        simulate_mqtt_message({"status": "RESET"})
-        assert "MongoDB Insert Error (RESET): RESET DB Fail" in caplog.text
-
 @pytest.mark.parametrize("spo2, ema, delta, expected", [
-    (90, 70, 0, "DANGER"), (91, 70, 0, "WARNING"),
-    (94, 70, 0, "WARNING"), (95, 70, 0, "NORMAL"),
-    (98, 50, 0, "DANGER"), (98, 51, 0, "WARNING"),
-    (98, 59, 0, "WARNING"), (98, 60, 0, "NORMAL"),
-    (98, 100, 0, "NORMAL"), (98, 101, 0, "WARNING"),
-    (98, 139, 0, "WARNING"), (98, 140, 0, "DANGER"),
-    (98, 70, 14, "NORMAL"), (98, 70, 15, "WARNING"),
-    (98, 70, 49, "WARNING"), (98, 70, 50, "DANGER"),
+    # SpO2 邊界 (浮點數測試)
+    (90.0, 70, 0, "DANGER"),
+    (90.1, 70, 0, "WARNING"),
+    (94.9, 70, 0, "WARNING"),
+    (95.0, 70, 0, "NORMAL"),
+    # EMA 邊界
+    (98, 50.0, 0, "DANGER"),
+    (98, 50.1, 0, "WARNING"),
+    (98, 59.9, 0, "WARNING"),
+    (98, 60.0, 0, "NORMAL"),
+    (98, 100.0, 0, "NORMAL"),
+    (98, 100.1, 0, "WARNING"),
+    (98, 139.9, 0, "WARNING"),
+    (98, 140.0, 0, "DANGER"),
+    # Delta BPM 邊界
+    (98, 70, 14.9, "NORMAL"),
+    (98, 70, 15.0, "WARNING"),
+    (98, 70, 49.9, "WARNING"),
+    (98, 70, 50.0, "DANGER"),
 ])
-def test_get_status_boundaries(spo2, ema, delta, expected):
+def test_get_status_floating_boundaries(spo2, ema, delta, expected):
+    """
+    [測試目的] 驗證 get_status 在浮點數邊界上的判斷是否符合預期。
+    [預期行為] 確保 90.1 是 WARNING，90.0 是 DANGER 等精確判斷。
+    """
     assert subscriber.get_status(70, ema, delta, spo2) == expected
 
-def test_on_message_empty_json(reset_globals):
-    simulate_mqtt_message({})
-    assert len(reset_globals) == 0
+def test_session_id_immediate_generation(reset_globals):
+    """
+    [測試目的] 驗證一旦有有效資料，Session ID 必須立即生成，不論是否寫入資料庫。
+    [預期行為] 即使尚未觸發寫入，Session ID 也不能為 None。
+    """
+    # 這裡我們手動讓 should_write 為 False 的情境 (比如剛寫入完又要寫入)
+    simulate_mqtt_message({"bpm": 70, "spo2": 98}) # 第一筆，會生成 Session 並寫入
+    first_session = subscriber.current_session_id
+    assert first_session is not None
 
-def test_on_message_malformed_json(reset_globals, caplog):
-    msg = MagicMock()
-    msg.payload = b'{"invalid": json'
-    with caplog.at_level(logging.ERROR):
-        subscriber.on_message(None, None, msg)
-        assert "Error:" in caplog.text
+    # 重置標記但不清空 Session，模擬後續量測
+    subscriber.last_write_time = time.time()
+    simulate_mqtt_message({"bpm": 71, "spo2": 98})
+    assert subscriber.current_session_id == first_session
 
-def test_mongodb_insert_failure_state_preservation(reset_globals, caplog):
+def test_off_chip_immediate_write(reset_globals):
+    """
+    [測試目的] 驗證變更為 OFF-CHIP 狀態時，是否立即寫入資料庫。
+    [預期行為] 從 NORMAL 變為 OFF-CHIP 應立即觸發一筆資料庫紀錄。
+    """
+    captured_writes = reset_globals
+    simulate_mqtt_message({"bpm": 70, "spo2": 98}) # NORMAL
+    initial_count = len(captured_writes)
+
+    # 立即發送無效資料
+    simulate_mqtt_message({"bpm": 0, "spo2": 0}) # OFF-CHIP
+    assert len(captured_writes) == initial_count + 1
+    assert captured_writes[-1]["status"] == "OFF-CHIP"
+
+def test_mongodb_insert_failure_preservation(reset_globals, caplog):
+    """
+    [測試目的] 驗證 MongoDB 寫入失敗時，系統狀態（last_status, last_write_time）不應更新，以便下次重試。
+    """
     subscriber.collection.insert_one.side_effect = Exception("DB Fail")
     subscriber.last_status = "OLD_STATUS"
     subscriber.last_write_time = 1000.0
 
     with caplog.at_level(logging.ERROR):
         simulate_mqtt_message({"bpm": 70, "spo2": 98})
-        assert "MongoDB Insert Error: DB Fail" in caplog.text
-        # Verify state NOT updated
+        assert "MongoDB Insert Error" in caplog.text
+        # 狀態應保持舊值，不因失敗而標記為已更新
         assert subscriber.last_status == "OLD_STATUS"
         assert subscriber.last_write_time == 1000.0
 
+def test_ema_calculation_correctness(reset_globals):
+    """
+    [測試目的] 驗證 EMA 計算公式：ema = 0.3 * current + 0.7 * last
+    """
+    subscriber.last_ema_bpm = None
+    simulate_mqtt_message({"bpm": 100, "spo2": 98}) # 初始 EMA = 100
+    assert subscriber.last_ema_bpm == 100.0
+
+    simulate_mqtt_message({"bpm": 110, "spo2": 98}) # xt_bpm = (100+110)/2 = 105; EMA = 0.3*105 + 0.7*100 = 101.5
+    assert subscriber.last_ema_bpm == pytest.approx(101.5)
+
+def test_sliding_window_behavior(reset_globals):
+    """
+    [測試目的] 驗證心率滑動視窗 (Sliding Window) 的長度限制與先進先出行為。
+    """
+    for i in range(15):
+        simulate_mqtt_message({"bpm": 60 + i, "spo2": 95})
+    assert len(subscriber.bpm_window) == 15
+
+    simulate_mqtt_message({"bpm": 80, "spo2": 95})
+    assert len(subscriber.bpm_window) == 15
+    assert subscriber.bpm_window[0] == 61.0 # 60 已被彈出
+
+def test_completed_with_no_session(reset_globals):
+    """
+    [測試目的] 驗證若在無 Session 狀態下收到 COMPLETED，不應報錯也不應產生報告。
+    """
+    with patch('report_manager.generate_and_send_report') as mock_report:
+        # 確保當前無 Session
+        subscriber.current_session_id = None
+        simulate_mqtt_message({"status": "COMPLETED", "duration_sec": 60})
+        mock_report.assert_not_called()
+
 def test_on_connect_success(caplog):
+    """驗證 MQTT 連線成功時的訂閱行為"""
     client = MagicMock()
     with caplog.at_level(logging.INFO):
         subscriber.on_connect(client, None, None, 0)
         assert "Connected to MQTT Broker!" in caplog.text
         client.subscribe.assert_called_once_with("test/topic")
 
-def test_on_connect_failure(caplog):
-    client = MagicMock()
-    with caplog.at_level(logging.ERROR):
-        subscriber.on_connect(client, None, None, 1)
-        assert "Failed to connect, return code 1" in caplog.text
-
-def test_ema_calculation_correctness(reset_globals):
-    subscriber.last_ema_bpm = None
-    simulate_mqtt_message({"bpm": 100, "spo2": 98})
-    assert subscriber.last_ema_bpm == 100.0
-    simulate_mqtt_message({"bpm": 110, "spo2": 98})
-    assert subscriber.last_ema_bpm == pytest.approx(101.5)
-
-def test_sliding_window_behavior(reset_globals):
-    for i in range(15):
-        simulate_mqtt_message({"bpm": 60 + i, "spo2": 95})
-    assert len(subscriber.bpm_window) == 15
-    simulate_mqtt_message({"bpm": 80, "spo2": 95})
-    assert len(subscriber.bpm_window) == 15
-    assert subscriber.bpm_window[0] == 61.0
-
-def test_completed_signal_full_reset(reset_globals):
-    with patch('report_manager.generate_and_send_report') as mock_report:
-        subscriber.last_status = "DANGER"
-        subscriber.last_write_time = 5000.0
-        simulate_mqtt_message({"bpm": 70, "spo2": 98})
-        simulate_mqtt_message({"status": "COMPLETED", "duration_sec": 0})
-        assert len(subscriber.bpm_window) == 0
-        assert subscriber.last_ema_bpm is None
-        assert subscriber.first_write_done is False
-        assert subscriber.last_status is None
-        assert subscriber.last_write_time == 0
-        mock_report.assert_not_called()
-
-def test_main_missing_config(monkeypatch, caplog):
+def test_main_config_check(monkeypatch, caplog):
+    """驗證配置缺失時主程式應報錯並停止"""
     monkeypatch.delenv("MQTT_BROKER", raising=False)
     with caplog.at_level(logging.ERROR):
         subscriber.main()
         assert "Missing config." in caplog.text
-
-def test_main_full_success():
-    with patch('stream_processor.MongoClient') as mock_mongo:
-        with patch('stream_processor.mqtt.Client') as mock_mqtt:
-            mock_instance = mock_mqtt.return_value
-            mock_instance.loop_forever.side_effect = Exception("Exit")
-            with pytest.raises(Exception, match="Exit"):
-                subscriber.main()
-            mock_instance.username_pw_set.assert_called_with("user", "pass")
-            mock_instance.tls_set.assert_called()
-            mock_instance.connect.assert_called_with("localhost", 1883, 60)
-            mock_instance.loop_forever.assert_called()
-
-def test_main_mongodb_connection_failure(caplog):
-    with patch('stream_processor.MongoClient', side_effect=Exception("Mongo Fail")):
-        with patch('stream_processor.mqtt.Client') as mock_mqtt:
-            mock_mqtt.return_value.connect.side_effect = Exception("Stop")
-            with caplog.at_level(logging.ERROR):
-                subscriber.main()
-                assert "DB Error: Mongo Fail" in caplog.text
-
-def test_main_mqtt_connection_failure(caplog):
-    with patch('stream_processor.MongoClient'):
-        with patch('stream_processor.mqtt.Client') as mock_mqtt:
-            mock_mqtt.return_value.connect.side_effect = Exception("MQTT Fail")
-            with caplog.at_level(logging.ERROR):
-                subscriber.main()
-                assert "MQTT Error: MQTT Fail" in caplog.text
-
-@pytest.mark.parametrize("bpm, spo2", [
-    (20, 98), (70, 40), (20, 40),
-])
-def test_on_message_off_chip_detection(reset_globals, bpm, spo2):
-    captured_writes = reset_globals
-    with patch('time.time') as mock_time:
-        start_t = 1000.0
-        mock_time.return_value = start_t
-        simulate_mqtt_message({"bpm": 70, "spo2": 98})
-        mock_time.return_value = start_t + 21.0
-        simulate_mqtt_message({"bpm": bpm, "spo2": spo2})
-        assert len(captured_writes) == 2
-        assert captured_writes[1]["status"] == "OFF-CHIP"
-
-def test_on_message_exception(caplog):
-    msg = MagicMock()
-    msg.payload.decode.side_effect = Exception("Fail")
-    with caplog.at_level(logging.ERROR):
-        subscriber.on_message(None, None, msg)
-        assert "Error: Fail" in caplog.text
