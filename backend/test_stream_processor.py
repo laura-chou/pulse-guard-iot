@@ -14,7 +14,8 @@ def mock_env(monkeypatch):
     monkeypatch.setenv("MQTT_PORT", "1883")
     monkeypatch.setenv("MQTT_USER", "user")
     monkeypatch.setenv("MQTT_PASSWORD", "pass")
-    monkeypatch.setenv("MQTT_TOPIC", "test/topic")
+    monkeypatch.setenv("MQTT_TOPIC", "pulse/production")
+    monkeypatch.setenv("MQTT_TEST_TOPIC", "pulse/test")
     monkeypatch.setenv("MONGO_URI", "mongodb://localhost:27017")
     monkeypatch.setenv("MONGO_DB_NAME", "test_db")
     monkeypatch.setenv("MONGO_COL_NAME", "test_col")
@@ -40,9 +41,10 @@ def reset_globals():
 
     return captured_writes
 
-def simulate_mqtt_message(payload_dict):
-    """模擬接收 MQTT 訊息的輔助函式"""
+def simulate_mqtt_message(payload_dict, topic="pulse/production"):
+    """模擬接收 MQTT 訊息的輔助函式，預設為生產環境 Topic"""
     msg = MagicMock()
+    msg.topic = topic
     msg.payload = json.dumps(payload_dict).encode()
     subscriber.on_message(None, None, msg)
 
@@ -315,7 +317,10 @@ def test_on_connect_success(caplog):
     with caplog.at_level(logging.INFO):
         subscriber.on_connect(client, None, None, 0)
         assert "Connected to MQTT Broker!" in caplog.text
-        client.subscribe.assert_called_once_with("test/topic")
+        # 驗證同時訂閱了生產與測試 Topic
+        from unittest.mock import call
+        calls = [call("pulse/production"), call("pulse/test")]
+        client.subscribe.assert_has_calls(calls, any_order=True)
 
 def test_main_config_check(monkeypatch, caplog):
     """驗證配置缺失時主程式應報錯並停止"""
@@ -323,3 +328,47 @@ def test_main_config_check(monkeypatch, caplog):
     with caplog.at_level(logging.ERROR):
         subscriber.main()
         assert "Missing config." in caplog.text
+
+def test_data_source_production_saved_to_db(reset_globals):
+    """
+    [測試目的] 驗證來自生產 Topic 的訊息，寫入資料庫時 data_source 標記為 production。
+    """
+    captured_writes = reset_globals
+    simulate_mqtt_message({"bpm": 72, "spo2": 98}, topic="pulse/production")
+    assert captured_writes[0]["data_source"] == "production"
+
+def test_data_source_test_saved_to_db(reset_globals):
+    """
+    [測試目的] 驗證來自測試 Topic 的訊息，寫入資料庫時 data_source 標記為 test。
+    """
+    captured_writes = reset_globals
+    simulate_mqtt_message({"bpm": 72, "spo2": 98}, topic="pulse/test")
+    assert captured_writes[0]["data_source"] == "test"
+
+def test_completed_production_data_source_should_send_report(reset_globals):
+    """
+    [測試目的] 驗證生產環境收到 COMPLETED 訊號時，必須觸發報告生成。
+    """
+    with patch('report_manager.generate_and_send_report') as mock_report:
+        simulate_mqtt_message({"bpm": 70, "spo2": 98}, topic="pulse/production")
+        session_id = subscriber.current_session_id
+        simulate_mqtt_message({"status": "COMPLETED", "duration_sec": 60}, topic="pulse/production")
+        mock_report.assert_called_once_with(session_id, 60)
+
+def test_completed_test_data_source_should_not_send_report(reset_globals):
+    """
+    [測試目的] 驗證測試環境 (pulse/test) 收到 COMPLETED 訊號時，不應觸發報告生成。
+    """
+    with patch('report_manager.generate_and_send_report') as mock_report:
+        simulate_mqtt_message({"bpm": 70, "spo2": 98}, topic="pulse/test")
+        simulate_mqtt_message({"status": "COMPLETED", "duration_sec": 60}, topic="pulse/test")
+        mock_report.assert_not_called()
+
+def test_reset_data_source_saved_to_db(reset_globals):
+    """
+    [測試目的] 驗證 RESET 訊號在不同來源下，data_source 欄位是否正確紀錄。
+    """
+    captured_writes = reset_globals
+    simulate_mqtt_message({"status": "RESET"}, topic="pulse/test")
+    assert captured_writes[-1]["status"] == "RESET"
+    assert captured_writes[-1]["data_source"] == "test"

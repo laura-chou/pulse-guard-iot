@@ -26,6 +26,7 @@ def get_config():
         "MQTT_USER": os.getenv("MQTT_USER"),
         "MQTT_PASSWORD": os.getenv("MQTT_PASSWORD"),
         "MQTT_TOPIC": os.getenv("MQTT_TOPIC"),
+        "MQTT_TEST_TOPIC": os.getenv("MQTT_TEST_TOPIC"),
         "MONGO_URI": os.getenv("MONGO_URI"),
         "MONGO_DB_NAME": os.getenv("MONGO_DB_NAME"),
         "MONGO_COL_NAME": os.getenv("MONGO_COL_NAME")
@@ -76,7 +77,11 @@ def on_connect(client, userdata, flags, rc):
     config = get_config()
     if rc == 0:
         logger.info("Connected to MQTT Broker!")
-        client.subscribe(config["MQTT_TOPIC"])
+        # 訂閱生產與測試 Topic
+        if config["MQTT_TOPIC"]:
+            client.subscribe(config["MQTT_TOPIC"])
+        if config["MQTT_TEST_TOPIC"]:
+            client.subscribe(config["MQTT_TEST_TOPIC"])
     else:
         logger.error(f"Failed to connect, return code {rc}")
 
@@ -84,16 +89,20 @@ def on_message(client, userdata, msg):
     global last_ema_bpm, first_write_done, last_write_time, last_status, collection, current_session_id
 
     try:
+        config = get_config()
         payload = msg.payload.decode()
         data = json.loads(payload)
 
-        # Check for COMPLETED signal
+        # 判定資料來源 (data_source): 依據 MQTT Topic 區分生產環境與測試環境
+        data_source = "production" if msg.topic == config["MQTT_TOPIC"] else "test"
+
+        # 處理結束量測訊號 (COMPLETED)
         if data.get("status") == "COMPLETED":
             duration = data.get("duration_sec", 0)
-            logger.info(f"COMPLETED signal received. Duration: {duration}s. Generating report...")
+            logger.info(f"COMPLETED signal received (Source: {data_source}). Duration: {duration}s.")
 
-            # Generate and send report (only if duration > 0 and session exists)
-            if duration > 0 and current_session_id:
+            # Generate and send report (僅限生產環境且 duration > 0 且 session 存在)
+            if data_source == "production" and duration > 0 and current_session_id:
                 report_manager.generate_and_send_report(current_session_id, duration)
 
             # Clear internal buffers and reset session
@@ -106,14 +115,15 @@ def on_message(client, userdata, msg):
             current_session_id = None
             return
 
-        # Handle RESET signal
+        # 處理系統重置訊號 (RESET)
         if data.get("status") == "RESET":
-            logger.info("RESET signal received. Clearing buffers and session...")
+            logger.info(f"RESET signal received (Source: {data_source}). Clearing buffers and session...")
             if collection is not None:
                 record = {
                     "timestamp": datetime.fromtimestamp(time.time(), tz=timezone.utc),
                     "status": "RESET",
-                    "session_id": current_session_id
+                    "session_id": current_session_id,
+                    "data_source": data_source
                 }
                 try:
                     collection.insert_one(record)
@@ -185,7 +195,8 @@ def on_message(client, userdata, msg):
             record = {
                 "timestamp": datetime.fromtimestamp(current_time, tz=timezone.utc),
                 "status": status,
-                "session_id": current_session_id
+                "session_id": current_session_id,
+                "data_source": data_source
             }
             if status != "OFF-CHIP":
                 record.update({
