@@ -94,7 +94,8 @@ def test_scenario_c_spo2_drop_immediate_danger(reset_globals):
     simulate_mqtt_message({"bpm": 70, "spo2": 88, "device_status": "DANGER"})
     assert len(captured_writes) == initial_write_count + 1
     assert captured_writes[-1]["analysis_status"] == "DANGER"
-    assert captured_writes[-1]["raw_spo2"] == 88.0
+    # 驗證 spo2 欄位存儲的是視窗平均值 (視窗大小 15，內容為 14 筆 98 + 1 筆 88)
+    assert captured_writes[-1]["spo2"] == pytest.approx(97.33333)
 
 def test_scenario_d_heart_rate_spike(reset_globals):
     """
@@ -266,6 +267,9 @@ def test_off_chip_immediate_write(reset_globals):
     simulate_mqtt_message({"bpm": 0, "spo2": 0, "device_status": "DANGER"}) # OFF-CHIP
     assert len(captured_writes) == initial_count + 1
     assert captured_writes[-1]["analysis_status"] == "OFF-CHIP"
+    # 驗證 OFF-CHIP 時保留原始數值供診斷
+    assert captured_writes[-1]["bpm"] == 0
+    assert captured_writes[-1]["spo2"] == 0
 
 def test_mongodb_insert_failure_preservation(reset_globals, caplog):
     """

@@ -204,16 +204,16 @@ def on_message(client, userdata, msg):
             }
             if analysis_status != "OFF-CHIP":
                 record.update({
-                    "raw_bpm": float(raw_bpm),
-                    "raw_spo2": float(raw_spo2),
                     "avg_bpm": xt_bpm,
                     "ema_bpm": float(ema_bpm),
-                    "delta_bpm": float(delta_bpm)
+                    "delta_bpm": float(delta_bpm),
+                    "spo2": xt_spo2 # 存儲 15s 視窗平均值，較具代表性
                 })
             else:
+                # OFF-CHIP 時僅保留當下數值供診斷
                 record.update({
-                    "raw_bpm": raw_bpm,
-                    "raw_spo2": raw_spo2
+                    "bpm": raw_bpm,
+                    "spo2": raw_spo2
                 })
 
             try:
