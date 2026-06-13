@@ -1,5 +1,6 @@
 import os
 import random
+import uuid
 import logging
 from datetime import datetime, timedelta, timezone, time as dt_time
 from collections import deque
@@ -38,62 +39,71 @@ def get_target_date_range():
 
     return start_date, end_date
 
-def get_status(bpm, spo2):
+def get_status(bpm, ema_bpm, delta_bpm, spo2):
     """
-    Medical Logic:
-    DANGER: spo2 <= 90 OR bpm <= 50 OR bpm >= 140
-    WARNING: 91 <= spo2 <= 94 OR 51 <= bpm <= 59 OR 101 <= bpm <= 139
-    NORMAL: Else
+    同步 stream_processor.py 的階層式醫療狀態邏輯
     """
-    if spo2 <= 90 or bpm <= 50 or bpm >= 140:
+    # 1. DANGER
+    if spo2 <= 90 or ema_bpm <= 50 or ema_bpm >= 140 or delta_bpm >= 50:
         return "DANGER"
-    elif (91 <= spo2 <= 94) or (51 <= bpm <= 59) or (101 <= bpm <= 139):
-        return "WARNING"
-    else:
+
+    # 2. NORMAL
+    if spo2 >= 95 and (60 <= ema_bpm <= 100) and delta_bpm < 15:
         return "NORMAL"
+
+    # 3. WARNING
+    return "WARNING"
 
 def generate_session_data(start_time):
     """
-    Generates 30 samples (1 minute duration, 2s interval) starting from start_time.
+    為單次 Session 生成 30 筆樣本 (持續 1 分鐘，每 2 秒一筆)。
     """
     samples = []
     bpm_window = deque(maxlen=15)
+    spo2_window = deque(maxlen=15)
+    session_id = str(uuid.uuid4())
 
-    # Randomly decide if this session contains abnormal data (~5% probability)
+    # 隨機決定是否為異常 Session (約 5% 機率)
     is_abnormal_session = random.random() < 0.05
 
     for i in range(30):
         current_time = start_time + timedelta(seconds=i * 2)
 
         if is_abnormal_session:
-            # Simulate abnormal state
-            if random.random() < 0.7: # Higher chance for abnormality in an abnormal session
-                bpm = random.uniform(115, 145)
-                spo2 = random.uniform(88, 93)
+            # 模擬異常狀態
+            if random.random() < 0.7:
+                raw_bpm = random.uniform(115, 145)
+                raw_spo2 = random.uniform(88, 93)
             else:
-                bpm = random.uniform(65, 85)
-                spo2 = random.uniform(96, 100)
+                raw_bpm = random.uniform(65, 85)
+                raw_spo2 = random.uniform(96, 100)
         else:
-            # Normal fluctuation
-            bpm = random.uniform(65, 85)
-            spo2 = random.uniform(96, 100)
+            # 正常波動
+            raw_bpm = random.uniform(65, 85)
+            raw_spo2 = random.uniform(96, 100)
 
-        # Calculate sliding window metrics
-        prev_xt_bpm = np.mean(bpm_window) if bpm_window else bpm
-        bpm_window.append(bpm)
+        # 計算滑動視窗指標
+        prev_xt_bpm = np.mean(bpm_window) if bpm_window else raw_bpm
+        bpm_window.append(raw_bpm)
+        spo2_window.append(raw_spo2)
+
         xt_bpm = np.mean(bpm_window)
-        delta_bpm = abs(bpm - prev_xt_bpm)
+        xt_spo2 = np.mean(spo2_window)
+        delta_bpm = abs(raw_bpm - prev_xt_bpm)
 
-        status = get_status(bpm, spo2)
+        # 模擬狀態
+        status = get_status(raw_bpm, xt_bpm, delta_bpm, raw_spo2)
 
         doc = {
             "timestamp": current_time,
-            "status": status,
+            "session_id": session_id,
+            "device_status": status,
+            "analysis_status": status,
             "avg_bpm": round(xt_bpm, 2),
-            "ema_bpm": round(xt_bpm, 2), # Simplified as requested
+            "ema_bpm": round(xt_bpm, 2),
             "delta_bpm": round(delta_bpm, 2),
-            "spo2": round(spo2, 2),
-            "avg_spo2": round(spo2, 2) # Simplified for mock purposes
+            "spo2": round(xt_spo2, 2), # 存儲視窗平均值以支援報表
+            "data_source": "production"
         }
         samples.append(doc)
 
