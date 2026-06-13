@@ -174,14 +174,14 @@ async function initMQTT() {
                 const data = JSON.parse(message.toString());
 
                 // Status-based reset
-                const status = data.status?.toUpperCase();
-                if (status === 'RESET') {
+                const deviceStatus = (data.device_status || data.status)?.toUpperCase();
+                if (deviceStatus === 'RESET') {
                     resetDashboard();
                     return;
                 }
 
                 // Ignore COMPLETED status
-                if (status === 'COMPLETED') {
+                if (deviceStatus === 'COMPLETED') {
                     return;
                 }
 
@@ -192,9 +192,9 @@ async function initMQTT() {
                 // Update cards
                 if (data.bpm !== undefined) bpmEl.textContent = data.bpm;
                 if (data.spo2 !== undefined) spo2El.textContent = data.spo2;
-                if (data.status !== undefined) {
-                    statusEl.textContent = getTranslatedStatus(data.status, isZh ? 'zh' : 'en');
-                    updateStatusColor(data.status);
+                if (deviceStatus !== undefined) {
+                    statusEl.textContent = getTranslatedStatus(deviceStatus, isZh ? 'zh' : 'en');
+                    updateStatusColor(deviceStatus);
                 }
 
                 // Update "Last Update"

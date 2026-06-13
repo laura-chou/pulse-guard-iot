@@ -96,8 +96,11 @@ def on_message(client, userdata, msg):
         # 判定資料來源 (data_source): 依據 MQTT Topic 區分生產環境與測試環境
         data_source = "production" if msg.topic == config["MQTT_TOPIC"] else "test"
 
+        # 獲取裝置回傳的即時狀態
+        device_status = data.get("device_status")
+
         # 處理結束量測訊號 (COMPLETED)
-        if data.get("status") == "COMPLETED":
+        if device_status == "COMPLETED":
             duration = data.get("duration_sec", 0)
             logger.info(f"COMPLETED signal received (Source: {data_source}). Duration: {duration}s.")
 
@@ -116,12 +119,12 @@ def on_message(client, userdata, msg):
             return
 
         # 處理系統重置訊號 (RESET)
-        if data.get("status") == "RESET":
+        if device_status == "RESET":
             logger.info(f"RESET signal received (Source: {data_source}). Clearing buffers and session...")
             if collection is not None:
                 record = {
                     "timestamp": datetime.fromtimestamp(time.time(), tz=timezone.utc),
-                    "status": "RESET",
+                    "device_status": "RESET",
                     "session_id": current_session_id,
                     "data_source": data_source
                 }
@@ -142,7 +145,6 @@ def on_message(client, userdata, msg):
 
         raw_bpm = data.get("bpm")
         raw_spo2 = data.get("spo2")
-        device_status = data.get("device_status")
 
         if raw_bpm is None or raw_spo2 is None:
             return

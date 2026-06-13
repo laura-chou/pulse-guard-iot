@@ -184,7 +184,7 @@ def test_scenario_g_completed_signal(reset_globals):
         session_id = subscriber.current_session_id
         assert session_id is not None
 
-        simulate_mqtt_message({"status": "COMPLETED", "duration_sec": 120})
+        simulate_mqtt_message({"device_status": "COMPLETED", "duration_sec": 120})
         # 驗證狀態重置
         assert len(subscriber.bpm_window) == 0
         assert subscriber.current_session_id is None
@@ -201,9 +201,9 @@ def test_scenario_h_reset_signal(reset_globals):
         simulate_mqtt_message({"bpm": 70, "spo2": 98, "device_status": "NORMAL"})
         session_id = subscriber.current_session_id
 
-        simulate_mqtt_message({"status": "RESET"})
+        simulate_mqtt_message({"device_status": "RESET"})
         # 驗證資料庫紀錄
-        assert reset_globals[-1]["status"] == "RESET"
+        assert reset_globals[-1]["device_status"] == "RESET"
         assert reset_globals[-1]["session_id"] == session_id
         # 驗證重置
         assert subscriber.current_session_id is None
@@ -355,7 +355,7 @@ def test_completed_production_data_source_should_send_report(reset_globals):
     with patch('report_manager.generate_and_send_report') as mock_report:
         simulate_mqtt_message({"bpm": 70, "spo2": 98, "device_status": "NORMAL"}, topic="pulse/production")
         session_id = subscriber.current_session_id
-        simulate_mqtt_message({"status": "COMPLETED", "duration_sec": 60}, topic="pulse/production")
+        simulate_mqtt_message({"device_status": "COMPLETED", "duration_sec": 60}, topic="pulse/production")
         mock_report.assert_called_once_with(session_id, 60)
 
 def test_completed_test_data_source_should_not_send_report(reset_globals):
@@ -364,7 +364,7 @@ def test_completed_test_data_source_should_not_send_report(reset_globals):
     """
     with patch('report_manager.generate_and_send_report') as mock_report:
         simulate_mqtt_message({"bpm": 70, "spo2": 98, "device_status": "NORMAL"}, topic="pulse/test")
-        simulate_mqtt_message({"status": "COMPLETED", "duration_sec": 60}, topic="pulse/test")
+        simulate_mqtt_message({"device_status": "COMPLETED", "duration_sec": 60}, topic="pulse/test")
         mock_report.assert_not_called()
 
 def test_reset_data_source_saved_to_db(reset_globals):
@@ -372,8 +372,8 @@ def test_reset_data_source_saved_to_db(reset_globals):
     [測試目的] 驗證 RESET 訊號在不同來源下，data_source 欄位是否正確紀錄。
     """
     captured_writes = reset_globals
-    simulate_mqtt_message({"status": "RESET"}, topic="pulse/test")
-    assert captured_writes[-1]["status"] == "RESET"
+    simulate_mqtt_message({"device_status": "RESET"}, topic="pulse/test")
+    assert captured_writes[-1]["device_status"] == "RESET"
     assert captured_writes[-1]["data_source"] == "test"
 
 def test_dual_status_persistence(reset_globals):
