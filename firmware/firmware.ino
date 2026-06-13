@@ -425,7 +425,7 @@ void networkTask(void *pvParameters) {
         mqttClient.loop();
         if (mqttClient.connected()) { 
             if (!bootResetSent) {
-                const char* initResetPayload = "{\"status\":\"RESET\"}";
+                const char* initResetPayload = "{\"device_status\":\"RESET\"}";
                 if (mqttClient.publish(mqtt_topic, initResetPayload)) { 
                     bootResetSent = true;
                 }

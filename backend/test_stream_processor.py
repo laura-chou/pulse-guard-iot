@@ -94,6 +94,7 @@ def test_scenario_c_spo2_drop_immediate_danger(reset_globals):
     simulate_mqtt_message({"bpm": 70, "spo2": 88, "device_status": "DANGER"})
     assert len(captured_writes) == initial_write_count + 1
     assert captured_writes[-1]["analysis_status"] == "DANGER"
+    assert captured_writes[-1]["raw_spo2"] == 88.0
 
 def test_scenario_d_heart_rate_spike(reset_globals):
     """
