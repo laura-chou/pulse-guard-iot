@@ -124,7 +124,7 @@ def on_message(client, userdata, msg):
             if collection is not None:
                 record = {
                     "timestamp": datetime.fromtimestamp(time.time(), tz=timezone.utc),
-                    "device_status": "RESET",
+                    "analysis_status": "RESET",
                     "session_id": current_session_id,
                     "data_source": data_source
                 }
@@ -197,7 +197,6 @@ def on_message(client, userdata, msg):
 
             record = {
                 "timestamp": datetime.fromtimestamp(current_time, tz=timezone.utc),
-                "device_status": device_status,
                 "analysis_status": analysis_status,
                 "session_id": current_session_id,
                 "data_source": data_source
@@ -220,7 +219,7 @@ def on_message(client, userdata, msg):
                 collection.insert_one(record)
                 last_write_time = current_time
                 last_analysis_status = analysis_status  # Update last_analysis_status after successful write
-                logger.info(f"DB Write | Device: {device_status} | Analysis: {analysis_status}")
+                logger.info(f"DB Write | Analysis: {analysis_status}")
             except Exception as e:
                 logger.error(f"MongoDB Insert Error: {e}")
     except Exception as e:

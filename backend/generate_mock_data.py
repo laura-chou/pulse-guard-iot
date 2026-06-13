@@ -15,27 +15,42 @@ logger = logging.getLogger(__name__)
 # Load environment variables
 load_dotenv()
 
+"""
+【僅供 開發/測試 環境使用 - 切勿在正式環境執行】
+
+腳本用途:
+    生成「過去 6 個完整月份」的模擬歷史數據，用於測試 Streamlit 儀表板。
+    （例如：若在 2026 年 6 月執行，將自動生成 2025 年 12 月 1 日至 2026 年 5 月 31 日的數據）
+
+警告事項:
+    本腳本具備【自動清理機制】。
+    執行時，會先自動「刪除」該 6 個月範圍內所有由本腳本產生的模擬數據（篩選條件為 data_source="production"），
+    接著才寫入新數據，以避免資料重複累積！
+"""
+
 MONGO_URI = os.getenv("MONGO_URI")
 MONGO_DB_NAME = os.getenv("MONGO_DB_NAME")
 MONGO_COL_NAME = os.getenv("MONGO_COL_NAME")
 
 def get_target_date_range():
     """
-    Calculates the first day and last day of the past two full months.
-    Example: If today is 2026-06-15, it returns (2026-04-01, 2026-05-31).
+    計算過去 6 個完整月份的範圍。
+    例如：若今天是 2026-06-15，則返回 (2025-12-01, 2026-05-31)。
     """
     today = datetime.now(timezone.utc)
-    # First day of the current month
+    # 本月第一天
     first_day_this_month = today.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 
-    # End of the target range (Last day of the previous month)
+    # 目標範圍結束日 (上個月最後一天)
     end_date = first_day_this_month - timedelta(seconds=1)
 
-    # First day of the previous month
-    first_day_prev_month = (first_day_this_month - timedelta(days=1)).replace(day=1)
+    # 目標範圍起始日 (往前推 6 個月的第一天)
+    # 邏輯：先找到上個月的第一天，再往回推 5 個月
+    current_month_first = first_day_this_month
+    for _ in range(6):
+        current_month_first = (current_month_first - timedelta(days=1)).replace(day=1)
 
-    # First day of the month before that
-    start_date = (first_day_prev_month - timedelta(days=1)).replace(day=1)
+    start_date = current_month_first
 
     return start_date, end_date
 
@@ -97,7 +112,6 @@ def generate_session_data(start_time):
         doc = {
             "timestamp": current_time,
             "session_id": session_id,
-            "device_status": status,
             "analysis_status": status,
             "avg_bpm": round(xt_bpm, 2),
             "ema_bpm": round(xt_bpm, 2),
@@ -132,7 +146,8 @@ def main():
         "timestamp": {
             "$gte": start_range,
             "$lte": end_range
-        }
+        },
+        "data_source": "production"
     })
     logger.info(f"Deleted {result.deleted_count} documents.")
 

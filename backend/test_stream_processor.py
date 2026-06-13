@@ -59,7 +59,7 @@ def test_scenario_a_first_valid_write(reset_globals):
     simulate_mqtt_message({"bpm": 72, "spo2": 98, "device_status": "NORMAL"})
     assert len(captured_writes) == 1
     assert captured_writes[0]["analysis_status"] == "NORMAL"
-    assert captured_writes[0]["device_status"] == "NORMAL"
+    assert "device_status" not in captured_writes[0]
     assert subscriber.first_write_done is True
     assert subscriber.current_session_id is not None
 
@@ -113,7 +113,7 @@ def test_scenario_d_heart_rate_spike(reset_globals):
     simulate_mqtt_message({"bpm": 125, "spo2": 98, "device_status": "WARNING"})
     assert len(captured_writes) == initial_write_count + 1
     assert captured_writes[-1]["analysis_status"] == "DANGER"
-    assert captured_writes[-1]["device_status"] == "WARNING"
+    assert "device_status" not in captured_writes[-1]
     assert captured_writes[-1]["delta_bpm"] == 55.0
 
 def test_tachycardia_detection(reset_globals):
@@ -174,7 +174,7 @@ def test_scenario_f_event_driven_transition(reset_globals):
         simulate_mqtt_message({"bpm": 70, "spo2": 93, "device_status": "NORMAL"}) # WARNING (Python)
         assert len(captured_writes) == 2
         assert captured_writes[-1]["analysis_status"] == "WARNING"
-        assert captured_writes[-1]["device_status"] == "NORMAL"
+        assert "device_status" not in captured_writes[-1]
 
 def test_scenario_g_completed_signal(reset_globals):
     """
@@ -204,8 +204,8 @@ def test_scenario_h_reset_signal(reset_globals):
         session_id = subscriber.current_session_id
 
         simulate_mqtt_message({"device_status": "RESET"})
-        # 驗證資料庫紀錄
-        assert reset_globals[-1]["device_status"] == "RESET"
+        # 驗證資料庫紀錄 (現在統一寫入 analysis_status 欄位)
+        assert reset_globals[-1]["analysis_status"] == "RESET"
         assert reset_globals[-1]["session_id"] == session_id
         # 驗證重置
         assert subscriber.current_session_id is None
@@ -378,16 +378,15 @@ def test_reset_data_source_saved_to_db(reset_globals):
     """
     captured_writes = reset_globals
     simulate_mqtt_message({"device_status": "RESET"}, topic="pulse/test")
-    assert captured_writes[-1]["device_status"] == "RESET"
+    assert captured_writes[-1]["analysis_status"] == "RESET"
     assert captured_writes[-1]["data_source"] == "test"
 
-def test_dual_status_persistence(reset_globals):
+def test_analysis_status_persistence(reset_globals):
     """
-    [測試目的] 驗證 MongoDB 同時保存 device_status (硬體判斷) 與 analysis_status (Python 趨勢判斷)。
-    [預期行為] 紀錄中應包含兩個明確區分的狀態欄位。
+    [測試目的] 驗證 MongoDB 僅保存 analysis_status (Python 趨勢判斷)，不含 device_status。
     """
     captured_writes = reset_globals
     # 模擬硬體判定為 WARNING，但 Python 分析 EMA/Delta 後判定為 NORMAL 的情境
     simulate_mqtt_message({"bpm": 80, "spo2": 96, "device_status": "WARNING"})
-    assert captured_writes[0]["device_status"] == "WARNING"
+    assert "device_status" not in captured_writes[0]
     assert captured_writes[0]["analysis_status"] == "NORMAL"
