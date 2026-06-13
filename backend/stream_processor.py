@@ -37,7 +37,7 @@ bpm_window = deque(maxlen=15)
 spo2_window = deque(maxlen=15)
 
 last_ema_bpm = None
-last_status = None
+last_analysis_status = None # 改名以區分裝置狀態
 current_session_id = None
 first_write_done = False
 last_write_time = 0
@@ -86,7 +86,7 @@ def on_connect(client, userdata, flags, rc):
         logger.error(f"Failed to connect, return code {rc}")
 
 def on_message(client, userdata, msg):
-    global last_ema_bpm, first_write_done, last_write_time, last_status, collection, current_session_id
+    global last_ema_bpm, first_write_done, last_write_time, last_analysis_status, collection, current_session_id
 
     try:
         config = get_config()
@@ -109,7 +109,7 @@ def on_message(client, userdata, msg):
             bpm_window.clear()
             spo2_window.clear()
             last_ema_bpm = None
-            last_status = None
+            last_analysis_status = None
             last_write_time = 0
             first_write_done = False
             current_session_id = None
@@ -134,7 +134,7 @@ def on_message(client, userdata, msg):
             bpm_window.clear()
             spo2_window.clear()
             last_ema_bpm = None
-            last_status = None
+            last_analysis_status = None
             last_write_time = 0
             first_write_done = False
             current_session_id = None
@@ -142,12 +142,13 @@ def on_message(client, userdata, msg):
 
         raw_bpm = data.get("bpm")
         raw_spo2 = data.get("spo2")
+        device_status = data.get("device_status")
 
         if raw_bpm is None or raw_spo2 is None:
             return
 
         if not is_valid_bpm(raw_bpm) or not is_valid_spo2(raw_spo2):
-            status = "OFF-CHIP"
+            analysis_status = "OFF-CHIP"
         else:
             # 一旦收到有效量測資料，立即生成 Session ID (若尚未生成)
             if current_session_id is None:
@@ -166,21 +167,21 @@ def on_message(client, userdata, msg):
                 ema_bpm = 0.3 * xt_bpm + 0.7 * last_ema_bpm
 
             delta_bpm = abs(float(raw_bpm) - prev_xt_bpm)
-            status = get_status(float(raw_bpm), ema_bpm, delta_bpm, float(raw_spo2))
+            analysis_status = get_status(float(raw_bpm), ema_bpm, delta_bpm, float(raw_spo2))
             last_ema_bpm = ema_bpm
 
         current_time = time.time()
         should_write = False
 
-        # 決定是否寫入資料庫
-        if not first_write_done and status != "OFF-CHIP":
+        # 決定是否寫入資料庫 (依據 Python 分析狀態 analysis_status 判定)
+        if not first_write_done and analysis_status != "OFF-CHIP":
             # 首次有效量測，必須寫入
             should_write = True
             first_write_done = True
-        elif status == "DANGER":
+        elif analysis_status == "DANGER":
             # 危險狀態，立即寫入
             should_write = True
-        elif status != last_status:
+        elif analysis_status != last_analysis_status:
             # 狀態發生變化 (包含變為 OFF-CHIP)，立即寫入
             should_write = True
         elif current_time - last_write_time >= 20:
@@ -189,16 +190,17 @@ def on_message(client, userdata, msg):
 
         if should_write and collection is not None:
             # 若處於 OFF-CHIP 且無 Session，則不進行寫入 (除非是 RESET)
-            if current_session_id is None and status == "OFF-CHIP":
+            if current_session_id is None and analysis_status == "OFF-CHIP":
                 return
 
             record = {
                 "timestamp": datetime.fromtimestamp(current_time, tz=timezone.utc),
-                "status": status,
+                "device_status": device_status,
+                "analysis_status": analysis_status,
                 "session_id": current_session_id,
                 "data_source": data_source
             }
-            if status != "OFF-CHIP":
+            if analysis_status != "OFF-CHIP":
                 record.update({
                     "avg_bpm": xt_bpm,
                     "ema_bpm": float(ema_bpm),
@@ -212,8 +214,8 @@ def on_message(client, userdata, msg):
             try:
                 collection.insert_one(record)
                 last_write_time = current_time
-                last_status = status  # Update last_status after successful write
-                logger.info(f"DB Write | Status: {status}")
+                last_analysis_status = analysis_status  # Update last_analysis_status after successful write
+                logger.info(f"DB Write | Device: {device_status} | Analysis: {analysis_status}")
             except Exception as e:
                 logger.error(f"MongoDB Insert Error: {e}")
     except Exception as e:
