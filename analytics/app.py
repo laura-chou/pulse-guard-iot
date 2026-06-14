@@ -18,7 +18,8 @@ local_tz = pytz.timezone('Asia/Taipei')
 def get_translations(lang_code):
     translations = {
         'en': {
-            'title': 'PulseGuard: Remote Health Analytics Dashboard',
+            'page_title': 'PulseGuard Analytics',
+            'title': 'PulseGuard | Remote Health Analytics Dashboard',
             'sidebar_filters': 'Filters',
             'date_range': 'Date Range',
             'status_filter': 'Status Filter',
@@ -53,7 +54,8 @@ def get_translations(lang_code):
             'col_spo2': 'SpO2 (%)'
         },
         'zh': {
-            'title': 'PulseGuard：遠端醫療歷史數據分析看板',
+            'page_title': '遠端健康數據分析',
+            'title': 'PulseGuard｜遠端健康智慧監控分析儀表板',
             'sidebar_filters': '篩選條件',
             'date_range': '日期範圍',
             'status_filter': '狀態過濾',
@@ -255,13 +257,17 @@ def get_default_range():
     return start_date, end_date
 
 def main():
-    # --- 頁面配置與多語系設定 ---
-    st.set_page_config(page_title="PulseGuard Analytics", layout="wide")
-
-    # 從 URL 參數獲取語言設定 (?lang=zh)
+    # --- 語系設定 (優先獲取以應用於頁面配置) ---
     query_params = st.query_params
     lang_code = query_params.get("lang", "en")
     t, lang = get_translations(lang_code)
+
+    # --- 頁面配置 ---
+    st.set_page_config(
+        page_title=t['page_title'],
+        page_icon="analytics/icon.png",
+        layout="wide"
+    )
 
     # --- UI 頁面標題 ---
     st.title(t['title'])
