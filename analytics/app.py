@@ -119,18 +119,21 @@ def fetch_data(start_date, end_date):
     collection = db[col_name]
 
     # 執行查詢並按時間排序，使用投影減少傳輸量
+    # 排除 RESET 狀態與測試數據 (data_source="test")
     projection = {
         "timestamp": 1,
-        "status": 1,
+        "analysis_status": 1,
         "avg_bpm": 1,
         "ema_bpm": 1,
         "spo2": 1,
         "_id": 0
     }
-    cursor = collection.find(
-        {"timestamp": {"$gte": start_dt, "$lte": end_dt}},
-        projection
-    ).sort("timestamp", 1)
+    query = {
+        "timestamp": {"$gte": start_dt, "$lte": end_dt},
+        "analysis_status": {"$ne": "RESET"},
+        "data_source": "production"
+    }
+    cursor = collection.find(query, projection).sort("timestamp", 1)
 
     df = pd.DataFrame(list(cursor))
     if not df.empty:
@@ -148,8 +151,8 @@ def fetch_data(start_date, end_date):
 def calculate_kpis(df):
     """計算關鍵績效指標"""
     total_samples = len(df)
-    danger_count = len(df[df['status'] == "DANGER"])
-    warning_count = len(df[df['status'] == "WARNING"])
+    danger_count = len(df[df['analysis_status'] == "DANGER"])
+    warning_count = len(df[df['analysis_status'] == "WARNING"])
     return total_samples, danger_count, warning_count
 
 def get_daily_summary(df):
@@ -174,7 +177,7 @@ def get_hourly_deduplicated(df):
     # 定義優先級：DANGER > WARNING > NORMAL
     priority_map = {"DANGER": 2, "WARNING": 1, "NORMAL": 0}
     df_hourly = df.copy()
-    df_hourly['priority'] = df_hourly['status'].map(priority_map)
+    df_hourly['priority'] = df_hourly['analysis_status'].map(priority_map)
     df_hourly['hour'] = df_hourly['timestamp'].dt.floor('h')
 
     # 按小時分組，並找出每組中優先級最高的索引
@@ -296,7 +299,7 @@ def main():
         st.warning("所選範圍內查無數據。" if lang == 'zh' else "No data found for the selected range.")
     else:
         # 根據選取狀態過濾數據
-        df = raw_df[raw_df['status'].isin(selected_statuses)].copy()
+        df = raw_df[raw_df['analysis_status'].isin(selected_statuses)].copy()
 
         # 預先生成聚合數據
         df_daily = get_daily_summary(df)
@@ -323,13 +326,13 @@ def main():
             with col_s1:
                 st.subheader(t['status_dist_title'])
                 # 統計使用去重後的數據，以符合「去重後用於統計」的要求
-                status_counts = df_hourly['status'].value_counts().reset_index()
-                status_counts.columns = ['status', 'count']
-                status_counts['label'] = status_counts['status'].map(t['status_map'])
+                status_counts = df_hourly['analysis_status'].value_counts().reset_index()
+                status_counts.columns = ['analysis_status', 'count']
+                status_counts['label'] = status_counts['analysis_status'].map(t['status_map'])
 
                 color_map = {"NORMAL": "green", "WARNING": "orange", "DANGER": "crimson"}
                 fig_pie = px.pie(status_counts, values='count', names='label',
-                                color='status', color_discrete_map=color_map,
+                                color='analysis_status', color_discrete_map=color_map,
                                 labels={'label': t['tt_status'], 'count': t['tt_count']})
 
                 # 徹底移除底部的原始英文標籤 (status=NORMAL)
@@ -342,14 +345,14 @@ def main():
                 st.subheader(t['weekly_stats_title'])
 
                 # 長條圖僅計算 WARNING 與 DANGER
-                abnormal_df = df_hourly[df_hourly['status'].isin(["WARNING", "DANGER"])].copy()
+                abnormal_df = df_hourly[df_hourly['analysis_status'].isin(["WARNING", "DANGER"])].copy()
 
                 if not abnormal_df.empty:
                     # 計算 ISO 週 (格式: 2026-W18)
                     abnormal_df['week'] = abnormal_df['timestamp'].dt.strftime('%G-W%V')
 
-                    weekly_stats = abnormal_df.groupby(['week', 'status']).size().reset_index(name='count')
-                    weekly_stats['status_label'] = weekly_stats['status'].map(t['status_map'])
+                    weekly_stats = abnormal_df.groupby(['week', 'analysis_status']).size().reset_index(name='count')
+                    weekly_stats['status_label'] = weekly_stats['analysis_status'].map(t['status_map'])
 
                     # 徹底隱藏 NORMAL 圖例
                     translated_color_map = {t['status_map'][k]: v for k, v in color_map.items() if k != "NORMAL"}
@@ -375,13 +378,13 @@ def main():
 
         with tab3:
             st.subheader(t['tab_logs'])
-            log_df = df_hourly[df_hourly['status'] != "NORMAL"].copy()
+            log_df = df_hourly[df_hourly['analysis_status'] != "NORMAL"].copy()
 
             if not log_df.empty:
                 # 準備顯示用的 DataFrame
-                display_df = log_df[['timestamp', 'status', 'avg_bpm', 'ema_bpm', 'spo2']].copy()
+                display_df = log_df[['timestamp', 'analysis_status', 'avg_bpm', 'ema_bpm', 'spo2']].copy()
                 display_df['timestamp'] = display_df['timestamp'].dt.strftime('%Y-%m-%d %H:%M:%S')
-                display_df['status'] = display_df['status'].map(t['status_map'])
+                display_df['status'] = display_df['analysis_status'].map(t['status_map'])
 
                 # 數據格式化預處理
                 display_df['spo2'] = display_df['spo2'].round(1)

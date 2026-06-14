@@ -23,7 +23,7 @@ def sample_df():
             local_tz.localize(datetime(2026, 5, 1, 20, 0, 0)),
             local_tz.localize(datetime(2026, 5, 2, 10, 0, 0)),
         ],
-        'status': ['NORMAL', 'WARNING', 'DANGER', 'NORMAL', 'NORMAL'],
+        'analysis_status': ['NORMAL', 'WARNING', 'DANGER', 'NORMAL', 'NORMAL'],
         'avg_bpm': [70.4, 110.6, 150.1, 72.8, 75.0],
         'ema_bpm': [70.0, 105.0, 140.0, 71.5, 74.0],
         'spo2': [98.123, 92.456, 88.789, 97.0, 99.1]
@@ -52,7 +52,7 @@ def test_fetch_data_normal(mock_mongo_client):
     mock_db.__getitem__.return_value = mock_col
 
     naive_now = datetime(2026, 6, 9, 0, 0, 0)
-    mock_cursor = [{'timestamp': naive_now, 'status': 'NORMAL', 'avg_bpm': 70, 'spo2': 98}]
+    mock_cursor = [{'timestamp': naive_now, 'analysis_status': 'NORMAL', 'avg_bpm': 70, 'spo2': 98}]
     mock_col.find.return_value.sort.return_value = mock_cursor
     with patch('analytics.app.init_connection', return_value=mock_mongo_client.return_value):
         df = app.fetch_data.__wrapped__(date(2026, 5, 1), date(2026, 5, 31))
@@ -90,7 +90,7 @@ def test_get_hourly_deduplicated(sample_df):
     dedup = app.get_hourly_deduplicated(sample_df)
     may1_10am_row = dedup[(dedup['timestamp'].dt.date == date(2026, 5, 1)) & (dedup['timestamp'].dt.hour == 10)]
     assert len(may1_10am_row) == 1
-    assert may1_10am_row.iloc[0]['status'] == 'WARNING'
+    assert may1_10am_row.iloc[0]['analysis_status'] == 'WARNING'
     assert len(dedup) == 4
 
 # 7. Color status logic
