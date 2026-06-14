@@ -381,10 +381,12 @@ def main():
             log_df = df_hourly[df_hourly['analysis_status'] != "NORMAL"].copy()
 
             if not log_df.empty:
-                # 準備顯示用的 DataFrame
+                # 準備顯示用的 DataFrame，移除重複狀態欄位並合併為多語系「狀態」
                 display_df = log_df[['timestamp', 'analysis_status', 'avg_bpm', 'ema_bpm', 'spo2']].copy()
                 display_df['timestamp'] = display_df['timestamp'].dt.strftime('%Y-%m-%d %H:%M:%S')
-                display_df['status'] = display_df['analysis_status'].map(t['status_map'])
+
+                # 直接將分析結果轉換為在地化文字
+                display_df['analysis_status'] = display_df['analysis_status'].map(t['status_map'])
 
                 # 數據格式化預處理
                 display_df['spo2'] = display_df['spo2'].round(1)
@@ -395,7 +397,7 @@ def main():
                 # 欄位名稱轉換為多語系
                 column_mapping = {
                     'timestamp': t['col_time'],
-                    'status': t['col_status'],
+                    'analysis_status': t['col_status'],
                     'avg_bpm': t['col_avg_bpm'],
                     'ema_bpm': t['col_ema_bpm'],
                     'spo2': t['col_spo2']
