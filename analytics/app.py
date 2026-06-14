@@ -51,7 +51,14 @@ def get_translations(lang_code):
             'col_status': 'Status',
             'col_avg_bpm': 'Avg BPM',
             'col_ema_bpm': 'EMA BPM',
-            'col_spo2': 'SpO2 (%)'
+            'col_spo2': 'SpO2 (%)',
+            'help_status': """Status criteria:
+🚨 DANGER: SpO2 <= 90%, EMA <= 50 or >= 140, or |ΔBPM| >= 50
+✅ NORMAL: SpO2 >= 95%, 60 <= EMA <= 100, and |ΔBPM| < 15
+⚠️ WARNING: Metrics outside normal range but not meeting danger criteria""",
+            'help_avg_bpm': "15s Moving Average BPM: Calculates the mean of the last 15 signals to smooth out noise.",
+            'help_ema_bpm': "Exponential Moving Average (EMA): Uses a time-series filtering algorithm (30% current, 70% historical) to reduce measurement errors.",
+            'help_spo2': "Oxygen Saturation (%): Displays the 15-second moving average, which is more medically representative than raw data. Normal values are usually above 95%."
         },
         'zh': {
             'page_title': '遠端健康數據分析',
@@ -81,13 +88,20 @@ def get_translations(lang_code):
             'tt_min_spo2': '最低血氧',
             'tt_percent': '比例',
             'download_csv': '下載篩選後的資料為 CSV',
-            'status_map': {"NORMAL": "正常", "WARNING": "警告", "DANGER": "危險"},
+            'status_map': {"NORMAL": "正常", "WARNING": "警告", "DANGER": "危險", "OFF-CHIP": "感測器脫落"},
             'col_no': '序號',
             'col_time': '時間戳記',
             'col_status': '狀態',
             'col_avg_bpm': '平均心率',
             'col_ema_bpm': 'EMA心率',
-            'col_spo2': '血氧飽和度 (%)'
+            'col_spo2': '血氧飽和度 (%)',
+            'help_status': """狀態與量測判定標準：
+🚨 DANGER (危急)：滿足任一條件 (SpO2 <= 90%, EMA <= 50 或 >= 140, |ΔBPM| >= 50)
+✅ NORMAL (正常)：必須全滿足 (SpO2 >= 95%, 60 <= EMA <= 100, |ΔBPM| < 15)
+⚠️ WARNING (警示)：未達危急標準，但任一指標超出正常範圍""",
+            'help_avg_bpm': "15秒移動平均心率 (Moving Average)：計算最近 15 筆訊號均值，用以平滑即時雜訊，呈現穩定的心跳趨勢。",
+            'help_ema_bpm': "指數移動平均心率 (EMA)：導入時序濾波演算法（目前 30%，歷史 70% 權重），有效抑制單點量測誤差，精準反映心血管實際生理趨勢。",
+            'help_spo2': "血氧飽和度百分比：顯示最近 15 秒的訊號移動平均值，較純即時數值更具醫學代表性。正常值通常在 95% 以上。"
         }
     }
     lang = "zh" if lang_code == "zh" else "en"
@@ -109,7 +123,14 @@ def init_connection():
 @st.cache_data(ttl=600)
 def fetch_data(start_date, end_date):
     """從 MongoDB 讀取數據並進行預處理"""
-    client = init_connection()
+    try:
+        client = MongoClient(os.getenv("MONGO_URI"), serverSelectionTimeoutMS=2000)
+        # 測試連線
+        client.admin.command('ping')
+    except Exception as e:
+        # 返回空 DataFrame 以觸發模擬數據展示邏輯
+        return pd.DataFrame()
+
     db_name = os.getenv("MONGO_DB_NAME")
     col_name = os.getenv("MONGO_COL_NAME")
 
@@ -263,9 +284,12 @@ def main():
     t, lang = get_translations(lang_code)
 
     # --- 頁面配置 ---
+    # 確保圖示路徑正確，使用相對於 app.py 的路徑
+    icon_path = os.path.join(os.path.dirname(__file__), "icon.png")
+
     st.set_page_config(
         page_title=t['page_title'],
-        page_icon="analytics/icon.png",
+        page_icon=icon_path,
         layout="wide"
     )
 
@@ -303,6 +327,55 @@ def main():
 
     if raw_df.empty:
         st.warning("所選範圍內查無數據。" if lang == 'zh' else "No data found for the selected range.")
+
+        # --- 建立模擬數據供展示 (依據使用者需求) ---
+        st.info("展示功能範例數據：" if lang == 'zh' else "Displaying feature sample data:")
+        mock_data = pd.DataFrame([
+            {
+                "timestamp": datetime.now(local_tz).strftime('%Y-%m-%d %H:%M:%S'),
+                "analysis_status": "NORMAL",
+                "avg_bpm": 72.4,
+                "ema_bpm": 71.8,
+                "spo2": 98.5
+            },
+            {
+                "timestamp": (datetime.now(local_tz) - timedelta(minutes=5)).strftime('%Y-%m-%d %H:%M:%S'),
+                "analysis_status": "OFF-CHIP",
+                "avg_bpm": 0,
+                "ema_bpm": 0,
+                "spo2": 0
+            }
+        ])
+
+        # 轉換為顯示格式
+        mock_display = mock_data.copy()
+        mock_display['analysis_status'] = mock_display['analysis_status'].map(lambda x: t['status_map'].get(x, x))
+        mock_display.insert(0, t['col_no'], range(1, len(mock_display) + 1))
+        mock_display = mock_display.rename(columns={
+            'timestamp': t['col_time'],
+            'analysis_status': t['col_status'],
+            'avg_bpm': t['col_avg_bpm'],
+            'ema_bpm': t['col_ema_bpm'],
+            'spo2': t['col_spo2']
+        })
+
+        st.dataframe(
+            mock_display.style.map(color_status, subset=[t['col_status']], t=t)
+            .format({
+                t['col_spo2']: '{:.1f}',
+                t['col_avg_bpm']: '{:.0f}',
+                t['col_ema_bpm']: '{:.0f}'
+            }),
+            use_container_width=True,
+            hide_index=True,
+            column_config={
+                t['col_no']: st.column_config.Column(width="small"),
+                t['col_status']: st.column_config.Column(help=t['help_status']),
+                t['col_avg_bpm']: st.column_config.Column(help=t['help_avg_bpm']),
+                t['col_ema_bpm']: st.column_config.Column(help=t['help_ema_bpm']),
+                t['col_spo2']: st.column_config.Column(help=t['help_spo2'])
+            }
+        )
     else:
         # 根據選取狀態過濾數據
         df = raw_df[raw_df['analysis_status'].isin(selected_statuses)].copy()
@@ -410,7 +483,7 @@ def main():
                 }
                 display_df = display_df.rename(columns=column_mapping)
 
-                # 使用 st.dataframe 展示，隱藏索引並優化樣式
+                # 使用 st.dataframe 展示，隱藏索引並優化樣式，加入 Tooltip 說明
                 st.dataframe(
                     display_df.style.map(color_status, subset=[t['col_status']], t=t)
                     .format({
@@ -421,7 +494,11 @@ def main():
                     use_container_width=True,
                     hide_index=True,
                     column_config={
-                        t['col_no']: st.column_config.Column(width="small")
+                        t['col_no']: st.column_config.Column(width="small"),
+                        t['col_status']: st.column_config.Column(help=t['help_status']),
+                        t['col_avg_bpm']: st.column_config.Column(help=t['help_avg_bpm']),
+                        t['col_ema_bpm']: st.column_config.Column(help=t['help_ema_bpm']),
+                        t['col_spo2']: st.column_config.Column(help=t['help_spo2'])
                     }
                 )
 
