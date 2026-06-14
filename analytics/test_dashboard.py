@@ -52,7 +52,7 @@ def test_get_default_range():
 def test_fetch_data_logic(mock_mongo_client):
     """
     [測試目的] 驗證從 MongoDB 抓取數據的查詢條件與預處理。
-    [預期行為] 1. 查詢應過濾 data_source='production'。 2. 應排除 RESET 狀態。 3. 返回轉為本地時區的 DataFrame。
+    [預期行為] 1. 查詢應過濾正確的 data_source。 2. 應排除 RESET 狀態。 3. 返回轉為本地時區的 DataFrame。
     """
     mock_db = MagicMock()
     mock_col = MagicMock()
@@ -63,14 +63,20 @@ def test_fetch_data_logic(mock_mongo_client):
     mock_cursor = [{'timestamp': naive_now, 'analysis_status': 'NORMAL', 'avg_bpm': 70, 'spo2': 98}]
     mock_col.find.return_value.sort.return_value = mock_cursor
 
+    # 測試正式環境
     with patch('analytics.app.init_connection', return_value=mock_mongo_client.return_value):
-        df = app.fetch_data.__wrapped__(date(2026, 5, 1), date(2026, 5, 31))
+        df = app.fetch_data.__wrapped__(date(2026, 5, 1), date(2026, 5, 31), env="production")
 
-    # 驗證查詢條件 (包含 production 過濾與 RESET 排除)
-    args, kwargs = mock_col.find.call_args
-    query = args[0]
-    assert query['data_source'] == "production"
-    assert query['analysis_status']['$ne'] == "RESET"
+    args, _ = mock_col.find.call_args
+    assert args[0]['data_source'] == "production"
+
+    # 測試測試環境
+    with patch('analytics.app.init_connection', return_value=mock_mongo_client.return_value):
+        df = app.fetch_data.__wrapped__(date(2026, 5, 1), date(2026, 5, 31), env="test")
+
+    args, _ = mock_col.find.call_args
+    assert args[0]['data_source'] == "test"
+    assert args[0]['analysis_status']['$ne'] == "RESET"
 
     assert df['timestamp'].dt.tz == pytz.timezone('Asia/Taipei')
     assert '_id' not in df.columns
@@ -139,27 +145,42 @@ def test_main_ui_various_inputs(sample_df):
     [測試目的] 模擬 Streamlit UI 的渲染流程。
     """
     with patch('analytics.app.st') as mock_st:
-        # 情況 1: 查無數據
+        # 設置 columns 的 side_effect 以應對所有可能的調用
+        # 1. KPI 欄位 (3 cols)
+        # 2. Expander 內部 (2 cols)
+        # 3. 統計欄位 (2 cols)
+        mock_st.columns.side_effect = lambda n: [MagicMock() for _ in range(n)]
+
+        # 情況 1: 查無數據 (觸發模擬數據與 Expander)
         mock_st.sidebar.date_input.return_value = (date(2026, 5, 1), date(2026, 5, 31))
         mock_st.sidebar.multiselect.return_value = ["NORMAL"]
+        mock_st.sidebar.selectbox.return_value = "production"
         mock_st.query_params = {}
         with patch('analytics.app.fetch_data', return_value=pd.DataFrame()):
             app.main()
-            mock_st.warning.assert_called()
+            # 驗證是否顯示了查無數據的警告以及模擬數據提示
+            mock_st.warning.assert_any_call("No data found for the selected range.")
+            mock_st.info.assert_any_call("Displaying feature sample data:")
 
-        # 情況 2: 正常載入並切換至中文
+        # 情況 2: 測試環境切換
+        mock_st.sidebar.selectbox.return_value = "test"
+        with patch('analytics.app.fetch_data', return_value=pd.DataFrame()):
+            app.main()
+            # 驗證測試模式警告
+            mock_st.warning.assert_any_call("Currently in Test Mode. Viewing simulated test data.")
+
+        # 情況 3: 正常載入並切換至中文
+        mock_st.sidebar.selectbox.return_value = "production"
         mock_st.sidebar.date_input.return_value = (date(2026, 5, 1), date(2026, 5, 31))
         mock_st.sidebar.multiselect.return_value = ["NORMAL", "WARNING", "DANGER"]
         mock_st.query_params = {'lang': 'zh'}
-        # 模擬 Streamlit layout 的 columns 與 tabs
-        mock_st.columns.side_effect = [
-            [MagicMock(), MagicMock(), MagicMock()], # KPI 欄位
-            [MagicMock(), MagicMock()],             # 統計欄位
-        ]
+
         mock_st.tabs.return_value = [MagicMock(), MagicMock(), MagicMock()]
         with patch('analytics.app.fetch_data', return_value=sample_df):
             app.main()
             mock_st.plotly_chart.assert_called()
+            # 驗證 Tab 3 中是否有 expander 調用
+            mock_st.expander.assert_called()
 
 def test_init_connection(mock_mongo_client):
     """驗證連線初始化是否正確讀取環境變數"""

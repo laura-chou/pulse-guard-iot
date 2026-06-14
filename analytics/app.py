@@ -23,6 +23,13 @@ def get_translations(lang_code):
             'sidebar_filters': 'Filters',
             'date_range': 'Date Range',
             'status_filter': 'Status Filter',
+            'env_select': 'Environment',
+            'env_prod': 'Production',
+            'env_test': 'Test',
+            'test_mode_warning': 'Currently in Test Mode. Viewing simulated test data.',
+            'expander_title': '🔍 View Status Criteria & Column Descriptions',
+            'expander_left_title': '🩺 Health Status Criteria',
+            'expander_right_title': '📊 Algorithm Descriptions',
             'kpi_total': 'Total Samples',
             'kpi_danger': 'Danger Events',
             'kpi_warning': 'Warning Events',
@@ -66,6 +73,13 @@ def get_translations(lang_code):
             'sidebar_filters': '篩選條件',
             'date_range': '日期範圍',
             'status_filter': '狀態過濾',
+            'env_select': '運行環境',
+            'env_prod': '生產環境 (Production)',
+            'env_test': '測試環境 (Test)',
+            'test_mode_warning': '目前處於測試模式，檢視的數據為模擬測試資料。',
+            'expander_title': '🔍 檢視狀態判定標準與欄位說明',
+            'expander_left_title': '🩺 狀態判定標準',
+            'expander_right_title': '📊 欄位演算法說明',
             'kpi_total': '總樣本數',
             'kpi_danger': '危險次數',
             'kpi_warning': '警告次數',
@@ -121,7 +135,7 @@ def init_connection():
     return MongoClient(mongo_uri)
 
 @st.cache_data(ttl=600)
-def fetch_data(start_date, end_date):
+def fetch_data(start_date, end_date, env="production"):
     """從 MongoDB 讀取數據並進行預處理"""
     try:
         client = MongoClient(os.getenv("MONGO_URI"), serverSelectionTimeoutMS=2000)
@@ -154,7 +168,7 @@ def fetch_data(start_date, end_date):
     query = {
         "timestamp": {"$gte": start_dt, "$lte": end_dt},
         "analysis_status": {"$ne": "RESET"},
-        "data_source": "production"
+        "data_source": env
     }
     cursor = collection.find(query, projection).sort("timestamp", 1)
 
@@ -299,6 +313,16 @@ def main():
     # --- 側邊欄篩選器 ---
     st.sidebar.header(t['sidebar_filters'])
 
+    # 環境切換
+    env_mode = st.sidebar.selectbox(
+        t['env_select'],
+        options=["production", "test"],
+        format_func=lambda x: t['env_prod'] if x == "production" else t['env_test']
+    )
+
+    if env_mode == "test":
+        st.warning(t['test_mode_warning'])
+
     default_start, default_end = get_default_range()
     date_range = st.sidebar.date_input(
         t['date_range'],
@@ -323,29 +347,49 @@ def main():
     )
 
     # --- 數據抓取與處理 ---
-    raw_df = fetch_data(start_date, end_date)
+    raw_df = fetch_data(start_date, end_date, env=env_mode)
 
     if raw_df.empty:
         st.warning("所選範圍內查無數據。" if lang == 'zh' else "No data found for the selected range.")
 
         # --- 建立模擬數據供展示 (依據使用者需求) ---
         st.info("展示功能範例數據：" if lang == 'zh' else "Displaying feature sample data:")
-        mock_data = pd.DataFrame([
-            {
-                "timestamp": datetime.now(local_tz).strftime('%Y-%m-%d %H:%M:%S'),
-                "analysis_status": "NORMAL",
-                "avg_bpm": 72.4,
-                "ema_bpm": 71.8,
-                "spo2": 98.5
-            },
-            {
-                "timestamp": (datetime.now(local_tz) - timedelta(minutes=5)).strftime('%Y-%m-%d %H:%M:%S'),
-                "analysis_status": "OFF-CHIP",
-                "avg_bpm": 0,
-                "ema_bpm": 0,
-                "spo2": 0
-            }
-        ])
+
+        if env_mode == "production":
+            mock_records = [
+                {
+                    "timestamp": datetime.now(local_tz).strftime('%Y-%m-%d %H:%M:%S'),
+                    "analysis_status": "NORMAL",
+                    "avg_bpm": 72.4,
+                    "ema_bpm": 71.8,
+                    "spo2": 98.5
+                },
+                {
+                    "timestamp": (datetime.now(local_tz) - timedelta(minutes=5)).strftime('%Y-%m-%d %H:%M:%S'),
+                    "analysis_status": "OFF-CHIP",
+                    "avg_bpm": 0,
+                    "ema_bpm": 0,
+                    "spo2": 0
+                }
+            ]
+        else:
+            mock_records = [
+                {
+                    "timestamp": datetime.now(local_tz).strftime('%Y-%m-%d %H:%M:%S'),
+                    "analysis_status": "DANGER",
+                    "avg_bpm": 145.0,
+                    "ema_bpm": 142.5,
+                    "spo2": 88.0
+                },
+                {
+                    "timestamp": (datetime.now(local_tz) - timedelta(minutes=2)).strftime('%Y-%m-%d %H:%M:%S'),
+                    "analysis_status": "WARNING",
+                    "avg_bpm": 105.0,
+                    "ema_bpm": 102.0,
+                    "spo2": 94.0
+                }
+            ]
+        mock_data = pd.DataFrame(mock_records)
 
         # 轉換為顯示格式
         mock_display = mock_data.copy()
@@ -359,6 +403,38 @@ def main():
             'spo2': t['col_spo2']
         })
 
+        # 渲染模擬數據的說明與表格
+        with st.expander(t['expander_title']):
+            e_col1, e_col2 = st.columns(2)
+            with e_col1:
+                st.markdown(f"**{t['expander_left_title']}**")
+                if lang == 'zh':
+                    st.markdown("""
+- 🚨 **危險 (DANGER)**：滿足任一條件 (SpO2 <= 90%, EMA <= 50 或 >= 140, |ΔBPM| >= 50)
+- ⚠️ **警告 (WARNING)**：未達危急標準，但任一指標超出正常範圍
+- ✅ **正常 (NORMAL)**：必須全滿足 (SpO2 >= 95%, 60 <= EMA <= 100, |ΔBPM| < 15)
+                    """)
+                else:
+                    st.markdown("""
+- 🚨 **DANGER**: SpO2 <= 90%, EMA <= 50 or >= 140, or |ΔBPM| >= 50
+- ⚠️ **WARNING**: Out of normal range but not meeting danger criteria
+- ✅ **NORMAL**: SpO2 >= 95%, 60 <= EMA <= 100, and |ΔBPM| < 15
+                    """)
+            with e_col2:
+                st.markdown(f"**{t['expander_right_title']}**")
+                if lang == 'zh':
+                    st.markdown("""
+- **平均心率**：最近 15 筆訊號的移動平均值，用以平滑即時雜訊，呈現穩定的心跳趨勢。
+- **EMA心率**：指數移動平均 (EMA)，導入時序濾波演算法（目前 30%，歷史 70% 權重），有效抑制單點量測誤差。
+- **血氧飽和度 (%)**：顯示最近 15 秒的訊號移動平均值，較純即時數值更具醫學代表性。
+                    """)
+                else:
+                    st.markdown("""
+- **Avg BPM**: Moving average of the last 15 signals to smooth out noise.
+- **EMA BPM**: Exponential Moving Average (30% current, 70% historical) to suppress measurement errors.
+- **SpO2 (%)**: 15-second moving average, providing better clinical representation.
+                    """)
+
         st.dataframe(
             mock_display.style.map(color_status, subset=[t['col_status']], t=t)
             .format({
@@ -369,11 +445,7 @@ def main():
             use_container_width=True,
             hide_index=True,
             column_config={
-                t['col_no']: st.column_config.Column(width="small"),
-                t['col_status']: st.column_config.Column(help=t['help_status']),
-                t['col_avg_bpm']: st.column_config.Column(help=t['help_avg_bpm']),
-                t['col_ema_bpm']: st.column_config.Column(help=t['help_ema_bpm']),
-                t['col_spo2']: st.column_config.Column(help=t['help_spo2'])
+                t['col_no']: st.column_config.Column(width="small")
             }
         )
     else:
@@ -457,6 +529,39 @@ def main():
 
         with tab3:
             st.subheader(t['tab_logs'])
+
+            # --- 表格上方折疊說明區 ---
+            with st.expander(t['expander_title']):
+                e_col1, e_col2 = st.columns(2)
+                with e_col1:
+                    st.markdown(f"**{t['expander_left_title']}**")
+                    if lang == 'zh':
+                        st.markdown("""
+- 🚨 **危險 (DANGER)**：滿足任一條件 (SpO2 <= 90%, EMA <= 50 或 >= 140, |ΔBPM| >= 50)
+- ⚠️ **警告 (WARNING)**：未達危急標準，但任一指標超出正常範圍
+- ✅ **正常 (NORMAL)**：必須全滿足 (SpO2 >= 95%, 60 <= EMA <= 100, |ΔBPM| < 15)
+                        """)
+                    else:
+                        st.markdown("""
+- 🚨 **DANGER**: SpO2 <= 90%, EMA <= 50 or >= 140, or |ΔBPM| >= 50
+- ⚠️ **WARNING**: Out of normal range but not meeting danger criteria
+- ✅ **NORMAL**: SpO2 >= 95%, 60 <= EMA <= 100, and |ΔBPM| < 15
+                        """)
+                with e_col2:
+                    st.markdown(f"**{t['expander_right_title']}**")
+                    if lang == 'zh':
+                        st.markdown("""
+- **平均心率**：最近 15 筆訊號的移動平均值，用以平滑即時雜訊，呈現穩定的心跳趨勢。
+- **EMA心率**：指數移動平均 (EMA)，導入時序濾波演算法（目前 30%，歷史 70% 權重），有效抑制單點量測誤差。
+- **血氧飽和度 (%)**：顯示最近 15 秒的訊號移動平均值，較純即時數值更具醫學代表性。
+                        """)
+                    else:
+                        st.markdown("""
+- **Avg BPM**: Moving average of the last 15 signals to smooth out noise.
+- **EMA BPM**: Exponential Moving Average (30% current, 70% historical) to suppress measurement errors.
+- **SpO2 (%)**: 15-second moving average, providing better clinical representation.
+                        """)
+
             log_df = df_hourly[df_hourly['analysis_status'] != "NORMAL"].copy()
 
             if not log_df.empty:
@@ -483,7 +588,7 @@ def main():
                 }
                 display_df = display_df.rename(columns=column_mapping)
 
-                # 使用 st.dataframe 展示，隱藏索引並優化樣式，加入 Tooltip 說明
+                # 使用 st.dataframe 展示，隱藏索引並優化樣式
                 st.dataframe(
                     display_df.style.map(color_status, subset=[t['col_status']], t=t)
                     .format({
@@ -494,11 +599,7 @@ def main():
                     use_container_width=True,
                     hide_index=True,
                     column_config={
-                        t['col_no']: st.column_config.Column(width="small"),
-                        t['col_status']: st.column_config.Column(help=t['help_status']),
-                        t['col_avg_bpm']: st.column_config.Column(help=t['help_avg_bpm']),
-                        t['col_ema_bpm']: st.column_config.Column(help=t['help_ema_bpm']),
-                        t['col_spo2']: st.column_config.Column(help=t['help_spo2'])
+                        t['col_no']: st.column_config.Column(width="small")
                     }
                 )
 
