@@ -1,0 +1,32 @@
+name: Sync to Hugging Face Hub
+
+on:
+  push:
+    branches: [main]
+  # 允許手動觸發工作流
+  workflow_dispatch:
+
+jobs:
+  sync-to-hub:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          lfs: false
+
+      - name: Push to Hugging Face
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          # 設定 Git 使用者資訊
+          git config --global user.email "actions@github.com"
+          git config --global user.name "GitHub Actions"
+
+          # 新增 Hugging Face 遠端倉庫位址，並嵌入 HF_TOKEN 進行驗證
+          git remote add hf https://Chou1210:$HF_TOKEN@huggingface.co/spaces/Chou1210/pulseguard-analytics
+
+          # 使用 git subtree split 將 analytics 資料夾內容推送到 HF Space 的 main 分支
+          # 這將確保 HF Space 的根目錄內容與 GitHub 的 analytics/ 資料夾一致
+          git push hf $(git subtree split --prefix analytics main):refs/heads/main --force
