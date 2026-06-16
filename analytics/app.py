@@ -300,56 +300,68 @@ def get_default_range():
 def render_aggrid(df, t, status_col_key):
     """
     統一渲染 AG Grid 的輔助函式，支援：
-    1. 表頭與內容完美靠右對齊
-    2. 狀態欄位動態上色 (JsCode 注入)
-    3. 自適應寬度與彈性布局
+    1. 數值欄位靠右對齊 (表頭+內容)
+    2. 狀態與序號欄位置中且緊湊
+    3. 移除選單與篩選按鈕
+    4. 狀態欄位動態上色 (JsCode 注入)
     """
     gb = GridOptionsBuilder.from_dataframe(df)
 
-    # 默認配置：所有欄位靠右對齊
+    # 默認配置：移除功能選單與篩選圖示，預設置中對齊
     gb.configure_default_column(
-        headerClass='ag-right-aligned-header',
-        cellStyle={'textAlign': 'right'},
+        suppressMenu=True,
+        suppressHeaderFilterButton=True,
+        sortable=False, # 移除排序以保持簡潔
+        filter=False,   # 移除篩選以隱藏圖示
+        headerClass='ag-center-aligned-header',
+        cellStyle={'textAlign': 'center'},
         flex=1,
         resizable=True
     )
 
+    # 針對數值欄位：靠右對齊 (表頭 + 內容)
+    numeric_cols = [t['col_avg_bpm'], t['col_ema_bpm'], t['col_spo2']]
+    for col in numeric_cols:
+        if col in df.columns:
+            gb.configure_column(
+                col,
+                headerClass='ag-right-aligned-header',
+                cellStyle={'textAlign': 'right'}
+            )
+
     # 狀態欄位特殊處理：背景顏色 (JsCode)
-    # 支援 DANGER/危險 (crimson) 與 WARNING/警告 (orange)
     cellsytle_jscode = JsCode(f"""
     function(params) {{
+        let baseStyle = {{ 'textAlign': 'center' }};
         if (params.value === '{t['status_map']['DANGER']}') {{
-            return {{
-                'color': 'white',
-                'backgroundColor': 'crimson',
-                'textAlign': 'right'
-            }};
+            return {{ ...baseStyle, 'color': 'white', 'backgroundColor': 'crimson' }};
         }} else if (params.value === '{t['status_map']['WARNING']}') {{
-            return {{
-                'color': 'black',
-                'backgroundColor': 'orange',
-                'textAlign': 'right'
-            }};
+            return {{ ...baseStyle, 'color': 'black', 'backgroundColor': 'orange' }};
         }} else if (params.value === '{t['status_map']['OFF-CHIP']}') {{
-            return {{
-                'color': 'white',
-                'backgroundColor': '#455A64',
-                'textAlign': 'right'
-            }};
+            return {{ ...baseStyle, 'color': 'white', 'backgroundColor': '#455A64' }};
         }} else {{
-            return {{
-                'textAlign': 'right'
-            }};
+            return baseStyle;
         }}
     }};
     """)
 
-    # 針對狀態欄位應用 JsCode
-    gb.configure_column(status_col_key, cellStyle=cellsytle_jscode)
+    # 針對狀態欄位：置中對齊且設定緊湊的 maxWidth
+    gb.configure_column(
+        status_col_key,
+        cellStyle=cellsytle_jscode,
+        maxWidth=120,
+        flex=0
+    )
 
-    # 針對序號欄位縮小寬度
+    # 針對序號欄位：置中對齊且固定極小寬度
     if t['col_no'] in df.columns:
-        gb.configure_column(t['col_no'], flex=0, width=80)
+        gb.configure_column(
+            t['col_no'],
+            flex=0,
+            width=50,
+            maxWidth=60,
+            cellStyle={'textAlign': 'center'}
+        )
 
     gridOptions = gb.build()
 
@@ -359,8 +371,8 @@ def render_aggrid(df, t, status_col_key):
         data_return_mode=DataReturnMode.FILTERED_AND_SORTED,
         update_mode=GridUpdateMode.MODEL_CHANGED,
         fit_columns_on_grid_load=True,
-        allow_unsafe_jscode=True, # 必須開啟以支援 JsCode
-        theme='streamlit', # 配合 Streamlit 主題
+        allow_unsafe_jscode=True,
+        theme='streamlit',
         height=400,
         width='100%'
     )
@@ -687,10 +699,14 @@ def main():
             color: #FFFFFF !important;
         }
 
-        /* AG Grid 表頭靠右對齊的 CSS 強制注入 */
+        /* AG Grid 表頭對齊的 CSS 強制注入 */
         .ag-right-aligned-header .ag-header-cell-label {
             justify-content: flex-end !important;
             text-align: right !important;
+        }
+        .ag-center-aligned-header .ag-header-cell-label {
+            justify-content: center !important;
+            text-align: center !important;
         }
     </style>
     """, unsafe_allow_html=True)

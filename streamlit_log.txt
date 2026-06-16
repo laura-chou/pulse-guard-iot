@@ -1,0 +1,11 @@
+
+Collecting usage statistics. To deactivate, set browser.gatherUsageStats to false.
+
+2026-06-16 17:18:47.612 Uvicorn server started on localhost:8501
+
+  You can now view your Streamlit app in your browser.
+
+  URL: http://localhost:8501
+
+/app/analytics/app.py:368: DeprecationWarning: GridUpdateMode is deprecated and will be removed in a future version. Use the 'update_on' parameter instead to specify which events should trigger updates.
+  return AgGrid(
