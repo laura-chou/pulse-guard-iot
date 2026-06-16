@@ -19,3 +19,33 @@ For `use_container_width=True`, use `width='stretch'`. For `use_container_width=
 `use_container_width` will be removed after 2025-12-31.
 
 For `use_container_width=True`, use `width='stretch'`. For `use_container_width=False`, use `width='content'`.
+2026-06-16 16:13:55.557 Uncaught app execution
+Traceback (most recent call last):
+  File "/home/jules/.pyenv/versions/3.12.13/lib/python3.12/site-packages/streamlit/runtime/scriptrunner/exec_code.py", line 129, in exec_func_with_error_handling
+    result = func()
+             ^^^^^^
+  File "/home/jules/.pyenv/versions/3.12.13/lib/python3.12/site-packages/streamlit/runtime/scriptrunner/script_runner.py", line 789, in code_to_exec
+    exec(code, module.__dict__)  # noqa: S102
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/analytics/app.py", line 699, in <module>
+    main()
+  File "/app/analytics/app.py", line 400, in main
+    date_range = st.sidebar.date_input(
+                 ^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jules/.pyenv/versions/3.12.13/lib/python3.12/site-packages/streamlit/runtime/metrics_util.py", line 698, in wrapped_func
+    result = non_optional_func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jules/.pyenv/versions/3.12.13/lib/python3.12/site-packages/streamlit/elements/widgets/time_widgets.py", line 1717, in date_input
+    return self._date_input(
+           ^^^^^^^^^^^^^^^^^
+  File "/home/jules/.pyenv/versions/3.12.13/lib/python3.12/site-packages/streamlit/elements/widgets/time_widgets.py", line 1814, in _date_input
+    parsed_values = _DateInputValues.from_raw_values(
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jules/.pyenv/versions/3.12.13/lib/python3.12/site-packages/streamlit/elements/widgets/time_widgets.py", line 407, in from_raw_values
+    return cls(
+           ^^^^
+  File "<string>", line 7, in __init__
+  File "/home/jules/.pyenv/versions/3.12.13/lib/python3.12/site-packages/streamlit/elements/widgets/time_widgets.py", line 426, in __post_init__
+    raise StreamlitAPIException(
+streamlit.errors.StreamlitAPIException: The default `value` of [datetime.date(2026, 5, 18), datetime.date(2026, 6, 17)] must lie between the `min_value` of 2020-01-01 and the `max_value` of 2026-06-16, inclusively.
+  Stopping...

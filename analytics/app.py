@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 import pytz
 import os
 from dotenv import load_dotenv
+from st_aggrid import AgGrid, GridOptionsBuilder, JsCode, GridUpdateMode, DataReturnMode
 
 # 加載環境變數
 load_dotenv()
@@ -121,9 +122,11 @@ def get_translations(lang_code):
     lang = "zh" if lang_code == "zh" else "en"
     return translations[lang], lang
 
+# 保留 color_status 供測試與潛在回退使用
 def color_status(val, t):
     if val == t['status_map']['DANGER']: color = 'background-color: crimson; color: white'
     elif val == t['status_map']['WARNING']: color = 'background-color: orange; color: black'
+    elif val == t['status_map']['OFF-CHIP']: color = 'background-color: #455A64; color: white'
     else: color = ''
     return color
 
@@ -294,6 +297,74 @@ def get_default_range():
     start_date = today - timedelta(days=30)
     return start_date, today
 
+def render_aggrid(df, t, status_col_key):
+    """
+    統一渲染 AG Grid 的輔助函式，支援：
+    1. 表頭與內容完美靠右對齊
+    2. 狀態欄位動態上色 (JsCode 注入)
+    3. 自適應寬度與彈性布局
+    """
+    gb = GridOptionsBuilder.from_dataframe(df)
+
+    # 默認配置：所有欄位靠右對齊
+    gb.configure_default_column(
+        headerClass='ag-right-aligned-header',
+        cellStyle={'textAlign': 'right'},
+        flex=1,
+        resizable=True
+    )
+
+    # 狀態欄位特殊處理：背景顏色 (JsCode)
+    # 支援 DANGER/危險 (crimson) 與 WARNING/警告 (orange)
+    cellsytle_jscode = JsCode(f"""
+    function(params) {{
+        if (params.value === '{t['status_map']['DANGER']}') {{
+            return {{
+                'color': 'white',
+                'backgroundColor': 'crimson',
+                'textAlign': 'right'
+            }};
+        }} else if (params.value === '{t['status_map']['WARNING']}') {{
+            return {{
+                'color': 'black',
+                'backgroundColor': 'orange',
+                'textAlign': 'right'
+            }};
+        }} else if (params.value === '{t['status_map']['OFF-CHIP']}') {{
+            return {{
+                'color': 'white',
+                'backgroundColor': '#455A64',
+                'textAlign': 'right'
+            }};
+        }} else {{
+            return {{
+                'textAlign': 'right'
+            }};
+        }}
+    }};
+    """)
+
+    # 針對狀態欄位應用 JsCode
+    gb.configure_column(status_col_key, cellStyle=cellsytle_jscode)
+
+    # 針對序號欄位縮小寬度
+    if t['col_no'] in df.columns:
+        gb.configure_column(t['col_no'], flex=0, width=80)
+
+    gridOptions = gb.build()
+
+    return AgGrid(
+        df,
+        gridOptions=gridOptions,
+        data_return_mode=DataReturnMode.FILTERED_AND_SORTED,
+        update_mode=GridUpdateMode.MODEL_CHANGED,
+        fit_columns_on_grid_load=True,
+        allow_unsafe_jscode=True, # 必須開啟以支援 JsCode
+        theme='streamlit', # 配合 Streamlit 主題
+        height=400,
+        width='100%'
+    )
+
 def main():
     # --- 語系設定 (優先獲取以應用於頁面配置) ---
     query_params = st.query_params
@@ -301,12 +372,11 @@ def main():
     t, lang = get_translations(lang_code)
 
     # --- 頁面配置 ---
-    # 確保圖示路徑正確，使用相對於 app.py 的路徑
     icon_path = os.path.join(os.path.dirname(__file__), "icon.png")
 
     st.set_page_config(
         page_title=t['page_title'],
-        page_icon=icon_path,
+        page_icon=icon_path if os.path.exists(icon_path) else None,
         layout="wide"
     )
 
@@ -331,7 +401,7 @@ def main():
         t['date_range'],
         value=(default_start, default_end),
         min_value=datetime(2020, 1, 1).date(),
-        max_value=datetime.now().date()
+        max_value=default_end
     )
 
     # 處理日期選擇器的回傳值
@@ -417,7 +487,7 @@ def main():
             'spo2': t['col_spo2']
         })
 
-        # 渲染模擬數據的說明與表格
+        # 渲染模擬數據的說明
         with st.expander(t['expander_title']):
             e_col1, e_col2 = st.columns(2)
             with e_col1:
@@ -438,19 +508,9 @@ def main():
 - **SpO2 (%)**: 15-second moving average, providing better clinical representation.
                     """)
 
-        st.dataframe(
-            mock_display.style.map(color_status, subset=[t['col_status']], t=t),
-            use_container_width=True,
-            hide_index=True,
-            column_config={
-                t['col_no']: st.column_config.Column(width="small", label=t['col_no'], alignment="center"),
-                t['col_time']: st.column_config.Column(width="medium", label=t['col_time'], alignment="center"),
-                t['col_status']: st.column_config.Column(width="small", label=t['col_status'], alignment="center"),
-                t['col_avg_bpm']: st.column_config.NumberColumn(format="%d", label=t['col_avg_bpm'], alignment="center"),
-                t['col_ema_bpm']: st.column_config.NumberColumn(format="%d", label=t['col_ema_bpm'], alignment="center"),
-                t['col_spo2']: st.column_config.NumberColumn(format="%.1f %%", label=t['col_spo2'], alignment="center"),
-            }
-        )
+        # 使用 AgGrid 顯示模擬數據
+        render_aggrid(mock_display, t, t['col_status'])
+
     else:
         # 根據選取狀態過濾數據
         df = raw_df[raw_df['analysis_status'].isin(selected_statuses)].copy()
@@ -459,7 +519,7 @@ def main():
         df_daily = get_daily_summary(df)
         df_hourly = get_hourly_deduplicated(df)
 
-        # 計算 KPI (使用去重後的數據以保持 UI 一致性)
+        # 計算 KPI
         total_samples, danger_count, warning_count, off_chip_count = calculate_kpis(df_hourly)
 
         # --- KPI 卡片展示 ---
@@ -483,7 +543,6 @@ def main():
 
             with col_s1:
                 st.subheader(t['status_dist_title'])
-                # 狀態分佈圓餅圖：維持僅顯示生理健康狀態，排除 OFF-CHIP
                 health_stats_df = df_hourly[df_hourly['analysis_status'] != "OFF-CHIP"]
                 status_counts = health_stats_df['analysis_status'].value_counts().reset_index()
                 status_counts.columns = ['analysis_status', 'count']
@@ -494,7 +553,6 @@ def main():
                                 color='analysis_status', color_discrete_map=color_map,
                                 labels={'label': t['tt_status'], 'count': t['tt_count']})
 
-                # 徹底移除底部的原始英文標籤 (status=NORMAL)
                 fig_pie.update_traces(
                     hovertemplate=f"%{{label}}<br>{t['tt_count']}: %{{value}}<br>{t['tt_percent']}: %{{percent:.1%}}<extra></extra>"
                 )
@@ -502,18 +560,13 @@ def main():
 
             with col_s2:
                 st.subheader(t['weekly_stats_title'])
-
-                # 每週異常事件趨勢圖 (長條圖)：納入 WARNING, DANGER 與 OFF-CHIP
                 abnormal_df = df_hourly[df_hourly['analysis_status'].isin(["WARNING", "DANGER", "OFF-CHIP"])].copy()
 
                 if not abnormal_df.empty:
-                    # 計算 ISO 週 (格式: 2026-W18)
                     abnormal_df['week'] = abnormal_df['timestamp'].dt.strftime('%G-W%V')
-
                     weekly_stats = abnormal_df.groupby(['week', 'analysis_status']).size().reset_index(name='count')
                     weekly_stats['status_label'] = weekly_stats['analysis_status'].map(t['status_map'])
 
-                    # 設置長條圖專用顏色地圖 (包含鐵灰色的 OFF-CHIP)
                     bar_color_map = {
                         "WARNING": "orange",
                         "DANGER": "crimson",
@@ -547,7 +600,6 @@ def main():
         with tab3:
             st.subheader(t['tab_logs'])
 
-            # --- 表格上方折疊說明區 ---
             with st.expander(t['expander_title']):
                 e_col1, e_col2 = st.columns(2)
                 with e_col1:
@@ -571,20 +623,12 @@ def main():
             log_df = df_hourly[df_hourly['analysis_status'] != "NORMAL"].copy()
 
             if not log_df.empty:
-                # 準備顯示用的 DataFrame，移除重複狀態欄位並合併為多語系「狀態」
                 display_df = log_df[['timestamp', 'analysis_status', 'avg_bpm', 'ema_bpm', 'spo2']].copy()
                 display_df['timestamp'] = display_df['timestamp'].dt.strftime('%Y-%m-%d %H:%M:%S')
-
-                # 直接將分析結果轉換為在地化文字
                 display_df['analysis_status'] = display_df['analysis_status'].map(t['status_map'])
-
-                # 數據格式化預處理
                 display_df['spo2'] = display_df['spo2'].round(1)
-
-                # 插入連續序號欄位
                 display_df.insert(0, t['col_no'], range(1, len(display_df) + 1))
 
-                # 欄位名稱轉換為多語系
                 column_mapping = {
                     'timestamp': t['col_time'],
                     'analysis_status': t['col_status'],
@@ -594,20 +638,8 @@ def main():
                 }
                 display_df = display_df.rename(columns=column_mapping)
 
-                # 使用 st.dataframe 展示，隱藏索引並優化樣式
-                st.dataframe(
-                    display_df.style.map(color_status, subset=[t['col_status']], t=t),
-                    use_container_width=True,
-                    hide_index=True,
-                    column_config={
-                        t['col_no']: st.column_config.Column(width="small", label=t['col_no'], alignment="center"),
-                        t['col_time']: st.column_config.Column(width="medium", label=t['col_time'], alignment="center"),
-                        t['col_status']: st.column_config.Column(width="small", label=t['col_status'], alignment="center"),
-                        t['col_avg_bpm']: st.column_config.NumberColumn(format="%d", label=t['col_avg_bpm'], alignment="center"),
-                        t['col_ema_bpm']: st.column_config.NumberColumn(format="%d", label=t['col_ema_bpm'], alignment="center"),
-                        t['col_spo2']: st.column_config.NumberColumn(format="%.1f %%", label=t['col_spo2'], alignment="center"),
-                    }
-                )
+                # 使用 AgGrid 顯示異常日誌
+                render_aggrid(display_df, t, t['col_status'])
 
                 csv = df.to_csv(index=False).encode('utf-8-sig')
                 st.download_button(
@@ -622,7 +654,6 @@ def main():
     # --- CSS 視覺美化 ---
     st.markdown("""
     <style>
-        /* 使用 Streamlit 變數實現主題動態切換 */
         [data-testid="stMetric"] {
             background-color: var(--secondary-background-color);
             color: var(--text-color);
@@ -631,36 +662,35 @@ def main():
             border-left: 6px solid #00d4ff;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
-        /* 隱藏展開器邊框 */
         div[data-testid="stExpander"] {
             border: none !important;
         }
 
-        /* 狀態標籤語意化配色 (多語系支援) */
-        /* NORMAL / 正常 */
+        /* 側邊欄標籤樣式 (多語系) */
         span[data-baseweb="tag"]:has(span[title="NORMAL"]),
         span[data-baseweb="tag"]:has(span[title="正常"]) {
             background-color: #2E7D32 !important;
         }
-        /* WARNING / 警告 */
         span[data-baseweb="tag"]:has(span[title="WARNING"]),
         span[data-baseweb="tag"]:has(span[title="警告"]) {
             background-color: #EF6C00 !important;
         }
-        /* DANGER / 危險 */
         span[data-baseweb="tag"]:has(span[title="DANGER"]),
         span[data-baseweb="tag"]:has(span[title="危險"]) {
             background-color: #C62828 !important;
         }
-        /* OFF-CHIP / 感測器脫落 */
         span[data-baseweb="tag"]:has(span[title="OFF-CHIP"]),
         span[data-baseweb="tag"]:has(span[title="感測器脫落"]) {
             background-color: #455A64 !important;
         }
-
-        /* 確保標籤文字顏色一致為白色 */
         span[data-baseweb="tag"] span {
             color: #FFFFFF !important;
+        }
+
+        /* AG Grid 表頭靠右對齊的 CSS 強制注入 */
+        .ag-right-aligned-header .ag-header-cell-label {
+            justify-content: flex-end !important;
+            text-align: right !important;
         }
     </style>
     """, unsafe_allow_html=True)
