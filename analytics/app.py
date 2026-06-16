@@ -431,6 +431,12 @@ def main():
         format_func=lambda x: t['status_map'][x]
     )
 
+    # 底部緩衝空間：在日期選擇器下方增加垂直空間
+    # 目的：確保當使用者點擊 st.date_input 時，下方有足夠餘裕讓彈出面板顯示，
+    # 從而防止 Streamlit (及底層 BaseWeb 元件) 因為偵測到靠近視窗底部而自動將面板轉向（向上彈出）。
+    # 這裡使用 600px 的隱形區塊來確保面板能穩定向下開啟。
+    st.sidebar.markdown('<div style="height: 600px;"></div>', unsafe_allow_html=True)
+
     # --- 數據抓取與處理 ---
     raw_df, connection_error = fetch_data(start_date, end_date, env=env_mode)
 
@@ -708,6 +714,7 @@ def main():
             justify-content: center !important;
             text-align: center !important;
         }
+
     </style>
     """, unsafe_allow_html=True)
 
