@@ -136,14 +136,14 @@ def init_connection():
 
 @st.cache_data(ttl=600)
 def fetch_data(start_date, end_date, env="production"):
-    """從 MongoDB 讀取數據並進行預處理"""
+    """從 MongoDB 讀取數據並進行預處理，返回 (DataFrame, 是否發生錯誤)"""
     try:
         client = MongoClient(os.getenv("MONGO_URI"), serverSelectionTimeoutMS=2000)
         # 測試連線
         client.admin.command('ping')
     except Exception as e:
-        # 返回空 DataFrame 以觸發模擬數據展示邏輯
-        return pd.DataFrame()
+        # 返回空 DataFrame 與 錯誤標記
+        return pd.DataFrame(), True
 
     db_name = os.getenv("MONGO_DB_NAME")
     col_name = os.getenv("MONGO_COL_NAME")
@@ -183,7 +183,7 @@ def fetch_data(start_date, end_date, env="production"):
         # 移除 MongoDB 內部 ID
         if '_id' in df.columns:
             df.drop(columns=['_id'], inplace=True)
-    return df
+    return df, False
 
 def calculate_kpis(df):
     """計算關鍵績效指標"""
@@ -279,17 +279,10 @@ def build_combined_physiological_chart(df_daily, t):
     return fig
 
 def get_default_range():
-    """計算過去兩個完整日曆月的範圍"""
-    today = datetime.now(local_tz)
-    # 本月第一天
-    first_day_this_month = today.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-    # 結束日期：上個月最後一天
-    end_date = (first_day_this_month - timedelta(seconds=1)).date()
-    # 上個月第一天
-    first_day_prev_month = (first_day_this_month - timedelta(days=1)).replace(day=1)
-    # 開始日期：前一個月的第一天
-    start_date = (first_day_prev_month - timedelta(days=1)).replace(day=1).date()
-    return start_date, end_date
+    """計算過去一個月的範圍 (30天前到今天)"""
+    today = datetime.now(local_tz).date()
+    start_date = today - timedelta(days=30)
+    return start_date, today
 
 def main():
     # --- 語系設定 (優先獲取以應用於頁面配置) ---
@@ -347,12 +340,16 @@ def main():
     )
 
     # --- 數據抓取與處理 ---
-    raw_df = fetch_data(start_date, end_date, env=env_mode)
+    raw_df, connection_error = fetch_data(start_date, end_date, env=env_mode)
 
     if raw_df.empty:
-        st.warning("所選範圍內查無數據。" if lang == 'zh' else "No data found for the selected range.")
+        if connection_error:
+            st.error("無法連線至資料庫，顯示模擬數據供參考。" if lang == 'zh' else "Database connection failed, showing mock data for reference.")
+        else:
+            st.warning("所選範圍內查無數據。" if lang == 'zh' else "No data found for the selected range.")
+            return
 
-        # --- 建立模擬數據供展示 (依據使用者需求) ---
+        # --- 建立模擬數據供展示 (僅在資料庫連線失敗時) ---
         st.info("展示功能範例數據：" if lang == 'zh' else "Displaying feature sample data:")
 
         if env_mode == "production":

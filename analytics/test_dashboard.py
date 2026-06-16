@@ -45,8 +45,8 @@ def test_get_default_range():
         mock_datetime.combine = datetime.combine
 
         start_date, end_date = app.get_default_range()
-        assert start_date == date(2026, 4, 1)
-        assert end_date == date(2026, 5, 31)
+        assert start_date == date(2026, 5, 16)
+        assert end_date == date(2026, 6, 15)
 
 # 2. fetch_data()
 def test_fetch_data_logic(mock_mongo_client):
@@ -65,18 +65,20 @@ def test_fetch_data_logic(mock_mongo_client):
 
     # 測試正式環境
     with patch('analytics.app.init_connection', return_value=mock_mongo_client.return_value):
-        df = app.fetch_data.__wrapped__(date(2026, 5, 1), date(2026, 5, 31), env="production")
+        df, err = app.fetch_data.__wrapped__(date(2026, 5, 1), date(2026, 5, 31), env="production")
 
     args, _ = mock_col.find.call_args
     assert args[0]['data_source'] == "production"
+    assert err is False
 
     # 測試測試環境
     with patch('analytics.app.init_connection', return_value=mock_mongo_client.return_value):
-        df = app.fetch_data.__wrapped__(date(2026, 5, 1), date(2026, 5, 31), env="test")
+        df, err = app.fetch_data.__wrapped__(date(2026, 5, 1), date(2026, 5, 31), env="test")
 
     args, _ = mock_col.find.call_args
     assert args[0]['data_source'] == "test"
     assert args[0]['analysis_status']['$ne'] == "RESET"
+    assert err is False
 
     assert df['timestamp'].dt.tz == pytz.timezone('Asia/Taipei')
     assert '_id' not in df.columns
@@ -151,32 +153,40 @@ def test_main_ui_various_inputs(sample_df):
         # 3. 統計欄位 (2 cols)
         mock_st.columns.side_effect = lambda n: [MagicMock() for _ in range(n)]
 
-        # 情況 1: 查無數據 (觸發模擬數據與 Expander)
+        # 情況 1: 查無數據 (僅顯示警告，不再顯示模擬數據)
         mock_st.sidebar.date_input.return_value = (date(2026, 5, 1), date(2026, 5, 31))
         mock_st.sidebar.multiselect.return_value = ["NORMAL"]
         mock_st.sidebar.selectbox.return_value = "production"
         mock_st.query_params = {}
-        with patch('analytics.app.fetch_data', return_value=pd.DataFrame()):
+        with patch('analytics.app.fetch_data', return_value=(pd.DataFrame(), False)):
             app.main()
-            # 驗證是否顯示了查無數據的警告以及模擬數據提示
+            # 驗證是否顯示了查無數據的警告
             mock_st.warning.assert_any_call("No data found for the selected range.")
+            # 確保沒有顯示模擬數據提示
+            with pytest.raises(AssertionError):
+                mock_st.info.assert_any_call("Displaying feature sample data:")
+
+        # 情況 2: 資料庫連線失敗 (觸發模擬數據與 Expander)
+        with patch('analytics.app.fetch_data', return_value=(pd.DataFrame(), True)):
+            app.main()
+            mock_st.error.assert_any_call("Database connection failed, showing mock data for reference.")
             mock_st.info.assert_any_call("Displaying feature sample data:")
 
-        # 情況 2: 測試環境切換
+        # 情況 3: 測試環境切換
         mock_st.sidebar.selectbox.return_value = "test"
-        with patch('analytics.app.fetch_data', return_value=pd.DataFrame()):
+        with patch('analytics.app.fetch_data', return_value=(pd.DataFrame(), False)):
             app.main()
             # 驗證測試模式警告
             mock_st.warning.assert_any_call("Currently in Test Mode. Viewing simulated test data.")
 
-        # 情況 3: 正常載入並切換至中文
+        # 情況 4: 正常載入並切換至中文
         mock_st.sidebar.selectbox.return_value = "production"
         mock_st.sidebar.date_input.return_value = (date(2026, 5, 1), date(2026, 5, 31))
         mock_st.sidebar.multiselect.return_value = ["NORMAL", "WARNING", "DANGER"]
         mock_st.query_params = {'lang': 'zh'}
 
         mock_st.tabs.return_value = [MagicMock(), MagicMock(), MagicMock()]
-        with patch('analytics.app.fetch_data', return_value=sample_df):
+        with patch('analytics.app.fetch_data', return_value=(sample_df, False)):
             app.main()
             mock_st.plotly_chart.assert_called()
             # 驗證 Tab 3 中是否有 expander 調用
