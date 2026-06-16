@@ -60,10 +60,9 @@ def get_translations(lang_code):
             'col_avg_bpm': 'Avg BPM',
             'col_ema_bpm': 'EMA BPM',
             'col_spo2': 'SpO2 (%)',
-            'help_status': """Status criteria:
-🚨 DANGER: SpO2 <= 90%, EMA <= 50 or >= 140, or |ΔBPM| >= 50
-✅ NORMAL: SpO2 >= 95%, 60 <= EMA <= 100, and |ΔBPM| < 15
-⚠️ WARNING: Metrics outside normal range but not meeting danger criteria""",
+            'help_status': """🚨 DANGER: SpO2 <= 90%, EMA <= 50 or >= 140, or |ΔBPM| >= 50
+⚠️ WARNING: Metrics outside normal range but not meeting danger criteria
+💡 Note: This log automatically records non-normal events (DANGER, WARNING, OFF-CHIP) for clinical tracking. Normal historical data can be viewed in the Trends and Statistics tabs.""",
             'help_avg_bpm': "15s Moving Average BPM: Calculates the mean of the last 15 signals to smooth out noise.",
             'help_ema_bpm': "Exponential Moving Average (EMA): Uses a time-series filtering algorithm (30% current, 70% historical) to reduce measurement errors.",
             'help_spo2': "Oxygen Saturation (%): Displays the 15-second moving average, which is more medically representative than raw data. Normal values are usually above 95%."
@@ -111,10 +110,9 @@ def get_translations(lang_code):
             'col_avg_bpm': '平均心率',
             'col_ema_bpm': 'EMA心率',
             'col_spo2': '血氧飽和度 (%)',
-            'help_status': """狀態與量測判定標準：
-🚨 DANGER (危急)：滿足任一條件 (SpO2 <= 90%, EMA <= 50 或 >= 140, |ΔBPM| >= 50)
-✅ NORMAL (正常)：必須全滿足 (SpO2 >= 95%, 60 <= EMA <= 100, |ΔBPM| < 15)
-⚠️ WARNING (警示)：未達危急標準，但任一指標超出正常範圍""",
+            'help_status': """🚨 危險 (DANGER)：滿足任一條件 (SpO2 <= 90%, EMA <= 50 或 >= 140, |ΔBPM| >= 50)
+⚠️ 警告 (WARNING)：未達危急標準，但任一指標超出正常範圍
+💡 說明：本誌僅自動節錄並留存「非正常（DANGER, WARNING, OFF-CHIP）」之觸發事件，正常（NORMAL）數據請至生理趨勢與統計分頁檢視。""",
             'help_avg_bpm': "15秒移動平均心率 (Moving Average)：計算最近 15 筆訊號均值，用以平滑即時雜訊，呈現穩定的心跳趨勢。",
             'help_ema_bpm': "指數移動平均心率 (EMA)：導入時序濾波演算法（目前 30%，歷史 70% 權重），有效抑制單點量測誤差，精準反映心血管實際生理趨勢。",
             'help_spo2': "血氧飽和度百分比：顯示最近 15 秒的訊號移動平均值，較純即時數值更具醫學代表性。正常值通常在 95% 以上。"
@@ -424,18 +422,7 @@ def main():
             e_col1, e_col2 = st.columns(2)
             with e_col1:
                 st.markdown(f"**{t['expander_left_title']}**")
-                if lang == 'zh':
-                    st.markdown("""
-- 🚨 **危險 (DANGER)**：滿足任一條件 (SpO2 <= 90%, EMA <= 50 或 >= 140, |ΔBPM| >= 50)
-- ⚠️ **警告 (WARNING)**：未達危急標準，但任一指標超出正常範圍
-- ✅ **正常 (NORMAL)**：必須全滿足 (SpO2 >= 95%, 60 <= EMA <= 100, |ΔBPM| < 15)
-                    """)
-                else:
-                    st.markdown("""
-- 🚨 **DANGER**: SpO2 <= 90%, EMA <= 50 or >= 140, or |ΔBPM| >= 50
-- ⚠️ **WARNING**: Out of normal range but not meeting danger criteria
-- ✅ **NORMAL**: SpO2 >= 95%, 60 <= EMA <= 100, and |ΔBPM| < 15
-                    """)
+                st.markdown(t['help_status'])
             with e_col2:
                 st.markdown(f"**{t['expander_right_title']}**")
                 if lang == 'zh':
@@ -452,16 +439,16 @@ def main():
                     """)
 
         st.dataframe(
-            mock_display.style.map(color_status, subset=[t['col_status']], t=t)
-            .format({
-                t['col_spo2']: '{:.1f}',
-                t['col_avg_bpm']: '{:.0f}',
-                t['col_ema_bpm']: '{:.0f}'
-            }),
+            mock_display.style.map(color_status, subset=[t['col_status']], t=t),
             use_container_width=True,
             hide_index=True,
             column_config={
-                t['col_no']: st.column_config.Column(width="small")
+                t['col_no']: st.column_config.Column(width="small", label=t['col_no'], alignment="center"),
+                t['col_time']: st.column_config.Column(width="medium", label=t['col_time'], alignment="center"),
+                t['col_status']: st.column_config.Column(width="small", label=t['col_status'], alignment="center"),
+                t['col_avg_bpm']: st.column_config.NumberColumn(format="%d", label=t['col_avg_bpm'], alignment="center"),
+                t['col_ema_bpm']: st.column_config.NumberColumn(format="%d", label=t['col_ema_bpm'], alignment="center"),
+                t['col_spo2']: st.column_config.NumberColumn(format="%.1f %%", label=t['col_spo2'], alignment="center"),
             }
         )
     else:
@@ -565,18 +552,7 @@ def main():
                 e_col1, e_col2 = st.columns(2)
                 with e_col1:
                     st.markdown(f"**{t['expander_left_title']}**")
-                    if lang == 'zh':
-                        st.markdown("""
-- 🚨 **危險 (DANGER)**：滿足任一條件 (SpO2 <= 90%, EMA <= 50 或 >= 140, |ΔBPM| >= 50)
-- ⚠️ **警告 (WARNING)**：未達危急標準，但任一指標超出正常範圍
-- ✅ **正常 (NORMAL)**：必須全滿足 (SpO2 >= 95%, 60 <= EMA <= 100, |ΔBPM| < 15)
-                        """)
-                    else:
-                        st.markdown("""
-- 🚨 **DANGER**: SpO2 <= 90%, EMA <= 50 or >= 140, or |ΔBPM| >= 50
-- ⚠️ **WARNING**: Out of normal range but not meeting danger criteria
-- ✅ **NORMAL**: SpO2 >= 95%, 60 <= EMA <= 100, and |ΔBPM| < 15
-                        """)
+                    st.markdown(t['help_status'])
                 with e_col2:
                     st.markdown(f"**{t['expander_right_title']}**")
                     if lang == 'zh':
@@ -620,16 +596,16 @@ def main():
 
                 # 使用 st.dataframe 展示，隱藏索引並優化樣式
                 st.dataframe(
-                    display_df.style.map(color_status, subset=[t['col_status']], t=t)
-                    .format({
-                        t['col_spo2']: '{:.1f}',
-                        t['col_avg_bpm']: '{:.0f}',
-                        t['col_ema_bpm']: '{:.0f}'
-                    }),
+                    display_df.style.map(color_status, subset=[t['col_status']], t=t),
                     use_container_width=True,
                     hide_index=True,
                     column_config={
-                        t['col_no']: st.column_config.Column(width="small")
+                        t['col_no']: st.column_config.Column(width="small", label=t['col_no'], alignment="center"),
+                        t['col_time']: st.column_config.Column(width="medium", label=t['col_time'], alignment="center"),
+                        t['col_status']: st.column_config.Column(width="small", label=t['col_status'], alignment="center"),
+                        t['col_avg_bpm']: st.column_config.NumberColumn(format="%d", label=t['col_avg_bpm'], alignment="center"),
+                        t['col_ema_bpm']: st.column_config.NumberColumn(format="%d", label=t['col_ema_bpm'], alignment="center"),
+                        t['col_spo2']: st.column_config.NumberColumn(format="%.1f %%", label=t['col_spo2'], alignment="center"),
                     }
                 )
 
