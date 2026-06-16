@@ -33,6 +33,7 @@ def get_translations(lang_code):
             'kpi_total': 'Total Samples',
             'kpi_danger': 'Danger Events',
             'kpi_warning': 'Warning Events',
+            'kpi_off_chip': 'Device Detachments',
             'tab_trends': '📈 Physiological Trends',
             'tab_stats': '📊 Status Statistics',
             'tab_logs': '📋 Abnormal Logs & Export',
@@ -83,6 +84,7 @@ def get_translations(lang_code):
             'kpi_total': '總樣本數',
             'kpi_danger': '危險次數',
             'kpi_warning': '警告次數',
+            'kpi_off_chip': '感測器脫落次數',
             'tab_trends': '📈 生理趨勢圖',
             'tab_stats': '📊 狀態統計',
             'tab_logs': '📋 異常日誌與匯出',
@@ -186,21 +188,29 @@ def fetch_data(start_date, end_date, env="production"):
     return df, False
 
 def calculate_kpis(df):
-    """計算關鍵績效指標 (排除 OFF-CHIP)"""
-    # 僅計算健康狀態數據
+    """計算關鍵績效指標 (基於去重後的數據)"""
+    # 1. 醫療健康指標 (排除 OFF-CHIP)
     health_df = df[df['analysis_status'] != "OFF-CHIP"]
     total_samples = len(health_df)
     danger_count = len(health_df[health_df['analysis_status'] == "DANGER"])
     warning_count = len(health_df[health_df['analysis_status'] == "WARNING"])
-    return total_samples, danger_count, warning_count
+
+    # 2. 設備監控指標 (計算 OFF-CHIP 去重後次數)
+    off_chip_count = len(df[df['analysis_status'] == "OFF-CHIP"])
+
+    return total_samples, danger_count, warning_count, off_chip_count
 
 def get_daily_summary(df):
-    """將原始數據按日聚合，用於趨勢圖"""
-    if df.empty:
-        return df
-    df_daily = df.copy()
-    df_daily['date'] = df_daily['timestamp'].dt.date
-    summary = df_daily.groupby('date').agg({
+    """將原始數據按日聚合，用於趨勢圖 (過濾 OFF-CHIP 以防生理數據污染)"""
+    # 排除感測器脫落數據，避免 0 值拉低每日最低血氧與最低心率
+    clean_df = df[df['analysis_status'] != "OFF-CHIP"].copy()
+
+    if clean_df.empty:
+        # 返回具有正確結構但為空的 DataFrame，避免後續聚合報錯
+        return pd.DataFrame(columns=['date', 'bpm_min', 'bpm_max', 'bpm_mean', 'spo2_min'])
+
+    clean_df['date'] = clean_df['timestamp'].dt.date
+    summary = clean_df.groupby('date').agg({
         'avg_bpm': ['min', 'max', 'mean'],
         'spo2': 'min'
     }).reset_index()
@@ -354,6 +364,13 @@ def main():
         # --- 建立模擬數據供展示 (僅在資料庫連線失敗時) ---
         st.info("展示功能範例數據：" if lang == 'zh' else "Displaying feature sample data:")
 
+        # 模擬數據下的 KPI 展示 (固定數值)
+        m_col1, m_col2, m_col3, m_col4 = st.columns(4)
+        m_col1.metric(t['kpi_total'], 120)
+        m_col2.metric(t['kpi_danger'], 5, delta_color="inverse")
+        m_col3.metric(t['kpi_warning'], 12, delta_color="off")
+        m_col4.metric(t['kpi_off_chip'], 3, delta_color="off")
+
         if env_mode == "production":
             mock_records = [
                 {
@@ -456,26 +473,30 @@ def main():
         df_hourly = get_hourly_deduplicated(df)
 
         # 計算 KPI (使用去重後的數據以保持 UI 一致性)
-        total_samples, danger_count, warning_count = calculate_kpis(df_hourly)
+        total_samples, danger_count, warning_count, off_chip_count = calculate_kpis(df_hourly)
 
         # --- KPI 卡片展示 ---
-        col1, col2, col3 = st.columns(3)
+        col1, col2, col3, col4 = st.columns(4)
         col1.metric(t['kpi_total'], total_samples)
         col2.metric(t['kpi_danger'], danger_count, delta_color="inverse")
         col3.metric(t['kpi_warning'], warning_count, delta_color="off")
+        col4.metric(t['kpi_off_chip'], off_chip_count, delta_color="off")
 
         # --- 功能標籤頁 ---
         tab1, tab2, tab3 = st.tabs([t['tab_trends'], t['tab_stats'], t['tab_logs']])
 
         with tab1:
-            st.plotly_chart(build_combined_physiological_chart(df_daily, t), use_container_width=True, config={'displayModeBar': 'hover'})
+            if not df_daily.empty:
+                st.plotly_chart(build_combined_physiological_chart(df_daily, t), use_container_width=True, config={'displayModeBar': 'hover'})
+            else:
+                st.info("所選篩選條件下無有效生理數據可供繪製趨勢圖（感測器脫落數據已排除）。" if lang == 'zh' else "No valid physiological data available for trends under current filters (OFF-CHIP data excluded).")
 
         with tab2:
             col_s1, col_s2 = st.columns(2)
 
             with col_s1:
                 st.subheader(t['status_dist_title'])
-                # 統計使用去重後的數據，並排除 OFF-CHIP
+                # 狀態分佈圓餅圖：維持僅顯示生理健康狀態，排除 OFF-CHIP
                 health_stats_df = df_hourly[df_hourly['analysis_status'] != "OFF-CHIP"]
                 status_counts = health_stats_df['analysis_status'].value_counts().reset_index()
                 status_counts.columns = ['analysis_status', 'count']
@@ -495,8 +516,8 @@ def main():
             with col_s2:
                 st.subheader(t['weekly_stats_title'])
 
-                # 長條圖僅計算 WARNING 與 DANGER
-                abnormal_df = df_hourly[df_hourly['analysis_status'].isin(["WARNING", "DANGER"])].copy()
+                # 每週異常事件趨勢圖 (長條圖)：納入 WARNING, DANGER 與 OFF-CHIP
+                abnormal_df = df_hourly[df_hourly['analysis_status'].isin(["WARNING", "DANGER", "OFF-CHIP"])].copy()
 
                 if not abnormal_df.empty:
                     # 計算 ISO 週 (格式: 2026-W18)
@@ -505,12 +526,21 @@ def main():
                     weekly_stats = abnormal_df.groupby(['week', 'analysis_status']).size().reset_index(name='count')
                     weekly_stats['status_label'] = weekly_stats['analysis_status'].map(t['status_map'])
 
-                    # 徹底隱藏 NORMAL 圖例
-                    translated_color_map = {t['status_map'][k]: v for k, v in color_map.items() if k != "NORMAL"}
+                    # 設置長條圖專用顏色地圖 (包含鐵灰色的 OFF-CHIP)
+                    bar_color_map = {
+                        "WARNING": "orange",
+                        "DANGER": "crimson",
+                        "OFF-CHIP": "#455A64"
+                    }
+                    translated_color_map = {t['status_map'][k]: v for k, v in bar_color_map.items()}
 
                     fig_bar = px.bar(weekly_stats, x='week', y='count', color='status_label',
                                      color_discrete_map=translated_color_map,
-                                     category_orders={"status_label": [t['status_map']['DANGER'], t['status_map']['WARNING']]},
+                                     category_orders={"status_label": [
+                                         t['status_map']['DANGER'],
+                                         t['status_map']['WARNING'],
+                                         t['status_map']['OFF-CHIP']
+                                     ]},
                                      labels={'week': t['tt_week'], 'status_label': t['tt_status'], 'count': t['tt_count']})
 
                     fig_bar.update_traces(
