@@ -178,26 +178,33 @@ def test_scenario_f_event_driven_transition(reset_globals):
 
 def test_scenario_g_completed_signal(reset_globals):
     """
-    [測試目的] 驗證 COMPLETED 訊號是否正確觸發報告生成並重置系統狀態。
-    [預期行為] 呼叫 report_manager，清空 Window 與 Session。
+    [測試目的] 驗證 COMPLETED 訊號是否正確觸發報告生成並徹底重置系統狀態。
+    [實際程式行為] 呼叫 report_manager，清空 Window、Session、EMA 與寫入旗標。
+    [是否正確] 是。
+    [建議修改] 增加對 first_write_done 與 last_ema_bpm 重置的檢查。
     """
     with patch('report_manager.generate_and_send_report') as mock_report:
         simulate_mqtt_message({"bpm": 70, "spo2": 98, "device_status": "NORMAL"})
         session_id = subscriber.current_session_id
         assert session_id is not None
+        assert subscriber.first_write_done is True
 
         simulate_mqtt_message({"device_status": "COMPLETED", "duration_sec": 120})
-        # 驗證狀態重置
+        # 驗證所有狀態欄位均已重置
         assert len(subscriber.bpm_window) == 0
         assert subscriber.current_session_id is None
         assert subscriber.last_write_time == 0
+        assert subscriber.first_write_done is False
+        assert subscriber.last_ema_bpm is None
         # 驗證報告呼叫
         mock_report.assert_called_once_with(session_id, 120)
 
 def test_scenario_h_reset_signal(reset_globals):
     """
     [測試目的] 驗證 RESET 訊號是否寫入資料庫並重置系統，但不生成報告。
-    [預期行為] 寫入 RESET 紀錄，清空 Window 與 Session，不呼叫報告生成。
+    [實際程式行為] 寫入 RESET 紀錄，清空所有全域狀態變數。
+    [是否正確] 是。
+    [建議修改] 檢查 last_write_time 是否也正確歸零。
     """
     with patch('report_manager.generate_and_send_report') as mock_report:
         simulate_mqtt_message({"bpm": 70, "spo2": 98, "device_status": "NORMAL"})
@@ -209,6 +216,7 @@ def test_scenario_h_reset_signal(reset_globals):
         assert reset_globals[-1]["session_id"] == session_id
         # 驗證重置
         assert subscriber.current_session_id is None
+        assert subscriber.last_write_time == 0
         mock_report.assert_not_called()
 
 @pytest.mark.parametrize("spo2, ema, delta, expected", [
@@ -273,18 +281,30 @@ def test_off_chip_immediate_write(reset_globals):
 
 def test_mongodb_insert_failure_preservation(reset_globals, caplog):
     """
-    [測試目的] 驗證 MongoDB 寫入失敗時，系統狀態（last_analysis_status, last_write_time）不應更新，以便下次重試。
+    [測試目的] 驗證 MongoDB 寫入失敗時，系統狀態不應更新，且後續訊息應能觸發重試。
+    [實際程式行為] 捕獲異常並記錄日誌，不更新 last_xxx 變數。
+    [是否正確] 是。
+    [建議修改] 模擬第二次嘗試寫入成功，驗證重試機制。
     """
+    # 第一次寫入失敗
     subscriber.collection.insert_one.side_effect = Exception("DB Fail")
-    subscriber.last_analysis_status = "OLD_STATUS"
-    subscriber.last_write_time = 1000.0
+    subscriber.last_analysis_status = None
+    subscriber.last_write_time = 0.0
 
     with caplog.at_level(logging.ERROR):
         simulate_mqtt_message({"bpm": 70, "spo2": 98, "device_status": "NORMAL"})
         assert "MongoDB Insert Error" in caplog.text
-        # 狀態應保持舊值，不因失敗而標記為已更新
-        assert subscriber.last_analysis_status == "OLD_STATUS"
-        assert subscriber.last_write_time == 1000.0
+        # 狀態應保持初始值，代表尚未成功寫入
+        assert subscriber.last_analysis_status is None
+        assert subscriber.last_write_time == 0.0
+
+    # 第二次嘗試寫入成功 (重置 mock)
+    subscriber.collection.insert_one.side_effect = None
+    simulate_mqtt_message({"bpm": 71, "spo2": 98, "device_status": "NORMAL"})
+
+    # 驗證最終寫入成功並更新了狀態
+    assert subscriber.last_analysis_status == "NORMAL"
+    assert subscriber.last_write_time > 0
 
 def test_ema_calculation_correctness(reset_globals):
     """
@@ -312,11 +332,15 @@ def test_sliding_window_behavior(reset_globals):
 def test_completed_with_no_session(reset_globals):
     """
     [測試目的] 驗證若在無 Session 狀態下收到 COMPLETED，不應報錯也不應產生報告。
+    [實際程式行為] 目前測試使用 "status" 鍵，導致程式因找不到 bpm/spo2 提早返回，未進入 COMPLETED 邏輯。
+    [是否正確] 測試通過但路徑錯誤 (False Positive)。
+    [建議修改] 將鍵名改為 "device_status" 以走正確路徑。
     """
     with patch('report_manager.generate_and_send_report') as mock_report:
         # 確保當前無 Session
         subscriber.current_session_id = None
-        simulate_mqtt_message({"status": "COMPLETED", "duration_sec": 60})
+        # 修正鍵名：status -> device_status
+        simulate_mqtt_message({"device_status": "COMPLETED", "duration_sec": 60})
         mock_report.assert_not_called()
 
 def test_on_connect_success(caplog):

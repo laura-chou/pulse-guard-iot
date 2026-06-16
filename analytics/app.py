@@ -52,7 +52,7 @@ def get_translations(lang_code):
             'tt_min_spo2': 'Min SpO2',
             'tt_percent': 'Percent',
             'download_csv': 'Download Filtered Data as CSV',
-            'status_map': {"NORMAL": "NORMAL", "WARNING": "WARNING", "DANGER": "DANGER"},
+            'status_map': {"NORMAL": "NORMAL", "WARNING": "WARNING", "DANGER": "DANGER", "OFF-CHIP": "OFF-CHIP"},
             'col_no': '#',
             'col_time': 'Timestamp',
             'col_status': 'Status',
@@ -74,8 +74,8 @@ def get_translations(lang_code):
             'date_range': '日期範圍',
             'status_filter': '狀態過濾',
             'env_select': '運行環境',
-            'env_prod': '生產環境 (Production)',
-            'env_test': '測試環境 (Test)',
+            'env_prod': '正式環境',
+            'env_test': '測試環境',
             'test_mode_warning': '目前處於測試模式，檢視的數據為模擬測試資料。',
             'expander_title': '🔍 檢視狀態判定標準與欄位說明',
             'expander_left_title': '🩺 狀態判定標準',
@@ -186,10 +186,12 @@ def fetch_data(start_date, end_date, env="production"):
     return df, False
 
 def calculate_kpis(df):
-    """計算關鍵績效指標"""
-    total_samples = len(df)
-    danger_count = len(df[df['analysis_status'] == "DANGER"])
-    warning_count = len(df[df['analysis_status'] == "WARNING"])
+    """計算關鍵績效指標 (排除 OFF-CHIP)"""
+    # 僅計算健康狀態數據
+    health_df = df[df['analysis_status'] != "OFF-CHIP"]
+    total_samples = len(health_df)
+    danger_count = len(health_df[health_df['analysis_status'] == "DANGER"])
+    warning_count = len(health_df[health_df['analysis_status'] == "WARNING"])
     return total_samples, danger_count, warning_count
 
 def get_daily_summary(df):
@@ -331,7 +333,7 @@ def main():
         start_date = end_date = date_range if not isinstance(date_range, tuple) else date_range[0]
 
     # 狀態過濾（多選）
-    status_options = ["NORMAL", "WARNING", "DANGER"]
+    status_options = ["NORMAL", "WARNING", "DANGER", "OFF-CHIP"]
     selected_statuses = st.sidebar.multiselect(
         t['status_filter'],
         options=status_options,
@@ -473,8 +475,9 @@ def main():
 
             with col_s1:
                 st.subheader(t['status_dist_title'])
-                # 統計使用去重後的數據，以符合「去重後用於統計」的要求
-                status_counts = df_hourly['analysis_status'].value_counts().reset_index()
+                # 統計使用去重後的數據，並排除 OFF-CHIP
+                health_stats_df = df_hourly[df_hourly['analysis_status'] != "OFF-CHIP"]
+                status_counts = health_stats_df['analysis_status'].value_counts().reset_index()
                 status_counts.columns = ['analysis_status', 'count']
                 status_counts['label'] = status_counts['analysis_status'].map(t['status_map'])
 
@@ -625,6 +628,33 @@ def main():
         /* 隱藏展開器邊框 */
         div[data-testid="stExpander"] {
             border: none !important;
+        }
+
+        /* 狀態標籤語意化配色 (多語系支援) */
+        /* NORMAL / 正常 */
+        span[data-baseweb="tag"]:has(span[title="NORMAL"]),
+        span[data-baseweb="tag"]:has(span[title="正常"]) {
+            background-color: #2E7D32 !important;
+        }
+        /* WARNING / 警告 */
+        span[data-baseweb="tag"]:has(span[title="WARNING"]),
+        span[data-baseweb="tag"]:has(span[title="警告"]) {
+            background-color: #EF6C00 !important;
+        }
+        /* DANGER / 危險 */
+        span[data-baseweb="tag"]:has(span[title="DANGER"]),
+        span[data-baseweb="tag"]:has(span[title="危險"]) {
+            background-color: #C62828 !important;
+        }
+        /* OFF-CHIP / 感測器脫落 */
+        span[data-baseweb="tag"]:has(span[title="OFF-CHIP"]),
+        span[data-baseweb="tag"]:has(span[title="感測器脫落"]) {
+            background-color: #455A64 !important;
+        }
+
+        /* 確保標籤文字顏色一致為白色 */
+        span[data-baseweb="tag"] span {
+            color: #FFFFFF !important;
         }
     </style>
     """, unsafe_allow_html=True)

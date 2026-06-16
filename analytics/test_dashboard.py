@@ -99,9 +99,15 @@ def test_language_selection():
 # 4. KPI calculations
 def test_calculate_kpis(sample_df):
     """
-    [測試目的] 驗證 KPI (總數、危險數、警告數) 的計算邏輯。
+    [測試目的] 驗證 KPI (總數、危險數、警告數) 的計算邏輯，應排除 OFF-CHIP。
     """
-    total, danger, warning = app.calculate_kpis(sample_df)
+    # 添加一筆 OFF-CHIP 資料
+    off_chip_data = sample_df.iloc[0:1].copy()
+    off_chip_data['analysis_status'] = 'OFF-CHIP'
+    extended_df = pd.concat([sample_df, off_chip_data])
+
+    total, danger, warning = app.calculate_kpis(extended_df)
+    # 原本 5 筆中有 1 DANGER, 1 WARNING. 新增一筆 OFF-CHIP 後總數應仍為 5
     assert total == 5
     assert danger == 1
     assert warning == 1
