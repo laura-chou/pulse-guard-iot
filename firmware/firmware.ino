@@ -57,7 +57,7 @@ QueueHandle_t dataQueue;
 TaskHandle_t MqttTaskHandle;
 
 // ─── 全域測量時間設定 ───
-uint32_t targetMeasurementSeconds = 30;
+uint32_t targetMeasurementSeconds = 60;
 
 // ─── 計時器與動態刷新快取變數 ───
 uint32_t totalFingerSeconds = 0;
