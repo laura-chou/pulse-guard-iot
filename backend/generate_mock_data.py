@@ -112,7 +112,7 @@ def generate_session_data(start_time):
             "ema_bpm": round(xt_bpm, 2),
             "delta_bpm": round(delta_bpm, 2),
             "spo2": round(xt_spo2, 2),
-            "data_source": "production"
+            "data_source": "test"
         }
         samples.append(doc)
 

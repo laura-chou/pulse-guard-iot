@@ -53,6 +53,7 @@ def get_translations(lang_code):
             'tt_min_spo2': 'Min SpO2',
             'tt_percent': 'Percent',
             'download_csv': 'Download Filtered Data as CSV',
+            'week_format': '%G-W%V',
             'status_map': {"NORMAL": "NORMAL", "WARNING": "WARNING", "DANGER": "DANGER"},
             'col_no': '#',
             'col_time': 'Timestamp',
@@ -60,9 +61,10 @@ def get_translations(lang_code):
             'col_avg_bpm': 'Avg BPM',
             'col_ema_bpm': 'EMA BPM',
             'col_spo2': 'SpO2 (%)',
-            'help_status': """🚨 DANGER: SpO2 <= 90%, EMA <= 50 or >= 140, or |ΔBPM| >= 50
-⚠️ WARNING: Metrics outside normal range but not meeting danger criteria
-💡 Note: This log automatically records non-normal events (DANGER, WARNING) for clinical tracking. Normal historical data can be viewed in the Trends and Statistics tabs.""",
+            'help_status': """
+            * 🚨 **DANGER**: SpO2 ≤ 90%, EMA ≤ 50 or ≥ 140, or |ΔBPM| ≥ 50
+            * ⚠️ **WARNING**: Metrics outside normal range but not meeting danger criteria
+            * 💡 **Note**: This log automatically records non-normal events (DANGER, WARNING) for clinical tracking. Normal historical data can be viewed in the Trends and Statistics tabs..""",
             'help_avg_bpm': "15s Moving Average BPM: Calculates the mean of the last 15 signals to smooth out noise.",
             'help_ema_bpm': "Exponential Moving Average (EMA): Uses a time-series filtering algorithm (30% current, 70% historical) to reduce measurement errors.",
             'help_spo2': "Oxygen Saturation (%): Displays the 15-second moving average, which is more medically representative than raw data. Normal values are usually above 95%."
@@ -102,6 +104,7 @@ def get_translations(lang_code):
             'tt_min_spo2': '最低血氧',
             'tt_percent': '比例',
             'download_csv': '下載篩選後的資料為 CSV',
+            'week_format': '%G-週%V',
             'status_map': {"NORMAL": "正常", "WARNING": "警告", "DANGER": "危險"},
             'col_no': '序號',
             'col_time': '時間戳記',
@@ -109,9 +112,10 @@ def get_translations(lang_code):
             'col_avg_bpm': '平均心率',
             'col_ema_bpm': 'EMA心率',
             'col_spo2': '血氧飽和度 (%)',
-            'help_status': """🚨 危險 (DANGER)：滿足任一條件 (SpO2 <= 90%, EMA <= 50 或 >= 140, |ΔBPM| >= 50)
-⚠️ 警告 (WARNING)：未達危急標準，但任一指標超出正常範圍
-💡 說明：本誌僅自動節錄並留存「非正常（DANGER, WARNING）」之觸發事件，正常（NORMAL）數據請至生理趨勢與統計分頁檢視。""",
+            'help_status': """
+            * 🚨 **危險 (DANGER)**：滿足任一條件 (SpO2 <= 90%, EMA <= 50 或 >= 140, |ΔBPM| >= 50)
+            * ⚠️ **警告 (WARNING)**：未達危急標準，但任一指標超出正常範圍
+            * 💡 **說明**：本誌僅自動節錄並留存「非正常（DANGER, WARNING）」之觸發事件，正常（NORMAL）數據請至生理趨勢與統計分頁檢視。""",
             'help_avg_bpm': "15秒移動平均心率 (Moving Average)：計算最近 15 筆訊號均值，用以平滑即時雜訊，呈現穩定的心跳趨勢。",
             'help_ema_bpm': "指數移動平均心率 (EMA)：導入時序濾波演算法（目前 30%，歷史 70% 權重），有效抑制單點量測誤差，精準反映心血管實際生理趨勢。",
             'help_spo2': "血氧飽和度百分比：顯示最近 15 秒的訊號移動平均值，較純即時數值更具醫學代表性。正常值通常在 95% 以上。"
@@ -283,18 +287,14 @@ def build_combined_physiological_chart(df_daily, t):
     return fig
 
 def get_default_range():
-    """計算過去一個月的範圍 (30天前到今天)"""
+    """計算過去一個月的範圍 (90天前到今天)"""
     today = datetime.now(local_tz).date()
-    start_date = today - timedelta(days=30)
+    start_date = today - timedelta(days=90)
     return start_date, today
 
 def render_aggrid(df, t, status_col_key):
     """
-    統一渲染 AG Grid 的輔助函式，支援：
-    1. 數值欄位靠右對齊 (表頭+內容)
-    2. 狀態與序號欄位置中且緊湊
-    3. 移除選單與篩選按鈕
-    4. 狀態欄位動態上色 (JsCode 注入)
+    統一渲染 AG Grid 的輔助函式
     """
     gb = GridOptionsBuilder.from_dataframe(df)
 
@@ -302,15 +302,14 @@ def render_aggrid(df, t, status_col_key):
     gb.configure_default_column(
         suppressMenu=True,
         suppressHeaderFilterButton=True,
-        sortable=False, # 移除排序以保持簡潔
-        filter=False,   # 移除篩選以隱藏圖示
+        filter=False,
         headerClass='ag-center-aligned-header',
         cellStyle={'textAlign': 'center'},
         flex=1,
         resizable=True
     )
 
-    # 針對數值欄位：靠右對齊 (表頭 + 內容)
+    # 針對數值欄位：靠右對齊 (內容)
     numeric_cols = [t['col_avg_bpm'], t['col_ema_bpm'], t['col_spo2']]
     for col in numeric_cols:
         if col in df.columns:
@@ -333,16 +332,14 @@ def render_aggrid(df, t, status_col_key):
         }}
     }};
     """)
-
-    # 針對狀態欄位：置中對齊且設定緊湊的 maxWidth
+    # 狀態欄位：置中對齊且
     gb.configure_column(
         status_col_key,
         cellStyle=cellsytle_jscode,
         maxWidth=120,
         flex=0
     )
-
-    # 針對序號欄位：置中對齊且固定極小寬度
+    # 序號欄位：置中對齊且固定極小寬度
     if t['col_no'] in df.columns:
         gb.configure_column(
             t['col_no'],
@@ -354,6 +351,13 @@ def render_aggrid(df, t, status_col_key):
 
     gridOptions = gb.build()
 
+    # 將 AgGrid 表頭文字置中
+    custom_css = {
+        ".ag-header-cell-label": {
+            "justify-content": "center !important"
+        }
+    }
+
     return AgGrid(
         df,
         gridOptions=gridOptions,
@@ -363,7 +367,8 @@ def render_aggrid(df, t, status_col_key):
         allow_unsafe_jscode=True,
         theme='streamlit',
         height=400,
-        width='100%'
+        width='100%',
+        custom_css=custom_css
     )
 
 def main():
@@ -483,6 +488,12 @@ def main():
         # 轉換為顯示格式
         mock_display = mock_data.copy()
         mock_display['analysis_status'] = mock_display['analysis_status'].map(lambda x: t['status_map'].get(x, x))
+        
+        # 統一模擬數據的數值精度
+        mock_display['avg_bpm'] = mock_display['avg_bpm'].round(1)
+        mock_display['ema_bpm'] = mock_display['ema_bpm'].round(1)
+        mock_display['spo2'] = mock_display['spo2'].round(0).astype(int)
+        
         mock_display.insert(0, t['col_no'], range(1, len(mock_display) + 1))
         mock_display = mock_display.rename(columns={
             'timestamp': t['col_time'],
@@ -566,7 +577,8 @@ def main():
                 abnormal_df = df_hourly[df_hourly['analysis_status'].isin(["WARNING", "DANGER"])].copy()
 
                 if not abnormal_df.empty:
-                    abnormal_df['week'] = abnormal_df['timestamp'].dt.strftime('%G-W%V')
+                    abnormal_df['week'] = abnormal_df['timestamp'].dt.strftime(t['week_format'])
+
                     weekly_stats = abnormal_df.groupby(['week', 'analysis_status']).size().reset_index(name='count')
                     weekly_stats['status_label'] = weekly_stats['analysis_status'].map(t['status_map'])
 
@@ -577,12 +589,12 @@ def main():
                     translated_color_map = {t['status_map'][k]: v for k, v in bar_color_map.items()}
 
                     fig_bar = px.bar(weekly_stats, x='week', y='count', color='status_label',
-                                     color_discrete_map=translated_color_map,
-                                     category_orders={"status_label": [
-                                         t['status_map']['DANGER'],
-                                         t['status_map']['WARNING']
-                                     ]},
-                                     labels={'week': t['tt_week'], 'status_label': t['tt_status'], 'count': t['tt_count']})
+                                    color_discrete_map=translated_color_map,
+                                    category_orders={"status_label": [
+                                        t['status_map']['DANGER'],
+                                        t['status_map']['WARNING']
+                                    ]},
+                                    labels={'week': t['tt_week'], 'status_label': t['tt_status'], 'count': t['tt_count']})
 
                     fig_bar.update_traces(
                         hovertemplate=f"{t['tt_week']}: %{{x}}<br>{t['tt_status']}: %{{fullData.name}}<br>{t['tt_count']}: %{{y}}<extra></extra>"
@@ -627,7 +639,11 @@ def main():
                 display_df = log_df[['timestamp', 'analysis_status', 'avg_bpm', 'ema_bpm', 'spo2']].copy()
                 display_df['timestamp'] = display_df['timestamp'].dt.strftime('%Y-%m-%d %H:%M:%S')
                 display_df['analysis_status'] = display_df['analysis_status'].map(t['status_map'])
-                display_df['spo2'] = display_df['spo2'].round(1)
+
+                display_df['avg_bpm'] = display_df['avg_bpm'].round(1)
+                display_df['ema_bpm'] = display_df['ema_bpm'].round(1)
+                display_df['spo2'] = display_df['spo2'].round(0).astype(int)
+
                 display_df.insert(0, t['col_no'], range(1, len(display_df) + 1))
 
                 column_mapping = {
@@ -683,17 +699,6 @@ def main():
         span[data-baseweb="tag"] span {
             color: #FFFFFF !important;
         }
-
-        /* AG Grid 表頭對齊的 CSS 強制注入 */
-        .ag-right-aligned-header .ag-header-cell-label {
-            justify-content: flex-end !important;
-            text-align: right !important;
-        }
-        .ag-center-aligned-header .ag-header-cell-label {
-            justify-content: center !important;
-            text-align: center !important;
-        }
-
     </style>
     """, unsafe_allow_html=True)
 
