@@ -3,6 +3,7 @@ import json
 import requests
 import logging
 from datetime import datetime, timedelta, timezone
+from utils.status_utils import evaluate_session_health
 from pymongo import MongoClient
 from dotenv import load_dotenv
 
@@ -59,7 +60,7 @@ def generate_and_send_report(session_id, duration_sec):
 
     # 1. Data Retrieval
     try:
-        client = MongoClient(MONGO_URI)
+        client = MongoClient(MONGO_URI, tz_aware=True)
         db = client[MONGO_DB_NAME]
         collection = db[MONGO_COL_NAME]
 
@@ -93,10 +94,14 @@ def generate_and_send_report(session_id, duration_sec):
     # Format for template (Asia/Taipei)
     measure_date_str = start_time_local.strftime("%Y/%m/%d")
 
-    # Use passed duration_sec for formatted display
-    display_duration = duration_sec if duration_sec is not None else actual_duration
+    # Use passed duration_sec for formatted display and end time calculation
+    display_duration = int(duration_sec) if duration_sec is not None else int(actual_duration)
+
+    # Calculate displayed end time: start time + duration
+    display_end_time_local = start_time_local + timedelta(seconds=display_duration)
+
     formatted_duration = format_duration(display_duration)
-    time_interval_str = f"{start_time_local.strftime('%H:%M:%S')} ~ {end_time_local.strftime('%H:%M:%S')} {formatted_duration}"
+    time_interval_str = f"{start_time_local.strftime('%H:%M:%S')} ~ {display_end_time_local.strftime('%H:%M:%S')} {formatted_duration}"
 
     logger.info(f"Report for session {session_id}: {measure_date_str} {time_interval_str}")
 
@@ -111,26 +116,11 @@ def generate_and_send_report(session_id, duration_sec):
     avg_bpm = sum(bpms) / len(bpms)
     avg_spo2 = sum(spo2s) / len(spo2s)
 
-    highest_risk = "NORMAL"
-    for r in records:
-        status = r.get("analysis_status", "NORMAL")
-        if status == "DANGER":
-            highest_risk = "DANGER"
-        elif status == "WARNING" and highest_risk == "NORMAL":
-            highest_risk = "WARNING"
-
     # 4. Fill Template
+    status_text, status_color, remark, highest_risk = evaluate_session_health([r.get("analysis_status", "NORMAL") for r in records])
     template = load_report_template()
     if not template:
         return
-
-    # Status mapping
-    status_config = {
-        "DANGER":  {"text": "🔴 DANGER",  "color": "#DC3545"},
-        "WARNING": {"text": "🟡 WARNING", "color": "#FD7E14"},
-        "NORMAL":  {"text": "🟢 NORMAL",  "color": "#2B8A3E"}
-    }
-    config = status_config.get(highest_risk, status_config["NORMAL"])
 
     # Mapping logic based on NEW JSON structure
     body_contents = template["body"]["contents"]
@@ -142,13 +132,17 @@ def generate_and_send_report(session_id, duration_sec):
     # Row 1: Time Interval
     summary_box_contents[1]["contents"][1]["contents"][0]["text"] = time_interval_str
     # Row 2: Status
-    summary_box_contents[2]["contents"][1]["contents"][0]["text"] = config["text"]
-    summary_box_contents[2]["contents"][1]["contents"][0]["color"] = config["color"]
+    summary_box_contents[2]["contents"][1]["contents"][0]["text"] = status_text
+    summary_box_contents[2]["contents"][1]["contents"][0]["color"] = status_color
 
     # Body -> Box 1 (Averages Row)
     stats_row_contents = body_contents[1]["contents"]
     stats_row_contents[0]["contents"][1]["text"] = f"{avg_bpm:.0f}" # BPM
     stats_row_contents[1]["contents"][1]["text"] = f"{avg_spo2:.0f}" # SpO2
+
+    # Body -> Box 2 (Remark Box)
+    remark_box_contents = body_contents[2]["contents"]
+    remark_box_contents[1]["text"] = remark
 
     # 5. Send to LINE Messaging API
     if not LINE_CHANNEL_ACCESS_TOKEN or not LINE_USER_ID:
