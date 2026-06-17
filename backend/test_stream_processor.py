@@ -325,7 +325,7 @@ def test_mongodb_insert_failure_preservation(reset_globals, caplog):
 
     with caplog.at_level(logging.ERROR):
         simulate_mqtt_message({"bpm": 70, "spo2": 98, "device_status": "NORMAL"})
-        assert "MongoDB 寫入異常" in caplog.text or "MongoDB Insert Error" in caplog.text
+        assert "MongoDB write error" in caplog.text
         # 狀態應保持初始值，代表尚未成功寫入，first_write_done 應仍為 False
         assert subscriber.last_analysis_status is None
         assert subscriber.last_write_time == 0.0

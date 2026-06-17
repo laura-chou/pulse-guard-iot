@@ -121,7 +121,7 @@ def on_message(client, userdata, msg):
         # 2. 處理量測結束 (COMPLETED)
         if device_status == "COMPLETED":
             duration = data.get("duration_sec", 0)
-            logger.info(f"量測結束 (來源: {data_source})，時長: {duration}秒")
+            logger.info(f"Measurement ended (source: {data_source}), duration: {duration}s")
 
             # 僅正式量測且有有效 Session 時才發送 LINE 報告
             if data_source == "production" and duration > 0 and current_session_id:
@@ -139,7 +139,7 @@ def on_message(client, userdata, msg):
 
         # 3. 處理系統重置 (RESET)
         if device_status == "RESET":
-            logger.info(f"系統重置 (來源: {data_source})，清空所有狀態。")
+            logger.info(f"System reset (source: {data_source}), cleared all states.")
             if collection is not None:
                 # 寫入一筆特殊的 RESET 紀錄，標記 Session 中斷
                 record = {
@@ -151,7 +151,7 @@ def on_message(client, userdata, msg):
                 try:
                     collection.insert_one(record)
                 except Exception as e:
-                    logger.error(f"MongoDB 寫入失敗 (RESET): {e}")
+                    logger.error(f"MongoDB write failed (RESET): {e}")
 
             # 清空狀態
             bpm_window.clear()
@@ -178,7 +178,7 @@ def on_message(client, userdata, msg):
         # 收到第一筆有效數據時才開啟 Session，避免資料庫充斥空 Session
         if current_session_id is None:
             current_session_id = str(uuid.uuid4())
-            logger.info(f"開啟新量測工作階段: {current_session_id}")
+            logger.info(f"Started new measurement session: {current_session_id}")
 
         # 6. 生理指標運算 (MA & EMA)
         # 計算 15 秒移動平均 (Moving Average)
@@ -236,11 +236,11 @@ def on_message(client, userdata, msg):
                 last_write_time = current_time
                 last_analysis_status = analysis_status
                 first_write_done = True
-                logger.info(f"資料存檔 | 分析結果: {analysis_status}")
+                logger.info(f"Data saved | Analysis result: {analysis_status}")
             except Exception as e:
-                logger.error(f"MongoDB 寫入異常: {e}")
+                logger.error(f"MongoDB write error: {e}")
     except Exception as e:
-        logger.error(f"系統錯誤: {e}")
+        logger.error(f"System error: {e}")
 
 def main():
     global collection
@@ -254,7 +254,7 @@ def main():
         db = mongo_client[config["MONGO_DB_NAME"]]
         collection = db[config["MONGO_COL_NAME"]]
     except Exception as e:
-        logger.error(f"DB Error: {e}")
+        logger.error(f"Database error: {e}")
 
     client = mqtt.Client()
     client.username_pw_set(config["MQTT_USER"], config["MQTT_PASSWORD"])
@@ -265,7 +265,7 @@ def main():
     try:
         client.connect(config["MQTT_BROKER"], config["MQTT_PORT"], 60)
     except Exception as e:
-        logger.error(f"MQTT Error: {e}")
+        logger.error(f"MQTT error: {e}")
         return
     client.loop_forever()
 

@@ -59,7 +59,7 @@ def generate_and_send_report(session_id, duration_sec):
 
     # 1. Data Retrieval
     try:
-        client = MongoClient(MONGO_URI)
+        client = MongoClient(MONGO_URI, tz_aware=True)
         db = client[MONGO_DB_NAME]
         collection = db[MONGO_COL_NAME]
 
