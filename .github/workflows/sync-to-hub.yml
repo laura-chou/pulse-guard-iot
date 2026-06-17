@@ -12,21 +12,30 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          lfs: false
 
       - name: Push to Hugging Face
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
-          # 設定 Git 使用者資訊
+          # 1. 建立一個乾淨的暫存資料夾
+          mkdir -p ../hf_space_deploy
+          
+          # 2. 將包含 app.py 的 analytics 資料夾內所有內容複製過去
+          cp -r analytics/* ../hf_space_deploy/
+          
+          # 3. 切換到該資料夾，重新初始化一個極簡的 Git 倉庫（只有 1 個 commit，絕不衝擊 API）
+          cd ../hf_space_deploy
+          git init -b main
+          
+          # 4. 設定 Git 使用者資訊
           git config --global user.email "actions@github.com"
           git config --global user.name "GitHub Actions"
-
-          # 新增 Hugging Face 遠端倉庫位址，並嵌入 HF_TOKEN 進行驗證
+          git config --global credential.helper store
+          
+          # 5. 將所有檔案加入並建立單一提交
+          git add .
+          git commit -m "deploy: sync latest analytics app"
+          
+          # 6. 強制推送到 Hugging Face Space
           git remote add hf https://Chou1210:$HF_TOKEN@huggingface.co/spaces/Chou1210/pulseguard-analytics
-
-          # 使用 git subtree split 將 analytics 資料夾內容推送到 HF Space 的 main 分支
-          # 這將確保 HF Space 的根目錄內容與 GitHub 的 analytics/ 資料夾一致
-          git push hf $(git subtree split --prefix analytics main):refs/heads/main --force
+          git push hf main --force
