@@ -287,9 +287,9 @@ def build_combined_physiological_chart(df_daily, t):
     return fig
 
 def get_default_range():
-    """計算過去一個月的範圍 (90天前到今天)"""
+    """計算過去一個月的範圍 (30天前到今天)"""
     today = datetime.now(local_tz).date()
-    start_date = today - timedelta(days=90)
+    start_date = today - timedelta(days=30)
     return start_date, today
 
 def render_aggrid(df, t, status_col_key):
@@ -372,12 +372,24 @@ def render_aggrid(df, t, status_col_key):
     )
 
 def main():
-    # --- 語系設定 (優先獲取以應用於頁面配置) ---
+    # --- 1. URL 參數讀取與環境初始化 ---
+    # 使用 Streamlit 最新推薦的 st.query_params 讀取 URL 參數
+    # 支援參數：env (prod/test), lang (zh/en)
     query_params = st.query_params
+
+    # 處理語系參數 (預設為英文 'en')
     lang_code = query_params.get("lang", "en")
     t, lang = get_translations(lang_code)
 
-    # --- 頁面配置 ---
+    # 處理環境參數：根據規格，預設或 env=prod 進入正式環境，env=test 進入測試環境
+    env_param = query_params.get("env", "prod")
+    if env_param not in ["prod", "test"]:
+        env_param = "prod"
+
+    # 內部邏輯對照：prod -> production, test -> test
+    initial_env = "production" if env_param == "prod" else "test"
+
+    # --- 2. 頁面配置 ---
     icon_path = os.path.join(os.path.dirname(__file__), "icon.png")
 
     st.set_page_config(
@@ -386,18 +398,30 @@ def main():
         layout="wide"
     )
 
-    # --- UI 頁面標題 ---
+    # --- 3. UI 頁面標題 ---
     st.title(t['title'])
 
-    # --- 側邊欄篩選器 ---
+    # --- 4. 側邊欄篩選器 ---
     st.sidebar.header(t['sidebar_filters'])
 
-    # 環境切換
+    # 環境切換：根據 URL 參數設定預設選項
+    env_options = ["production", "test"]
+    env_index = env_options.index(initial_env)
+
     env_mode = st.sidebar.selectbox(
         t['env_select'],
-        options=["production", "test"],
-        format_func=lambda x: t['env_prod'] if x == "production" else t['env_test']
+        options=env_options,
+        index=env_index,
+        format_func=lambda x: t['env_prod'] if x == "production" else t['env_test'],
+        key="env_selector"
     )
+
+    # 當使用者透過側邊欄手動切換環境時，同步更新 URL 參數
+    current_env_param = "prod" if env_mode == "production" else "test"
+    if current_env_param != env_param:
+        # 更新 URL 參數並觸發頁面重整以確保環境切換生效
+        st.query_params["env"] = current_env_param
+        st.rerun()
 
     if env_mode == "test":
         st.warning(t['test_mode_warning'])
