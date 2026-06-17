@@ -3,6 +3,7 @@ import json
 import requests
 import logging
 from datetime import datetime, timedelta, timezone
+from utils.status_utils import get_highest_status
 from pymongo import MongoClient
 from dotenv import load_dotenv
 
@@ -111,15 +112,8 @@ def generate_and_send_report(session_id, duration_sec):
     avg_bpm = sum(bpms) / len(bpms)
     avg_spo2 = sum(spo2s) / len(spo2s)
 
-    highest_risk = "NORMAL"
-    for r in records:
-        status = r.get("analysis_status", "NORMAL")
-        if status == "DANGER":
-            highest_risk = "DANGER"
-        elif status == "WARNING" and highest_risk == "NORMAL":
-            highest_risk = "WARNING"
-
     # 4. Fill Template
+    highest_risk = get_highest_status([r.get("analysis_status", "NORMAL") for r in records])
     template = load_report_template()
     if not template:
         return
