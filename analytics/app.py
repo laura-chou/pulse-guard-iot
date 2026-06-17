@@ -24,9 +24,6 @@ def get_translations(lang_code):
             'sidebar_filters': 'Filters',
             'date_range': 'Date Range',
             'status_filter': 'Status Filter',
-            'env_select': 'Environment',
-            'env_prod': 'Production',
-            'env_test': 'Test',
             'test_mode_warning': 'Currently in Test Mode. Viewing simulated test data.',
             'expander_title': '🔍 View Status Criteria & Column Descriptions',
             'expander_left_title': '🩺 Health Status Criteria',
@@ -75,9 +72,6 @@ def get_translations(lang_code):
             'sidebar_filters': '篩選條件',
             'date_range': '日期範圍',
             'status_filter': '狀態過濾',
-            'env_select': '運行環境',
-            'env_prod': '正式環境',
-            'env_test': '測試環境',
             'test_mode_warning': '目前處於測試模式，檢視的數據為模擬測試資料。',
             'expander_title': '🔍 檢視狀態判定標準與欄位說明',
             'expander_left_title': '🩺 狀態判定標準',
@@ -404,24 +398,8 @@ def main():
     # --- 4. 側邊欄篩選器 ---
     st.sidebar.header(t['sidebar_filters'])
 
-    # 環境切換：根據 URL 參數設定預設選項
-    env_options = ["production", "test"]
-    env_index = env_options.index(initial_env)
-
-    env_mode = st.sidebar.selectbox(
-        t['env_select'],
-        options=env_options,
-        index=env_index,
-        format_func=lambda x: t['env_prod'] if x == "production" else t['env_test'],
-        key="env_selector"
-    )
-
-    # 當使用者透過側邊欄手動切換環境時，同步更新 URL 參數
-    current_env_param = "prod" if env_mode == "production" else "test"
-    if current_env_param != env_param:
-        # 更新 URL 參數並觸發頁面重整以確保環境切換生效
-        st.query_params["env"] = current_env_param
-        st.rerun()
+    # 環境模式：直接根據 URL 參數決定 (預設 prod)，不再提供側邊欄切換
+    env_mode = initial_env
 
     if env_mode == "test":
         st.warning(t['test_mode_warning'])

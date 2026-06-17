@@ -156,7 +156,6 @@ def test_main_ui_various_inputs(sample_df):
         # 情況 1: 查無數據 (僅顯示警告，不再顯示模擬數據)
         mock_st.sidebar.date_input.return_value = (date(2026, 5, 1), date(2026, 5, 31))
         mock_st.sidebar.multiselect.return_value = ["NORMAL"]
-        mock_st.sidebar.selectbox.return_value = "production"
         mock_st.query_params = {}
         with patch('analytics.app.fetch_data', return_value=(pd.DataFrame(), False)):
             app.main()
@@ -172,15 +171,14 @@ def test_main_ui_various_inputs(sample_df):
             mock_st.error.assert_any_call("Database connection failed, showing mock data for reference.")
             mock_st.info.assert_any_call("Displaying feature sample data:")
 
-        # 情況 3: 測試環境切換
-        mock_st.sidebar.selectbox.return_value = "test"
+        # 情況 3: 測試環境切換 (透過 URL 參數)
+        mock_st.query_params = {'env': 'test'}
         with patch('analytics.app.fetch_data', return_value=(pd.DataFrame(), False)):
             app.main()
             # 驗證測試模式警告
             mock_st.warning.assert_any_call("Currently in Test Mode. Viewing simulated test data.")
 
         # 情況 4: 正常載入並切換至中文
-        mock_st.sidebar.selectbox.return_value = "production"
         mock_st.sidebar.date_input.return_value = (date(2026, 5, 1), date(2026, 5, 31))
         mock_st.sidebar.multiselect.return_value = ["NORMAL", "WARNING", "DANGER"]
         mock_st.query_params = {'lang': 'zh'}
