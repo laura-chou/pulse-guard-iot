@@ -239,6 +239,31 @@
             ]
           }
         ]
+      },
+      {
+        "type": "box",
+        "layout": "vertical",
+        "margin": "xl",
+        "backgroundColor": "#F8F9FA",
+        "cornerRadius": "md",
+        "paddingAll": "md",
+        "contents": [
+          {
+            "type": "text",
+            "text": "📝 專家備註 / Remarks",
+            "size": "xxs",
+            "color": "#888888",
+            "weight": "bold"
+          },
+          {
+            "type": "text",
+            "text": "整體生理數據表現良好。",
+            "size": "xs",
+            "color": "#444444",
+            "margin": "sm",
+            "wrap": true
+          }
+        ]
       }
     ]
   },

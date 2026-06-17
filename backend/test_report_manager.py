@@ -52,6 +52,10 @@ def test_generate_and_send_report_logic(mock_getenv, mock_post, mock_mongo, mock
     # Check Row 2: Status
     assert "NORMAL" in summary_box_contents[2]["contents"][1]["contents"][0]["text"]
 
+    # Check Remark Box (Body contents index 2)
+    remark_box = template["body"]["contents"][2]
+    assert "整體生理數據表現良好" in remark_box["contents"][1]["text"]
+
 @pytest.mark.parametrize("seconds, expected", [
     (30, "(30 sec)"),
     (60, "(1 min)"),

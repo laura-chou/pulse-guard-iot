@@ -3,7 +3,7 @@ import json
 import requests
 import logging
 from datetime import datetime, timedelta, timezone
-from utils.status_utils import get_highest_status
+from utils.status_utils import evaluate_session_health
 from pymongo import MongoClient
 from dotenv import load_dotenv
 
@@ -113,18 +113,10 @@ def generate_and_send_report(session_id, duration_sec):
     avg_spo2 = sum(spo2s) / len(spo2s)
 
     # 4. Fill Template
-    highest_risk = get_highest_status([r.get("analysis_status", "NORMAL") for r in records])
+    status_text, status_color, remark, _ = evaluate_session_health([r.get("analysis_status", "NORMAL") for r in records])
     template = load_report_template()
     if not template:
         return
-
-    # Status mapping
-    status_config = {
-        "DANGER":  {"text": "🔴 DANGER",  "color": "#DC3545"},
-        "WARNING": {"text": "🟡 WARNING", "color": "#FD7E14"},
-        "NORMAL":  {"text": "🟢 NORMAL",  "color": "#2B8A3E"}
-    }
-    config = status_config.get(highest_risk, status_config["NORMAL"])
 
     # Mapping logic based on NEW JSON structure
     body_contents = template["body"]["contents"]
@@ -136,13 +128,17 @@ def generate_and_send_report(session_id, duration_sec):
     # Row 1: Time Interval
     summary_box_contents[1]["contents"][1]["contents"][0]["text"] = time_interval_str
     # Row 2: Status
-    summary_box_contents[2]["contents"][1]["contents"][0]["text"] = config["text"]
-    summary_box_contents[2]["contents"][1]["contents"][0]["color"] = config["color"]
+    summary_box_contents[2]["contents"][1]["contents"][0]["text"] = status_text
+    summary_box_contents[2]["contents"][1]["contents"][0]["color"] = status_color
 
     # Body -> Box 1 (Averages Row)
     stats_row_contents = body_contents[1]["contents"]
     stats_row_contents[0]["contents"][1]["text"] = f"{avg_bpm:.0f}" # BPM
     stats_row_contents[1]["contents"][1]["text"] = f"{avg_spo2:.0f}" # SpO2
+
+    # Body -> Box 2 (Remark Box)
+    remark_box_contents = body_contents[2]["contents"]
+    remark_box_contents[1]["text"] = remark
 
     # 5. Send to LINE Messaging API
     if not LINE_CHANNEL_ACCESS_TOKEN or not LINE_USER_ID:

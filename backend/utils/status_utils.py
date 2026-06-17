@@ -50,19 +50,50 @@ def get_status(raw_bpm, ema_t, delta_bpm, raw_spo2):
     # 第三層：警告判定 (Fallback)
     return "WARNING"
 
-def get_highest_status(status_list):
+def evaluate_session_health(status_list):
     """
-    從狀態清單中判定最高風險等級。
-    優先級：DANGER > WARNING > NORMAL
+    雙軌制判定法：從狀態清單中判定整體健康等級與備註。
+
+    回傳：(status_text, color, remark, status_key)
+
+    【情境 A：持續危險 (DANGER)】：如果日誌陣列中，"DANGER" 的數量「大於或等於 2 筆」。
+    【情境 B：突發性異常 (WARNING)】：如果日誌陣列中，"DANGER" 的數量「剛好只有 1 筆」。
+    【情境 C：狀態不穩定 (WARNING)】：如果陣列中沒有 DANGER，但 "WARNING" 的數量佔比「超過或等於 30%」。
+    【情境 D：完全正常 (NORMAL)】：以上皆非。
     """
     if not status_list:
-        return "NORMAL"
+        return ("🟢 NORMAL (正常)", "#2B8A3E", "整體生理數據表現良好。", "NORMAL")
 
-    highest_risk = "NORMAL"
-    for status in status_list:
-        if status == "DANGER":
-            return "DANGER" # 最高優先級，直接返回
-        if status == "WARNING":
-            highest_risk = "WARNING"
+    danger_count = status_list.count("DANGER")
+    warning_count = status_list.count("WARNING")
+    total_count = len(status_list)
 
-    return highest_risk
+    # 情境 A：持續危險 (DANGER)
+    if danger_count >= 2:
+        return (
+            "🔴 DANGER (持續危險)",
+            "#DC3545",
+            "警告：偵測到持續性嚴重異常，請立即留意受試者狀況！",
+            "DANGER"
+        )
+
+    # 情境 B：突發性異常 (WARNING)
+    if danger_count == 1:
+        return (
+            "🟠 WARNING (突發性異常提示)",
+            "#FD7E14",
+            "量測期間整體平均正常，但曾偵測到單次瞬時生理數值異常，建議保持休息並持續觀察。",
+            "WARNING"
+        )
+
+    # 情境 C：狀態不穩定 (WARNING)
+    if danger_count == 0 and total_count > 0 and (warning_count / total_count >= 0.3):
+        return (
+            "🟡 WARNING (狀態不穩定)",
+            "#FCC419",
+            "異常狀態比例偏高，身體可能正處於勞累或不適狀態。",
+            "WARNING"
+        )
+
+    # 情境 D：完全正常 (NORMAL)
+    return ("🟢 NORMAL (正常)", "#2B8A3E", "整體生理數據表現良好。", "NORMAL")
