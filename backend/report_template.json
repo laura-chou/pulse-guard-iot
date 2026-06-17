@@ -106,7 +106,7 @@
               {
                 "type": "box",
                 "layout": "vertical",
-                "flex": 6,
+                "flex": 4,
                 "contents": [
                   {
                     "type": "text",
@@ -150,15 +150,16 @@
               {
                 "type": "box",
                 "layout": "vertical",
-                "flex": 4,
+                "flex": 6,
                 "contents": [
                   {
                     "type": "text",
                     "text": "🟢 NORMAL",
                     "color": "#2B8A3E",
-                    "size": "sm",
+                    "size": "xs",
                     "weight": "bold",
-                    "align": "end"
+                    "align": "end",
+                    "wrap": true
                   }
                 ]
               }
