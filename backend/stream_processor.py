@@ -5,7 +5,7 @@ import logging
 import uuid
 from datetime import datetime, timezone
 import report_manager
-from utils.status_utils import is_valid_bpm, is_valid_spo2, get_status
+from backend.utils.status_utils import is_valid_bpm, is_valid_spo2, get_status
 from collections import deque
 import numpy as np
 import paho.mqtt.client as mqtt

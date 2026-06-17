@@ -3,7 +3,7 @@ import json
 import requests
 import logging
 from datetime import datetime, timedelta, timezone
-from utils.status_utils import evaluate_session_health
+from backend.utils.status_utils import evaluate_session_health
 from pymongo import MongoClient
 from dotenv import load_dotenv
 
@@ -113,7 +113,7 @@ def generate_and_send_report(session_id, duration_sec):
     avg_spo2 = sum(spo2s) / len(spo2s)
 
     # 4. Fill Template
-    status_text, status_color, remark, _ = evaluate_session_health([r.get("analysis_status", "NORMAL") for r in records])
+    status_text, status_color, remark, highest_risk = evaluate_session_health([r.get("analysis_status", "NORMAL") for r in records])
     template = load_report_template()
     if not template:
         return

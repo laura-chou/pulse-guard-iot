@@ -53,7 +53,7 @@ def test_evaluate_session_health():
     # 3/10 = 30%
     res = evaluate_session_health(["WARNING", "WARNING", "WARNING", "NORMAL", "NORMAL", "NORMAL", "NORMAL", "NORMAL", "NORMAL", "NORMAL"])
     assert "WARNING (狀態不穩定)" in res[0]
-    assert res[1] == "#FD7E14"
+    assert res[1] == "#FCC419"
     assert "異常狀態比例偏高" in res[2]
     assert res[3] == "WARNING"
 
