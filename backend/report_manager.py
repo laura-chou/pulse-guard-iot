@@ -94,10 +94,14 @@ def generate_and_send_report(session_id, duration_sec):
     # Format for template (Asia/Taipei)
     measure_date_str = start_time_local.strftime("%Y/%m/%d")
 
-    # Use passed duration_sec for formatted display
-    display_duration = duration_sec if duration_sec is not None else actual_duration
+    # Use passed duration_sec for formatted display and end time calculation
+    display_duration = int(duration_sec) if duration_sec is not None else int(actual_duration)
+
+    # Calculate displayed end time: start time + duration
+    display_end_time_local = start_time_local + timedelta(seconds=display_duration)
+
     formatted_duration = format_duration(display_duration)
-    time_interval_str = f"{start_time_local.strftime('%H:%M:%S')} ~ {end_time_local.strftime('%H:%M:%S')} {formatted_duration}"
+    time_interval_str = f"{start_time_local.strftime('%H:%M:%S')} ~ {display_end_time_local.strftime('%H:%M:%S')} {formatted_duration}"
 
     logger.info(f"Report for session {session_id}: {measure_date_str} {time_interval_str}")
 

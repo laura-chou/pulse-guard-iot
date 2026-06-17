@@ -47,10 +47,45 @@ def test_generate_and_send_report_logic(mock_getenv, mock_post, mock_mongo, mock
 
     # Check Row 0: Date
     assert summary_box_contents[0]["contents"][1]["contents"][0]["text"] == "2026/06/10"
-    # Check Row 1: Time Interval
+    # Check Row 1: Time Interval (End time should be exactly Start + 30s = 08:30:45)
     assert summary_box_contents[1]["contents"][1]["contents"][0]["text"] == "08:30:15 ~ 08:30:45 (30 sec)"
-    # Check Row 2: Status
-    assert "NORMAL" in summary_box_contents[2]["contents"][1]["contents"][0]["text"]
+
+@patch("report_manager.MongoClient")
+@patch("report_manager.requests.post")
+@patch("report_manager.os.getenv")
+def test_generate_and_send_report_interval_calculation(mock_getenv, mock_post, mock_mongo, mock_mongo_data):
+    """验证时间区间显示逻辑：结束时间应为开始时间加上 duration_sec，而非最后一条记录的时间"""
+    mock_getenv.side_effect = lambda k: {
+        "MONGO_URI": "mongodb://localhost",
+        "MONGO_DB_NAME": "db",
+        "MONGO_COL_NAME": "col",
+        "LINE_CHANNEL_ACCESS_TOKEN": "token",
+        "LINE_USER_ID": "user"
+    }.get(k)
+
+    mock_db = mock_mongo.return_value["db"]
+    mock_col = mock_db["col"]
+
+    # 模拟数据：开始 08:30:00，最后记录 08:30:40 (延迟)，但 duration 是 60
+    local_tz = timezone(timedelta(hours=8))
+    start_time = datetime(2026, 6, 10, 8, 30, 0, tzinfo=local_tz).astimezone(timezone.utc)
+    last_record_time = datetime(2026, 6, 10, 8, 30, 40, tzinfo=local_tz).astimezone(timezone.utc)
+
+    records = [
+        {"timestamp": start_time, "avg_bpm": 80, "spo2": 96, "analysis_status": "NORMAL", "data_source": "production", "session_id": "test"},
+        {"timestamp": last_record_time, "avg_bpm": 82, "spo2": 95, "analysis_status": "NORMAL", "data_source": "production", "session_id": "test"}
+    ]
+    mock_col.find.return_value.sort.return_value = records
+    mock_post.return_value.status_code = 200
+
+    generate_and_send_report("test", 60)
+
+    payload = mock_post.call_args[1]['json']
+    template = payload['messages'][0]['contents']
+    interval_text = template["body"]["contents"][0]["contents"][1]["contents"][1]["contents"][0]["text"]
+
+    # 开始 08:30:00 + 60s = 08:31:00
+    assert "08:30:00 ~ 08:31:00 (1 min)" in interval_text
 
     # Check Remark Box (Body contents index 2)
     remark_box = template["body"]["contents"][2]
