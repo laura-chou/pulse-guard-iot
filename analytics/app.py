@@ -281,9 +281,9 @@ def build_combined_physiological_chart(df_daily, t):
     return fig
 
 def get_default_range():
-    """計算過去一個月的範圍 (30天前到今天)"""
+    """計算過去三個月的範圍 (90天前到今天)"""
     today = datetime.now(local_tz).date()
-    start_date = today - timedelta(days=30)
+    start_date = today - timedelta(days=90)
     return start_date, today
 
 def render_aggrid(df, t, status_col_key):

@@ -37,11 +37,11 @@ volatile bool bootResetSent = false;
 
 // ─── MQTT 與 AP 設定 ───
 const char* ap_name = "PulseGuard-IoT";          // AP 名稱
-const char* mqtt_server = "YOUR_BROKER";         // 叢集網址
-const int mqtt_port = 8883;                      // 埠號
-const char* mqtt_user = "YOUR_MQTT_USERNAME";    // 帳號
-const char* mqtt_pass = "YOUR_MQTT_PASSWORD";    // 密碼
-const char* mqtt_topic = "esp32/topic";          // 發布主題
+const char* mqtt_server = "e7d7279e03264dbfab5013301db086d8.s1.eu.hivemq.cloud"; // 叢集網址
+const int mqtt_port = 8883;     // 埠號                 
+const char* mqtt_user = "pulse-guard-iot";    // 帳號
+const char* mqtt_pass = "t8d7GPs4TuvI";    // 密碼
+const char* mqtt_topic = "pulseguard/data";          // 發布主題 
 
 WiFiClientSecure espClient;
 PubSubClient mqttClient(espClient);
@@ -57,7 +57,7 @@ QueueHandle_t dataQueue;
 TaskHandle_t MqttTaskHandle;
 
 // ─── 全域測量時間設定 ───
-uint32_t targetMeasurementSeconds = 30;
+uint32_t targetMeasurementSeconds = 60;
 
 // ─── 計時器與動態刷新快取變數 ───
 uint32_t totalFingerSeconds = 0;
