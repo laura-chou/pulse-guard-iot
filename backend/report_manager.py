@@ -66,7 +66,7 @@ def generate_and_send_report(session_id, duration_sec):
         # 同步查詢條件：status -> analysis_status，並限定 production 來源
         query = {
             "session_id": session_id,
-            "analysis_status": {"$nin": ["OFF-CHIP", "RESET"]},
+            "analysis_status": {"$ne": "RESET"},
             "data_source": "production"
         }
         records = list(collection.find(query).sort("timestamp", 1))

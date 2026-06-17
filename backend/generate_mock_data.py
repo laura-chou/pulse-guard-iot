@@ -20,10 +20,10 @@ load_dotenv()
 
 腳本用途:
     生成符合「真實生活行為」的模擬歷史數據，用於測試 Streamlit 儀表板。
-    包含：不定期感測器脫落 (OFF-CHIP)、隨機量測時間、量測斷層 (忘記量測日)。
+    包含：隨機量測時間、量測斷層 (忘記量測日)。
 
 更新內容:
-    1. 隨機 OFF-CHIP：Session 中有 5% 機率觸發手指移開，導致剩餘數據歸零。
+    1. 隨機中止 Session：Session 中有 5% 機率觸發手指移開，導致該次量測提早結束且不產生後續數據。
     2. 隨機量測次數：每天隨機 2~4 次量測。
     3. 隨機量測時間：量測時間在時段內隨機飄移。
     4. 遺漏量測日：10% 機率整天無數據。
@@ -61,7 +61,6 @@ def get_status(bpm, ema_bpm, delta_bpm, spo2):
 def generate_session_data(start_time):
     """
     為單次 Session 生成 30 筆樣本 (1 分鐘)。
-    加入 5% 隨機 OFF-CHIP 觸發邏輯。
     """
     samples = []
     bpm_window = deque(maxlen=15)
@@ -71,64 +70,50 @@ def generate_session_data(start_time):
     # 隨機決定是否為醫療異常 Session (約 5% 機率)
     is_medical_abnormal = random.random() < 0.05
 
-    # 隨機決定是否觸發 OFF-CHIP (約 5% 機率)
-    off_chip_triggered = False
+    # 隨機決定是否觸發手指移開 (約 5% 機率)，若觸發則直接停止 Session 生成
     off_chip_start_index = -1
     if random.random() < 0.05:
         off_chip_start_index = random.randint(5, 25) # 在 Session 中間隨機發生
 
     for i in range(30):
+        # 檢查是否觸發手指移開，若是則停止生成後續資料
+        if off_chip_start_index > -1 and i >= off_chip_start_index:
+            break
+
         current_time = start_time + timedelta(seconds=i * 2)
 
-        # 檢查是否已觸發 OFF-CHIP
-        if i >= off_chip_start_index > -1:
-            off_chip_triggered = True
-
-        if off_chip_triggered:
-            # 符合硬體斷線狀態：數值全數歸零，狀態標記為 OFF-CHIP
-            doc = {
-                "timestamp": current_time,
-                "session_id": session_id,
-                "analysis_status": "OFF-CHIP",
-                "avg_bpm": 0,
-                "ema_bpm": 0,
-                "delta_bpm": 0,
-                "spo2": 0,
-                "data_source": "production"
-            }
-        else:
-            if is_medical_abnormal:
-                if random.random() < 0.7:
-                    raw_bpm = random.uniform(115, 145)
-                    raw_spo2 = random.uniform(88, 93)
-                else:
-                    raw_bpm = random.uniform(65, 85)
-                    raw_spo2 = random.uniform(96, 100)
+        if is_medical_abnormal:
+            if random.random() < 0.7:
+                raw_bpm = random.uniform(115, 145)
+                raw_spo2 = random.uniform(88, 93)
             else:
                 raw_bpm = random.uniform(65, 85)
                 raw_spo2 = random.uniform(96, 100)
+        else:
+            raw_bpm = random.uniform(65, 85)
+            raw_spo2 = random.uniform(96, 100)
 
-            # 計算滑動視窗指標
-            prev_xt_bpm = np.mean(bpm_window) if bpm_window else raw_bpm
-            bpm_window.append(raw_bpm)
-            spo2_window.append(raw_spo2)
+        # 計算滑動視窗指標
+        prev_xt_bpm = np.mean(bpm_window) if bpm_window else raw_bpm
+        bpm_window.append(raw_bpm)
+        spo2_window.append(raw_spo2)
 
-            xt_bpm = np.mean(bpm_window)
-            xt_spo2 = np.mean(spo2_window)
-            delta_bpm = abs(raw_bpm - prev_xt_bpm)
+        xt_bpm = np.mean(bpm_window)
+        xt_spo2 = np.mean(spo2_window)
+        delta_bpm = abs(raw_bpm - prev_xt_bpm)
 
-            status = get_status(raw_bpm, xt_bpm, delta_bpm, raw_spo2)
+        status = get_status(raw_bpm, xt_bpm, delta_bpm, raw_spo2)
 
-            doc = {
-                "timestamp": current_time,
-                "session_id": session_id,
-                "analysis_status": status,
-                "avg_bpm": round(xt_bpm, 2),
-                "ema_bpm": round(xt_bpm, 2),
-                "delta_bpm": round(delta_bpm, 2),
-                "spo2": round(xt_spo2, 2),
-                "data_source": "production"
-            }
+        doc = {
+            "timestamp": current_time,
+            "session_id": session_id,
+            "analysis_status": status,
+            "avg_bpm": round(xt_bpm, 2),
+            "ema_bpm": round(xt_bpm, 2),
+            "delta_bpm": round(delta_bpm, 2),
+            "spo2": round(xt_spo2, 2),
+            "data_source": "production"
+        }
         samples.append(doc)
 
     return samples

@@ -99,36 +99,20 @@ def test_language_selection():
 # 4. KPI calculations
 def test_calculate_kpis(sample_df):
     """
-    [測試目的] 驗證 KPI (總數、危險數、警告數、脫落數) 的計算邏輯。
-    [預期行為] 健康指標 (總數、危險、警告) 應排除 OFF-CHIP，而脫落次數應單獨計數。
+    [測試目的] 驗證 KPI (總數、危險數、警告數) 的計算邏輯。
     """
-    # 添加一筆 OFF-CHIP 資料
-    off_chip_data = sample_df.iloc[0:1].copy()
-    off_chip_data['analysis_status'] = 'OFF-CHIP'
-    extended_df = pd.concat([sample_df, off_chip_data])
-
-    total, danger, warning, off_chip = app.calculate_kpis(extended_df)
-    # 原本 5 筆中有 1 DANGER, 1 WARNING.
-    # 健康總數應仍為 5，OFF-CHIP 計數應為 1
+    total, danger, warning = app.calculate_kpis(sample_df)
+    # 5 筆中有 1 DANGER, 1 WARNING.
     assert total == 5
     assert danger == 1
     assert warning == 1
-    assert off_chip == 1
 
 # 5. Data Aggregation: get_daily_summary
 def test_get_daily_summary(sample_df):
     """
-    [測試目的] 驗證日聚合邏輯 (用於生理趨勢圖)，並確保排除 OFF-CHIP。
-    [預期行為] 1. 應產生日最大、日最小與日平均數據。 2. 感測器脫落的 0 值不應進入計算。
+    [測試目的] 驗證日聚合邏輯 (用於生理趨勢圖)。
     """
-    # 增加一筆 OFF-CHIP 異常數據 (BPM=0, SpO2=0)
-    off_chip_data = sample_df.iloc[0:1].copy()
-    off_chip_data['analysis_status'] = 'OFF-CHIP'
-    off_chip_data['avg_bpm'] = 0
-    off_chip_data['spo2'] = 0
-    extended_df = pd.concat([sample_df, off_chip_data])
-
-    summary = app.get_daily_summary(extended_df)
+    summary = app.get_daily_summary(sample_df)
     assert len(summary) == 2 # 5/1 與 5/2
     # 5/1 的統計驗證
     assert pytest.approx(summary.iloc[0]['bpm_min']) == 70.4
@@ -164,7 +148,7 @@ def test_main_ui_various_inputs(sample_df):
     """
     with patch('analytics.app.st') as mock_st:
         # 設置 columns 的 side_effect 以應對所有可能的調用
-        # 1. KPI 欄位 (4 cols)
+        # 1. KPI 欄位 (3 cols)
         # 2. Expander 內部 (2 cols)
         # 3. 統計欄位 (2 cols)
         mock_st.columns.side_effect = lambda n: [MagicMock() for _ in range(n)]

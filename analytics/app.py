@@ -34,7 +34,6 @@ def get_translations(lang_code):
             'kpi_total': 'Total Samples',
             'kpi_danger': 'Danger Events',
             'kpi_warning': 'Warning Events',
-            'kpi_off_chip': 'Device Detachments',
             'tab_trends': '📈 Physiological Trends',
             'tab_stats': '📊 Status Statistics',
             'tab_logs': '📋 Abnormal Logs & Export',
@@ -54,7 +53,7 @@ def get_translations(lang_code):
             'tt_min_spo2': 'Min SpO2',
             'tt_percent': 'Percent',
             'download_csv': 'Download Filtered Data as CSV',
-            'status_map': {"NORMAL": "NORMAL", "WARNING": "WARNING", "DANGER": "DANGER", "OFF-CHIP": "OFF-CHIP"},
+            'status_map': {"NORMAL": "NORMAL", "WARNING": "WARNING", "DANGER": "DANGER"},
             'col_no': '#',
             'col_time': 'Timestamp',
             'col_status': 'Status',
@@ -63,7 +62,7 @@ def get_translations(lang_code):
             'col_spo2': 'SpO2 (%)',
             'help_status': """🚨 DANGER: SpO2 <= 90%, EMA <= 50 or >= 140, or |ΔBPM| >= 50
 ⚠️ WARNING: Metrics outside normal range but not meeting danger criteria
-💡 Note: This log automatically records non-normal events (DANGER, WARNING, OFF-CHIP) for clinical tracking. Normal historical data can be viewed in the Trends and Statistics tabs.""",
+💡 Note: This log automatically records non-normal events (DANGER, WARNING) for clinical tracking. Normal historical data can be viewed in the Trends and Statistics tabs.""",
             'help_avg_bpm': "15s Moving Average BPM: Calculates the mean of the last 15 signals to smooth out noise.",
             'help_ema_bpm': "Exponential Moving Average (EMA): Uses a time-series filtering algorithm (30% current, 70% historical) to reduce measurement errors.",
             'help_spo2': "Oxygen Saturation (%): Displays the 15-second moving average, which is more medically representative than raw data. Normal values are usually above 95%."
@@ -84,7 +83,6 @@ def get_translations(lang_code):
             'kpi_total': '總樣本數',
             'kpi_danger': '危險次數',
             'kpi_warning': '警告次數',
-            'kpi_off_chip': '感測器脫落次數',
             'tab_trends': '📈 生理趨勢圖',
             'tab_stats': '📊 狀態統計',
             'tab_logs': '📋 異常日誌與匯出',
@@ -104,7 +102,7 @@ def get_translations(lang_code):
             'tt_min_spo2': '最低血氧',
             'tt_percent': '比例',
             'download_csv': '下載篩選後的資料為 CSV',
-            'status_map': {"NORMAL": "正常", "WARNING": "警告", "DANGER": "危險", "OFF-CHIP": "感測器脫落"},
+            'status_map': {"NORMAL": "正常", "WARNING": "警告", "DANGER": "危險"},
             'col_no': '序號',
             'col_time': '時間戳記',
             'col_status': '狀態',
@@ -113,7 +111,7 @@ def get_translations(lang_code):
             'col_spo2': '血氧飽和度 (%)',
             'help_status': """🚨 危險 (DANGER)：滿足任一條件 (SpO2 <= 90%, EMA <= 50 或 >= 140, |ΔBPM| >= 50)
 ⚠️ 警告 (WARNING)：未達危急標準，但任一指標超出正常範圍
-💡 說明：本誌僅自動節錄並留存「非正常（DANGER, WARNING, OFF-CHIP）」之觸發事件，正常（NORMAL）數據請至生理趨勢與統計分頁檢視。""",
+💡 說明：本誌僅自動節錄並留存「非正常（DANGER, WARNING）」之觸發事件，正常（NORMAL）數據請至生理趨勢與統計分頁檢視。""",
             'help_avg_bpm': "15秒移動平均心率 (Moving Average)：計算最近 15 筆訊號均值，用以平滑即時雜訊，呈現穩定的心跳趨勢。",
             'help_ema_bpm': "指數移動平均心率 (EMA)：導入時序濾波演算法（目前 30%，歷史 70% 權重），有效抑制單點量測誤差，精準反映心血管實際生理趨勢。",
             'help_spo2': "血氧飽和度百分比：顯示最近 15 秒的訊號移動平均值，較純即時數值更具醫學代表性。正常值通常在 95% 以上。"
@@ -126,7 +124,6 @@ def get_translations(lang_code):
 def color_status(val, t):
     if val == t['status_map']['DANGER']: color = 'background-color: crimson; color: white'
     elif val == t['status_map']['WARNING']: color = 'background-color: orange; color: black'
-    elif val == t['status_map']['OFF-CHIP']: color = 'background-color: #455A64; color: white'
     else: color = ''
     return color
 
@@ -190,28 +187,22 @@ def fetch_data(start_date, end_date, env="production"):
 
 def calculate_kpis(df):
     """計算關鍵績效指標 (基於去重後的數據)"""
-    # 1. 醫療健康指標 (排除 OFF-CHIP)
-    health_df = df[df['analysis_status'] != "OFF-CHIP"]
-    total_samples = len(health_df)
-    danger_count = len(health_df[health_df['analysis_status'] == "DANGER"])
-    warning_count = len(health_df[health_df['analysis_status'] == "WARNING"])
+    # 1. 醫療健康指標
+    total_samples = len(df)
+    danger_count = len(df[df['analysis_status'] == "DANGER"])
+    warning_count = len(df[df['analysis_status'] == "WARNING"])
 
-    # 2. 設備監控指標 (計算 OFF-CHIP 去重後次數)
-    off_chip_count = len(df[df['analysis_status'] == "OFF-CHIP"])
-
-    return total_samples, danger_count, warning_count, off_chip_count
+    return total_samples, danger_count, warning_count
 
 def get_daily_summary(df):
-    """將原始數據按日聚合，用於趨勢圖 (過濾 OFF-CHIP 以防生理數據污染)"""
-    # 排除感測器脫落數據，避免 0 值拉低每日最低血氧與最低心率
-    clean_df = df[df['analysis_status'] != "OFF-CHIP"].copy()
-
-    if clean_df.empty:
+    """將原始數據按日聚合，用於趨勢圖"""
+    if df.empty:
         # 返回具有正確結構但為空的 DataFrame，避免後續聚合報錯
         return pd.DataFrame(columns=['date', 'bpm_min', 'bpm_max', 'bpm_mean', 'spo2_min'])
 
-    clean_df['date'] = clean_df['timestamp'].dt.date
-    summary = clean_df.groupby('date').agg({
+    df_copy = df.copy()
+    df_copy['date'] = df_copy['timestamp'].dt.date
+    summary = df_copy.groupby('date').agg({
         'avg_bpm': ['min', 'max', 'mean'],
         'spo2': 'min'
     }).reset_index()
@@ -337,8 +328,6 @@ def render_aggrid(df, t, status_col_key):
             return {{ ...baseStyle, 'color': 'white', 'backgroundColor': 'crimson' }};
         }} else if (params.value === '{t['status_map']['WARNING']}') {{
             return {{ ...baseStyle, 'color': 'black', 'backgroundColor': 'orange' }};
-        }} else if (params.value === '{t['status_map']['OFF-CHIP']}') {{
-            return {{ ...baseStyle, 'color': 'white', 'backgroundColor': '#455A64' }};
         }} else {{
             return baseStyle;
         }}
@@ -423,7 +412,7 @@ def main():
         start_date = end_date = date_range if not isinstance(date_range, tuple) else date_range[0]
 
     # 狀態過濾（多選）
-    status_options = ["NORMAL", "WARNING", "DANGER", "OFF-CHIP"]
+    status_options = ["NORMAL", "WARNING", "DANGER"]
     selected_statuses = st.sidebar.multiselect(
         t['status_filter'],
         options=status_options,
@@ -438,7 +427,13 @@ def main():
     st.sidebar.markdown('<div style="height: 600px;"></div>', unsafe_allow_html=True)
 
     # --- 數據抓取與處理 ---
-    raw_df, connection_error = fetch_data(start_date, end_date, env=env_mode)
+    fetched_df, connection_error = fetch_data(start_date, end_date, env=env_mode)
+
+    # 強制過濾所有 OFF-CHIP 紀錄 (確保 legacy 數據也不會顯示)
+    if not fetched_df.empty:
+        raw_df = fetched_df[fetched_df['analysis_status'] != "OFF-CHIP"].copy()
+    else:
+        raw_df = fetched_df
 
     if raw_df.empty:
         if connection_error:
@@ -451,11 +446,10 @@ def main():
         st.info("展示功能範例數據：" if lang == 'zh' else "Displaying feature sample data:")
 
         # 模擬數據下的 KPI 展示 (固定數值)
-        m_col1, m_col2, m_col3, m_col4 = st.columns(4)
+        m_col1, m_col2, m_col3 = st.columns(3)
         m_col1.metric(t['kpi_total'], 120)
         m_col2.metric(t['kpi_danger'], 5, delta_color="inverse")
         m_col3.metric(t['kpi_warning'], 12, delta_color="off")
-        m_col4.metric(t['kpi_off_chip'], 3, delta_color="off")
 
         if env_mode == "production":
             mock_records = [
@@ -465,13 +459,6 @@ def main():
                     "avg_bpm": 72.4,
                     "ema_bpm": 71.8,
                     "spo2": 98.5
-                },
-                {
-                    "timestamp": (datetime.now(local_tz) - timedelta(minutes=5)).strftime('%Y-%m-%d %H:%M:%S'),
-                    "analysis_status": "OFF-CHIP",
-                    "avg_bpm": 0,
-                    "ema_bpm": 0,
-                    "spo2": 0
                 }
             ]
         else:
@@ -538,14 +525,13 @@ def main():
         df_hourly = get_hourly_deduplicated(df)
 
         # 計算 KPI
-        total_samples, danger_count, warning_count, off_chip_count = calculate_kpis(df_hourly)
+        total_samples, danger_count, warning_count = calculate_kpis(df_hourly)
 
         # --- KPI 卡片展示 ---
-        col1, col2, col3, col4 = st.columns(4)
+        col1, col2, col3 = st.columns(3)
         col1.metric(t['kpi_total'], total_samples)
         col2.metric(t['kpi_danger'], danger_count, delta_color="inverse")
         col3.metric(t['kpi_warning'], warning_count, delta_color="off")
-        col4.metric(t['kpi_off_chip'], off_chip_count, delta_color="off")
 
         # --- 功能標籤頁 ---
         tab1, tab2, tab3 = st.tabs([t['tab_trends'], t['tab_stats'], t['tab_logs']])
@@ -554,15 +540,14 @@ def main():
             if not df_daily.empty:
                 st.plotly_chart(build_combined_physiological_chart(df_daily, t), use_container_width=True, config={'displayModeBar': 'hover'})
             else:
-                st.info("所選篩選條件下無有效生理數據可供繪製趨勢圖（感測器脫落數據已排除）。" if lang == 'zh' else "No valid physiological data available for trends under current filters (OFF-CHIP data excluded).")
+                st.info("所選篩選條件下無有效生理數據可供繪製趨勢圖。" if lang == 'zh' else "No valid physiological data available for trends under current filters.")
 
         with tab2:
             col_s1, col_s2 = st.columns(2)
 
             with col_s1:
                 st.subheader(t['status_dist_title'])
-                health_stats_df = df_hourly[df_hourly['analysis_status'] != "OFF-CHIP"]
-                status_counts = health_stats_df['analysis_status'].value_counts().reset_index()
+                status_counts = df_hourly['analysis_status'].value_counts().reset_index()
                 status_counts.columns = ['analysis_status', 'count']
                 status_counts['label'] = status_counts['analysis_status'].map(t['status_map'])
 
@@ -578,7 +563,7 @@ def main():
 
             with col_s2:
                 st.subheader(t['weekly_stats_title'])
-                abnormal_df = df_hourly[df_hourly['analysis_status'].isin(["WARNING", "DANGER", "OFF-CHIP"])].copy()
+                abnormal_df = df_hourly[df_hourly['analysis_status'].isin(["WARNING", "DANGER"])].copy()
 
                 if not abnormal_df.empty:
                     abnormal_df['week'] = abnormal_df['timestamp'].dt.strftime('%G-W%V')
@@ -587,8 +572,7 @@ def main():
 
                     bar_color_map = {
                         "WARNING": "orange",
-                        "DANGER": "crimson",
-                        "OFF-CHIP": "#455A64"
+                        "DANGER": "crimson"
                     }
                     translated_color_map = {t['status_map'][k]: v for k, v in bar_color_map.items()}
 
@@ -596,8 +580,7 @@ def main():
                                      color_discrete_map=translated_color_map,
                                      category_orders={"status_label": [
                                          t['status_map']['DANGER'],
-                                         t['status_map']['WARNING'],
-                                         t['status_map']['OFF-CHIP']
+                                         t['status_map']['WARNING']
                                      ]},
                                      labels={'week': t['tt_week'], 'status_label': t['tt_status'], 'count': t['tt_count']})
 
@@ -696,10 +679,6 @@ def main():
         span[data-baseweb="tag"]:has(span[title="DANGER"]),
         span[data-baseweb="tag"]:has(span[title="危險"]) {
             background-color: #C62828 !important;
-        }
-        span[data-baseweb="tag"]:has(span[title="OFF-CHIP"]),
-        span[data-baseweb="tag"]:has(span[title="感測器脫落"]) {
-            background-color: #455A64 !important;
         }
         span[data-baseweb="tag"] span {
             color: #FFFFFF !important;
