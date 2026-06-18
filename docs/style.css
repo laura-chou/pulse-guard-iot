@@ -3,8 +3,8 @@
     --card-bg: #1A1D23;
     --primary-green: #00E676;
     --accent-cyan: #00E5FF;
-    --text-main: #FFFFFF; /* Increased contrast from #E0E0E0 */
-    --text-muted: #B0B0B0; /* Increased contrast from #9E9E9E */
+    --text-main: #FFFFFF;
+    --text-muted: #D1D5DB; /* Lighter gray for better visibility on black */
     --border-color: #30363D;
     --code-bg: #010409;
 }
@@ -276,4 +276,16 @@ footer {
     .pinout-container {
         padding: 15px;
     }
+}
+
+.text-muted {
+    color: var(--text-muted) !important;
+}
+
+.list-unstyled {
+    color: var(--text-muted);
+}
+
+strong {
+    color: var(--text-main);
 }

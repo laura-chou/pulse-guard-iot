@@ -83,17 +83,11 @@
                         </li>
                     </ul>
                 </div>
-                <div class="col-lg-6">
-                    <div class="portal-card p-4">
-                        <h5 class="text-primary-green mb-3">firmware/TaskSample.cpp</h5>
-                        <pre class="m-0 text-white" style="font-size: 0.8rem; overflow-x: auto; background: var(--code-bg); padding: 15px; border-radius: 10px;">
-void TaskSample(void *pvParameters) {
-    for (;;) {
-        // High-priority sampling on Core 1
-        readSensorData(&bpm, &spo2);
-        vTaskDelay(pdMS_TO_TICKS(40)); // 25Hz
-    }
-}</pre>
+                <div class="col-lg-6 text-center">
+                    <div class="portal-card p-5">
+                         <div class="feature-icon-wrapper mx-auto mb-4" style="background: rgba(0, 230, 118, 0.1); color: var(--primary-green);">⚡</div>
+                         <h5 class="fw-bold mb-3">Edge Optimization</h5>
+                         <p class="small text-muted">Real-time processing directly on ESP32 silicon</p>
                     </div>
                 </div>
             </div>
@@ -123,9 +117,9 @@ void TaskSample(void *pvParameters) {
                         </li>
                     </ul>
                 </div>
-                <div class="col-lg-6">
-                    <div class="portal-card p-4">
-                        <img src="img/report.jpg" alt="Report Template" class="img-preview w-100">
+                <div class="col-lg-6 text-center">
+                    <div class="portal-card p-4 d-flex justify-content-center align-items-center" style="min-height: 400px;">
+                        <img src="img/report.jpg" alt="Report Template" class="img-preview" style="max-height: 350px; width: auto;">
                     </div>
                 </div>
             </div>
@@ -157,9 +151,9 @@ void TaskSample(void *pvParameters) {
                 </div>
                 <div class="col-lg-6 text-center">
                     <div class="portal-card p-5">
-                         <div class="feature-icon-wrapper mx-auto mb-4" style="background: rgba(0, 229, 255, 0.1); color: var(--accent-cyan);">🚀</div>
-                         <h5 class="fw-bold mb-3">Live Dashboard Ready</h5>
-                         <p class="small text-muted">Connected to MongoDB Atlas & MQTT Broker</p>
+                         <div class="feature-icon-wrapper mx-auto mb-4" style="background: rgba(0, 229, 255, 0.1); color: var(--accent-cyan);">📈</div>
+                         <h5 class="fw-bold mb-3">Data Intelligence</h5>
+                         <p class="small text-muted">Transforming raw signals into medical insights</p>
                     </div>
                 </div>
             </div>
@@ -265,25 +259,6 @@ void TaskSample(void *pvParameters) {
         </div>
     </section>
 
-    <!-- Tech Stack Summary -->
-    <section class="py-5">
-        <div class="container text-center">
-            <h2 class="section-title">
-                <span class="zh-hide">Tech Stack</span>
-                <span class="en-hide">技術棧</span>
-            </h2>
-            <div class="mt-4">
-                <span class="tech-badge">C++ / Arduino</span>
-                <span class="tech-badge">FreeRTOS</span>
-                <span class="tech-badge">Python 3.12</span>
-                <span class="tech-badge">Streamlit</span>
-                <span class="tech-badge">MongoDB Atlas</span>
-                <span class="tech-badge">MQTT</span>
-                <span class="tech-badge">Bootstrap 5</span>
-                <span class="tech-badge">Plotly</span>
-            </div>
-        </div>
-    </section>
 
     <!-- Portals -->
     <section id="portals" class="py-5 bg-dark-section">
@@ -304,10 +279,10 @@ void TaskSample(void *pvParameters) {
                             <span class="en-hide">透過 MQTT.js 與 WebSocket 技術，體驗秒級延遲的生理數據即時監控。</span>
                         </p>
                         <div class="portal-actions">
-                            <a href="https://pulse-guard-iot.vercel.app" target="_blank" class="btn btn-primary-custom btn-portal w-100 mb-3 portal-link" data-base="https://pulse-guard-iot.vercel.app">
+                            <a href="https://pulse-guard-iot.vercel.app" target="_blank" class="btn btn-primary-custom btn-portal w-100 mb-3 portal-link" data-base="https://pulse-guard-iot.vercel.app/">
                                 <span class="zh-hide">Launch Production</span><span class="en-hide">啟動正式環境</span>
                             </a>
-                            <a href="https://pulse-guard-iot.vercel.app?env=test" target="_blank" class="btn btn-outline-custom btn-portal w-100 portal-link" data-base="https://pulse-guard-iot.vercel.app" data-env="test">
+                            <a href="https://pulse-guard-iot.vercel.app/test" target="_blank" class="btn btn-outline-custom btn-portal w-100 portal-link" data-base="https://pulse-guard-iot.vercel.app/test">
                                 <span class="zh-hide">Enter Test Environment</span><span class="en-hide">進入測試環境</span>
                             </a>
                         </div>
@@ -340,7 +315,7 @@ void TaskSample(void *pvParameters) {
     <!-- Footer -->
     <footer class="text-center">
         <div class="container">
-            <p class="mb-1 fw-bold text-white">&copy; 2025 PulseGuard AIoT Project. All rights reserved.</p>
+            <p class="mb-1 fw-bold text-white">&copy; 2026 PulseGuard AIoT Project. All rights reserved.</p>
             <p class="small">Smart Healthcare & IoT Security Solution</p>
         </div>
     </footer>
@@ -367,16 +342,15 @@ void TaskSample(void *pvParameters) {
                 const base = link.getAttribute('data-base');
                 const env = link.getAttribute('data-env');
                 let newHref = base;
-                const params = new URLSearchParams();
 
-                if (env) params.set('env', env);
-                if (lang === 'zh') params.set('lang', 'zh');
+                // Use URL object to handle existing query params in data-base
+                const url = new URL(base);
 
-                const queryString = params.toString();
-                if (queryString) {
-                    newHref += '?' + queryString;
-                }
-                link.href = newHref;
+                if (env) url.searchParams.set('env', env);
+                if (lang === 'zh') url.searchParams.set('lang', 'zh');
+                else url.searchParams.delete('lang');
+
+                link.href = url.toString();
             });
         }
 
