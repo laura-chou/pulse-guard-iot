@@ -1,275 +1,329 @@
 <!DOCTYPE html>
-<html lang="zh-Hant">
+<html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PulseGuard IoT | 智慧心率血氧監測系統</title>
+    <title>PulseGuard AIoT | 智慧健康監控系統</title>
+    <link rel="icon" href="img/icon.png" type="image/png">
+    <!-- Local Bootstrap CSS -->
     <link rel="stylesheet" href="lib/bootstrap.min.css">
     <style>
         :root {
-            --dark-body: #0b0e14;
-            --dark-card: #161b22;
-            --accent-cyan: #00f2ff;
-            --accent-green: #39ff14;
-            --text-main: #e6edf3;
-            --text-muted: #8b949e;
-            --border-color: #30363d;
+            --bg-color: #0E1117;
+            --card-bg: #1A1D23;
+            --primary-green: #00E676;
+            --alert-red: #FF1744;
+            --accent-cyan: #00E5FF;
+            --text-main: #E0E0E0;
+            --text-muted: #9E9E9E;
         }
+
         body {
-            font-family: "Helvetica Neue", Arial, "Noto Sans TC", sans-serif;
-            background-color: var(--dark-body);
+            background-color: var(--bg-color);
             color: var(--text-main);
+            font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Microsoft JhengHei', sans-serif;
             line-height: 1.6;
         }
-        .hero-section {
-            background: radial-gradient(circle at top right, #1a2332, var(--dark-body));
-            border-bottom: 1px solid var(--border-color);
-            padding: 100px 0;
-            position: relative;
-            overflow: hidden;
+
+        .navbar {
+            background-color: rgba(14, 17, 23, 0.95);
+            border-bottom: 1px solid #30363D;
         }
-        .hero-section::after {
-            content: "";
+
+        .hero-section {
+            padding: 100px 0 60px;
+            background: radial-gradient(circle at 50% 30%, rgba(0, 230, 118, 0.1), transparent);
+        }
+
+        .hero-title {
+            font-size: 3.5rem;
+            font-weight: 800;
+            background: linear-gradient(45deg, var(--primary-green), var(--accent-cyan));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 1rem;
+        }
+
+        .hero-subtitle {
+            font-size: 1.25rem;
+            color: var(--text-muted);
+        }
+
+        .feature-card {
+            background-color: var(--card-bg);
+            border: 1px solid #30363D;
+            border-radius: 12px;
+            padding: 30px;
+            height: 100%;
+            transition: transform 0.3s ease, border-color 0.3s ease;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--primary-green);
+        }
+
+        .feature-icon {
+            font-size: 2rem;
+            color: var(--primary-green);
+            margin-bottom: 20px;
+        }
+
+        .lang-en {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            display: block;
+            margin-top: 4px;
+        }
+
+        .tech-badge {
+            background-color: #21262D;
+            border: 1px solid #30363D;
+            color: var(--accent-cyan);
+            padding: 6px 15px;
+            border-radius: 20px;
+            margin: 5px;
+            display: inline-block;
+            font-size: 0.9rem;
+        }
+
+        .code-block {
+            background-color: #010409;
+            border: 1px solid #30363D;
+            border-radius: 8px;
+            padding: 20px;
+            position: relative;
+        }
+
+        code {
+            color: #7EE787;
+            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+        }
+
+        .terminal-header {
+            color: #8B949E;
+            font-size: 0.8rem;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+        }
+
+        .terminal-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .img-preview {
+            border-radius: 12px;
+            border: 1px solid #30363D;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            max-width: 100%;
+        }
+
+        footer {
+            padding: 40px 0;
+            border-top: 1px solid #30363D;
+            color: var(--text-muted);
+        }
+
+        .section-title {
+            margin-bottom: 40px;
+            font-weight: 700;
+            position: relative;
+            padding-bottom: 10px;
+        }
+
+        .section-title::after {
+            content: '';
             position: absolute;
             bottom: 0;
             left: 0;
-            right: 0;
-            height: 1px;
-            background: linear-gradient(90deg, transparent, var(--accent-cyan), transparent);
-        }
-        h1, h2, h3, h4 {
-            color: var(--accent-cyan);
-            font-weight: 700;
-        }
-        .text-cyan { color: var(--accent-cyan) !important; }
-        .text-green { color: var(--accent-green) !important; }
-
-        .card {
-            background-color: var(--dark-card);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            transition: all 0.3s ease;
-            color: var(--text-main);
-        }
-        .card:hover {
-            border-color: var(--accent-cyan);
-            box-shadow: 0 0 20px rgba(0, 242, 255, 0.15);
-            transform: translateY(-5px);
-        }
-        .section-title {
-            text-align: center;
-            margin-bottom: 60px;
-            position: relative;
-            padding-bottom: 15px;
-        }
-        .section-title::after {
-            content: "";
-            position: absolute;
-            bottom: 0;
-            left: 50%;
-            transform: translateX(-50%);
             width: 60px;
-            height: 3px;
-            background-color: var(--accent-green);
-        }
-        .tech-tag {
-            display: inline-block;
-            background: rgba(48, 54, 61, 0.5);
-            border: 1px solid var(--border-color);
-            color: var(--accent-cyan);
-            padding: 5px 15px;
-            border-radius: 20px;
-            margin: 5px;
-            font-size: 0.85rem;
-            font-weight: 500;
-        }
-        .btn-cyan {
-            background-color: transparent;
-            color: var(--accent-cyan);
-            border: 2px solid var(--accent-cyan);
-            font-weight: 600;
-            padding: 10px 25px;
-            border-radius: 8px;
-            transition: all 0.3s;
-        }
-        .btn-cyan:hover {
-            background-color: var(--accent-cyan);
-            color: var(--dark-body);
-            box-shadow: 0 0 15px var(--accent-cyan);
-        }
-        .btn-outline-green {
-            background-color: transparent;
-            color: var(--accent-green);
-            border: 2px solid var(--accent-green);
-            font-weight: 600;
-            padding: 10px 25px;
-            border-radius: 8px;
-        }
-        .btn-outline-green:hover {
-            background-color: var(--accent-green);
-            color: var(--dark-body);
-            box-shadow: 0 0 15px var(--accent-green);
-        }
-        .img-container {
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            overflow: hidden;
-            background-color: #000;
-        }
-        .code-block {
-            background: #000;
-            border: 1px solid var(--border-color);
-            color: var(--accent-green);
-            padding: 20px;
-            border-radius: 8px;
-            font-family: 'Fira Code', 'Courier New', monospace;
-            font-size: 0.9rem;
-        }
-        .footer {
-            background-color: #05070a;
-            border-top: 1px solid var(--border-color);
-            padding: 50px 0;
-            color: var(--text-muted);
-        }
-        .feature-item {
-            margin-bottom: 80px;
+            height: 4px;
+            background-color: var(--primary-green);
         }
     </style>
 </head>
 <body>
 
+    <!-- Header / Navbar -->
+    <nav class="navbar navbar-dark sticky-top">
+        <div class="container">
+            <a class="navbar-brand d-flex align-items-center" href="#">
+                <img src="img/icon.png" alt="Logo" width="30" height="30" class="d-inline-block align-text-top me-2">
+                <span class="fw-bold">PulseGuard AIoT</span>
+            </a>
+            <div class="d-flex">
+                <a href="#features" class="nav-link text-white me-3">功能特色</a>
+                <a href="#quickstart" class="nav-link text-white">快速開始</a>
+            </div>
+        </div>
+    </nav>
+
     <!-- Hero Section -->
     <header class="hero-section text-center">
         <div class="container">
-            <h1 class="display-3 mb-3">PulseGuard <span class="text-green">IoT</span></h1>
-            <p class="lead text-muted mb-5">下一代智慧健康監測解決方案：結合邊緣運算與時序分析</p>
-            <div class="d-flex justify-content-center gap-3">
-                <a href="#firmware" class="btn btn-cyan">探索技術</a>
-                <a href="#links" class="btn btn-outline-green">進入系統</a>
+            <h1 class="hero-title">PulseGuard AIoT</h1>
+            <p class="hero-subtitle mb-4">
+                基於 FreeRTOS 與 Streamlit 的雙軌制智慧心率血氧遠端監控系統
+                <span class="lang-en">A dual-track smart heart rate and SpO2 remote monitoring system based on FreeRTOS and Streamlit.</span>
+            </p>
+            <div class="d-grid gap-3 d-sm-flex justify-content-sm-center mb-5">
+                <a href="https://pulseguard-analytics.streamlit.app/" target="_blank" class="btn btn-primary btn-lg px-4">
+                    數據分析儀表板 <br>
+                    <small style="font-size: 0.6em; display: block; opacity: 0.8;">Analytics Dashboard</small>
+                </a>
+                <a href="https://chou1210.github.io/pulseguard-report/" target="_blank" class="btn btn-outline-info btn-lg px-4">
+                    歷史報告查閱 <br>
+                    <small style="font-size: 0.6em; display: block; opacity: 0.8;">Historical Reports</small>
+                </a>
+            </div>
+            <div class="mt-5">
+                <img src="img/hardware.jpg" alt="Hardware Setup" class="img-preview mb-4" style="max-height: 350px;">
             </div>
         </div>
     </header>
 
-    <main class="container py-5">
-
-        <!-- 1. 韌體端介紹 -->
-        <section id="firmware" class="feature-item">
-            <div class="row align-items-center g-5">
-                <div class="col-lg-6">
-                    <h2 class="mb-4">⚡ 韌體端：高效即時採樣</h2>
-                    <p class="text-muted">基於 <span class="text-cyan">ESP32</span> 雙核心架構，PulseGuard 韌體端實現了生理數據的精準採樣與即時處理：</p>
-                    <ul class="list-unstyled">
-                        <li class="mb-2">✅ <strong class="text-cyan">多核心任務分配</strong>：Core 0 處理 MQTT 網路通訊，Core 1 負責 MAX30102 高頻採樣。</li>
-                        <li class="mb-2">✅ <strong class="text-cyan">低功耗管理</strong>：內建 20 秒「手指脫離」自動休眠機制，配合物理按鍵喚醒。</li>
-                        <li class="mb-2">✅ <strong class="text-cyan">即時反饋系統</strong>：TFT 顯示波形，搭配三色 LED 與蜂鳴器實現生理狀態實時警報。</li>
-                    </ul>
-                    <div class="mt-4">
-                        <span class="tech-tag">FreeRTOS</span>
-                        <span class="tech-tag">I2C Protocol</span>
-                        <span class="tech-tag">Deep Sleep</span>
-                    </div>
-                </div>
-                <div class="col-lg-6">
-                    <div class="img-container shadow-lg">
-                        <img src="img/hardware.jpg" alt="PulseGuard Hardware" class="img-fluid">
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- 2. Python 後端介紹 -->
-        <section id="backend" class="feature-item">
-            <div class="row align-items-center g-5 flex-lg-row-reverse">
-                <div class="col-lg-6">
-                    <h2 class="mb-4">🐍 Python 後端：智慧數據分析</h2>
-                    <p class="text-muted">核心運算引擎負責將原始數據轉化為可臨床參考的健康洞察：</p>
-                    <ul class="list-unstyled">
-                        <li class="mb-2">✅ <strong class="text-green">EMA 平滑演算法</strong>：採用指數移動平均與 15 秒滑動視窗，有效抑制感測器雜訊與突發性抖動。</li>
-                        <li class="mb-2">✅ <strong class="text-green">雙軌制健康判定</strong>：整合即時生理門檻值與 Session 統計分析，區分「暫時波動」與「持續危險」。</li>
-                        <li class="mb-2">✅ <strong class="text-green">自動化 LINE 報告</strong>：量測完成後自動生成 Flex Message 報告，包含醫療建議備註。</li>
-                    </ul>
-                    <div class="mt-4">
-                        <span class="tech-tag">Paho-MQTT</span>
-                        <span class="tech-tag">NumPy</span>
-                        <span class="tech-tag">LINE Messaging API</span>
-                        <span class="tech-tag">MongoDB Atlas</span>
-                    </div>
-                </div>
-                <div class="col-lg-6">
-                    <div class="img-container shadow-lg">
-                        <img src="img/report.jpg" alt="LINE Report Example" class="img-fluid">
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- 3. Streamlit 分析端介紹 -->
-        <section id="analytics" class="feature-item">
-            <div class="row align-items-center g-5">
-                <div class="col-lg-6">
-                    <h2 class="mb-4">📊 Streamlit：多維度視覺化</h2>
-                    <p class="text-muted">為使用者與醫護人員設計的專業分析儀表板：</p>
-                    <ul class="list-unstyled">
-                        <li class="mb-2">✅ <strong class="text-cyan">時序趨勢追蹤</strong>：互動式圖表展示 BPM 與 SpO2 的每日平均、最大/最小值趨勢。</li>
-                        <li class="mb-2">✅ <strong class="text-cyan">異常事件回溯</strong>：自動過濾並歸檔 DANGER 與 WARNING 事件，支持 CSV 一鍵匯出。</li>
-                        <li class="mb-2">✅ <strong class="text-cyan">多語系支援</strong>：全介面支援中英文切換，並自動適配測試與正式環境。</li>
-                    </ul>
-                    <div class="mt-4">
-                        <span class="tech-tag">Plotly Express</span>
-                        <span class="tech-tag">AgGrid</span>
-                        <span class="tech-tag">Multi-Page Support</span>
-                    </div>
-                </div>
-                <div class="col-lg-6">
-                    <div class="code-block">
-                        <div class="mb-2 text-muted">// 智慧健康判定標準</div>
-                        <div>if <span class="text-cyan">raw_spo2</span> <= 90: return <span class="text-danger">"DANGER"</span></div>
-                        <div>if <span class="text-cyan">delta_bpm</span> >= 50: return <span class="text-danger">"DANGER"</span></div>
-                        <div>if <span class="text-cyan">ema_bpm</span> > 140: return <span class="text-danger">"DANGER"</span></div>
-                        <div class="mt-2 text-muted">// EMA 公式: α=0.3</div>
-                        <div>ema = 0.3 * current + 0.7 * previous_ema</div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Links Section -->
-        <section id="links" class="py-5">
-            <h2 class="section-title">系統入口 (System Portals)</h2>
-            <div class="row g-4">
-                <div class="col-md-6">
-                    <div class="card p-4 h-100 text-center">
-                        <h4 class="mb-3">🌐 Web Dashboard</h4>
-                        <p class="text-muted small mb-4">即時數據串流監控</p>
-                        <div class="d-grid gap-2">
-                            <a href="https://pulse-guard-iot.vercel.app?lang=zh" target="_blank" class="btn btn-cyan">正式環境入口</a>
-                            <a href="https://pulse-guard-iot.vercel.app/test?lang=zh" target="_blank" class="btn btn-outline-secondary">測試環境</a>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="card p-4 h-100 text-center">
-                        <h4 class="mb-3">📊 Streamlit Analytics</h4>
-                        <p class="text-muted small mb-4">長期生理趨勢分析</p>
-                        <div class="d-grid gap-2">
-                            <a href="https://huggingface.co/spaces/Chou1210/pulseguard-analytics?lang=zh" target="_blank" class="btn btn-outline-green">正式環境入口</a>
-                            <a href="https://huggingface.co/spaces/Chou1210/pulseguard-analytics?env=test&lang=zh" target="_blank" class="btn btn-outline-secondary">測試環境</a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-    </main>
-
-    <footer class="footer text-center">
+    <!-- Features Section -->
+    <section id="features" class="py-5">
         <div class="container">
-            <h5 class="text-cyan mb-4">PulseGuard IoT</h5>
-            <p class="mb-0 small">© 2024 Smart Health Monitoring System. All rights reserved.</p>
-            <p class="small mt-1">Built with <span class="text-green">Bootstrap 5.3.3</span> & <span class="text-cyan">Cyberpunk Aesthetics</span></p>
+            <h2 class="section-title">核心功能特色 <small class="lang-en">Core Features</small></h2>
+            <div class="row g-4">
+                <div class="col-md-6 col-lg-3">
+                    <div class="feature-card">
+                        <div class="feature-icon">📡</div>
+                        <h4>即時生理監測</h4>
+                        <p>利用 ESP32 與 MAX30102 感測器高頻採樣。
+                        <span class="lang-en">High-frequency sampling using ESP32 and MAX30102 sensor.</span></p>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-3">
+                    <div class="feature-card">
+                        <div class="feature-icon">⚙️</div>
+                        <h4>多核平行運算</h4>
+                        <p>FreeRTOS 雙核架構，分離採樣與網絡通訊。
+                        <span class="lang-en">Dual-core FreeRTOS architecture separating sensing and networking.</span></p>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-3">
+                    <div class="feature-card">
+                        <div class="feature-icon">🧠</div>
+                        <h4>智慧健康分析</h4>
+                        <p>EMA 平滑演算法與雙軌制異常判定邏輯。
+                        <span class="lang-en">EMA smoothing algorithm with dual-track health evaluation logic.</span></p>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-3">
+                    <div class="feature-card">
+                        <div class="feature-icon">📊</div>
+                        <h4>雲端視覺化</h4>
+                        <p>Streamlit 儀表板與 LINE 自動異常通報。
+                        <span class="lang-en">Streamlit dashboard with automated LINE alert notifications.</span></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Tech Stack Section -->
+    <section class="py-5 bg-opacity-10 bg-light">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-lg-6">
+                    <h2 class="section-title">技術棧 <small class="lang-en">Tech Stack</small></h2>
+                    <div class="mb-4">
+                        <h5 class="text-white">Firmware / Hardware</h5>
+                        <span class="tech-badge">C++ (Arduino)</span>
+                        <span class="tech-badge">FreeRTOS</span>
+                        <span class="tech-badge">ESP32</span>
+                        <span class="tech-badge">MAX30102</span>
+                        <span class="tech-badge">MQTT</span>
+                    </div>
+                    <div class="mb-4">
+                        <h5 class="text-white">Cloud / Backend</h5>
+                        <span class="tech-badge">Python 3.12</span>
+                        <span class="tech-badge">MongoDB Atlas</span>
+                        <span class="tech-badge">Paho MQTT</span>
+                        <span class="tech-badge">LINE Notify API</span>
+                    </div>
+                    <div class="mb-4">
+                        <h5 class="text-white">Frontend / Analytics</h5>
+                        <span class="tech-badge">Streamlit</span>
+                        <span class="tech-badge">Pandas</span>
+                        <span class="tech-badge">Plotly</span>
+                        <span class="tech-badge">Bootstrap 5</span>
+                    </div>
+                </div>
+                <div class="col-lg-6 text-center">
+                    <img src="img/report.jpg" alt="Analytics Report" class="img-preview" style="max-height: 400px;">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Quick Start Section -->
+    <section id="quickstart" class="py-5">
+        <div class="container">
+            <h2 class="section-title">快速開始 <small class="lang-en">Quick Start</small></h2>
+
+            <div class="mb-4">
+                <h5>1. 安裝環境與依賴項目 <small class="lang-en">Setup Environment & Dependencies</small></h5>
+                <div class="code-block">
+                    <div class="terminal-header">
+                        <div class="terminal-dot bg-danger"></div>
+                        <div class="terminal-dot bg-warning"></div>
+                        <div class="terminal-dot bg-success"></div>
+                        <span class="ms-2">bash</span>
+                    </div>
+                    <pre><code># 安裝後端與儀表板依賴
+pip install -r backend/requirements.txt -r analytics/requirements.txt</code></pre>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <h5>2. 啟動數據處理器與儀表板 <small class="lang-en">Run Stream Processor & Dashboard</small></h5>
+                <div class="code-block">
+                    <div class="terminal-header">
+                        <div class="terminal-dot bg-danger"></div>
+                        <div class="terminal-dot bg-warning"></div>
+                        <div class="terminal-dot bg-success"></div>
+                        <span class="ms-2">bash</span>
+                    </div>
+                    <pre><code># 終端機 A: 啟動 MQTT 數據流處理器 (負責保存至 MongoDB)
+python backend/stream_processor.py
+
+# 終端機 B: 啟動 Streamlit 視覺化儀表板
+streamlit run analytics/app.py</code></pre>
+                </div>
+            </div>
+
+            <div>
+                <h5>3. 生成測試模擬數據 <small class="lang-en">Generate Mock Data (Optional)</small></h5>
+                <div class="code-block">
+                    <div class="terminal-header">
+                        <div class="terminal-dot bg-danger"></div>
+                        <div class="terminal-dot bg-warning"></div>
+                        <div class="terminal-dot bg-success"></div>
+                        <span class="ms-2">bash</span>
+                    </div>
+                    <pre><code># 生成 6 個月的模擬歷史數據進行展示
+python backend/generate_mock_data.py</code></pre>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="text-center">
+        <div class="container">
+            <p>&copy; 2024 PulseGuard AIoT. All rights reserved.</p>
+            <p class="small">Built with 💚 for Medical IoT Security.</p>
         </div>
     </footer>
 
+    <!-- Local Bootstrap JS -->
     <script src="lib/bootstrap.bundle.min.js"></script>
 </body>
 </html>
