@@ -128,7 +128,12 @@ def on_message(client, userdata, msg):
             return
 
         # 核心防護邏輯：若感測器脫落 (OFF-CHIP) 或數值異常，直接忽略，不汙染 EMA 趨勢與資料庫
-        if not is_valid_bpm(raw_bpm) or not is_valid_spo2(raw_spo2) or device_status == "OFF-CHIP":
+        if device_status == "OFF-CHIP":
+            logger.warning(f"Sensor detachment detected (OFF-CHIP) from {data_source}. Ignoring data.")
+            return
+
+        if not is_valid_bpm(raw_bpm) or not is_valid_spo2(raw_spo2):
+            logger.warning(f"Invalid health data received ({raw_bpm} BPM, {raw_spo2}% SpO2). Filtering.")
             return
 
         # 5. 工作階段 (Session) 管理
