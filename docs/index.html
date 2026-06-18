@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PulseGuard AIoT | Smart Health Monitoring</title>
+    <link rel="icon" href="img/icon.png" type="image/png">
+    <link rel="stylesheet" href="lib/bootstrap.min.css">
+    <link rel="stylesheet" href="style.css">
+    <script src="lib/mermaid.min.js"></script>
+    <script>
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'dark',
+            securityLevel: 'loose',
+            fontFamily: 'Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif'
+        });
+    </script>
+</head>
+<body>
+
+    <!-- Navbar -->
+    <nav class="navbar navbar-dark sticky-top">
+        <div class="container">
+            <a class="navbar-brand d-flex align-items-center" href="#">
+                <img src="img/icon.png" alt="Logo" width="32" height="32" class="d-inline-block align-text-top me-2">
+                <span class="fw-bold">PulseGuard AIoT</span>
+            </a>
+            <div class="d-flex align-items-center">
+                <a href="#architecture" class="nav-link text-white me-3 d-none d-sm-block">
+                    <span class="en-hide">系統架構</span><span class="zh-hide">Architecture</span>
+                </a>
+                <a href="#features" class="nav-link text-white me-3 d-none d-sm-block">
+                    <span class="en-hide">核心技術</span><span class="zh-hide">Core Tech</span>
+                </a>
+                <a href="#hardware" class="nav-link text-white me-3 d-none d-sm-block">
+                    <span class="en-hide">硬體配置</span><span class="zh-hide">Hardware</span>
+                </a>
+                <a href="#portals" class="nav-link text-white me-3">
+                    <span class="en-hide">系統入口</span><span class="zh-hide">Portals</span>
+                </a>
+                <a id="langToggle" class="lang-toggle">
+                    <span class="en-hide">EN</span><span class="zh-hide">繁中</span>
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <header class="hero-section text-center">
+        <div class="container">
+            <h1 class="hero-title">PulseGuard AIoT</h1>
+            <p class="hero-subtitle mb-4">
+                <span class="zh-hide">A professional-grade remote health monitoring solution integrating ESP32, Python, and Streamlit. Features dual-core real-time scheduling, EMA stream processing, and intelligent health reporting.</span>
+                <span class="en-hide">整合 ESP32、Python 與 Streamlit 的專業級遠端健康監控解決方案。具備雙核即時調度、EMA 串流降噪與智慧化健康報告系統。</span>
+            </p>
+        </div>
+    </header>
+
+    <!-- Architecture Section -->
+    <section id="architecture" class="py-5">
+        <div class="container">
+            <div class="text-center mb-5">
+                <h2 class="section-title">
+                    <span class="zh-hide">System Architecture</span>
+                    <span class="en-hide">系統整體架構</span>
+                </h2>
+            </div>
+            <div class="portal-card p-4">
+                <!-- English Diagram -->
+                <div class="mermaid text-center zh-hide">
+graph TD
+    subgraph Edge_Device ["Edge Device - ESP32"]
+        E1["MAX30102 Sensor Sampling"]
+        E2["Finger Detection Check"]
+        E3["Edge Filtering & State Determination"]
+        E4["Real-time Feedback<br/>(LED/BUZZER/TFT)"]
+        E5["Send MQTT Data"]
+        E1 --> E2 --> E3 --> E4 --> E5
+    end
+
+    subgraph Cloud_Backend ["Cloud Backend - Python"]
+        B1["MQTT Subscription Center"]
+        B2["Session Lifecycle Management"]
+        B3["EMA Calculation"]
+        B4["DB Persistence Strategy"]
+        B1 --> B2 --> B3 --> B4
+    end
+
+    subgraph User_Interface ["User Interface"]
+        subgraph Real_time_UI ["Real-time Monitoring"]
+            U1["Web Dashboard (MQTT.js)"]
+        end
+
+        subgraph Analytics_UI ["Streamlit Dashboard"]
+            U2["Trend Charts"]
+            U3["Abnormal Log"]
+        end
+
+        U4["LINE Flex Message Notification"]
+    end
+
+    DB[("MongoDB Atlas")]
+
+    E5 -- "MQTT Protocol" --> B1
+    E5 -- "MQTT Protocol" --> U1
+    B4 -- "Write" --> DB
+    B4 -- "LINE Messaging API" --> U4
+    DB -- "Read" --> U2
+    DB -- "Read" --> U3
+
+    style Edge_Device fill:#00331a,stroke:#00E676,stroke-width:2px
+    style Cloud_Backend fill:#003333,stroke:#00E5FF,stroke-width:2px
+    style User_Interface fill:#1a1d23,stroke:#D1D5DB,stroke-width:2px
+    style DB fill:#1a1a1a,stroke:#4DB33D,stroke-width:2px
+                </div>
+                <!-- Chinese Diagram -->
+                <div class="mermaid text-center en-hide">
+graph TD
+    subgraph Edge_Device ["邊緣裝置 - ESP32"]
+        E1["MAX30102 感測器採樣"]
+        E2["手指偵測檢查"]
+        E3["邊緣濾波與狀態判定"]
+        E4["即時 LED/蜂鳴器/TFT 回饋"]
+        E5["發送 MQTT 資料"]
+        E1 --> E2 --> E3 --> E4 --> E5
+    end
+
+    subgraph Cloud_Backend ["雲端後端 - Python"]
+        B1["MQTT 訂閱中心"]
+        B2["會話生命週期管理"]
+        B3["EMA 指數降噪計算"]
+        B4["DB 寫入策略決策"]
+        B1 --> B2 --> B3 --> B4
+    end
+
+    subgraph User_Interface ["使用者介面"]
+        subgraph Real_time_UI ["即時監控"]
+            U1["即時網頁儀表板 (MQTT.js)"]
+        end
+
+        subgraph Analytics_UI ["Streamlit 儀表板"]
+            U2["趨勢圖表"]
+            U3["異常日誌"]
+        end
+
+        U4["LINE Flex Message 訊息通知"]
+    end
+
+    DB[("MongoDB Atlas")]
+
+    E5 -- "MQTT 協定" --> B1
+    E5 -- "MQTT 協定" --> U1
+    B4 -- "寫入" --> DB
+    B4 -- "LINE Messaging API" --> U4
+    DB -- "讀取" --> U2
+    DB -- "讀取" --> U3
+
+    style Edge_Device fill:#00331a,stroke:#00E676,stroke-width:2px
+    style Cloud_Backend fill:#003333,stroke:#00E5FF,stroke-width:2px
+    style User_Interface fill:#1a1d23,stroke:#D1D5DB,stroke-width:2px
+    style DB fill:#1a1a1a,stroke:#4DB33D,stroke-width:2px
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Detailed Themes -->
+    <section id="features" class="py-5">
+        <div class="container">
+            <div class="text-center mb-5">
+                <h2 class="section-title">
+                    <span class="zh-hide">Technical Deep Dive</span>
+                    <span class="en-hide">核心技術深度解析</span>
+                </h2>
+            </div>
+
+            <!-- Firmware -->
+            <div class="row g-5 align-items-center mb-5 pb-5">
+                <div class="col-lg-6">
+                    <div class="feature-icon-wrapper">📟</div>
+                    <h3 class="h2 fw-bold mb-4">
+                        <span class="zh-hide">1. Firmware: Dual-Core Real-time Scheduling & Power Optimization</span>
+                        <span class="en-hide">1. 韌體端：雙核即時調度與功耗優化</span>
+                    </h3>
+                    <p class="text-muted">
+                        <span class="zh-hide">Based on the ESP32 and FreeRTOS real-time operating system, the firmware adopts a dual-core thread isolation architecture to ensure physiological signal capture is free from network communication and peripheral latency.</span>
+                        <span class="en-hide">基於 ESP32 與 FreeRTOS 即時作業系統，採行雙核執行緒隔離架構，確保生理訊號捕捉不受網路通訊與周邊延遲干擾：</span>
+                    </p>
+                    <ul class="text-muted list-unstyled">
+                        <li class="mb-3">
+                            <strong><span class="zh-hide">Dual-Core Task Scheduling:</span><span class="en-hide">雙核任務調度：</span></strong>
+                            <span class="zh-hide">Core 1 is dedicated to high-frequency physiological signal sampling, dual filtering (DC/MA), dynamic TFT screen refresh, and button detection. Core 0 is independently responsible for Wi-Fi maintenance and TLS/SSL encrypted communication, utilizing thread-safe queues for inter-core data transmission.</span>
+                            <span class="en-hide">Core 1 專職執行高頻生理訊號採樣、雙重濾波（DC/MA）、TFT 螢幕動態刷新與按鍵偵測；Core 0 則獨立負責 Wi-Fi 連線維護與 TLS/SSL 加密通訊，並透過執行緒安全的佇列（Queue）進行雙核間的數據傳輸。</span>
+                        </li>
+                        <li class="mb-3">
+                            <strong><span class="zh-hide">Intelligent Measurement & Alarm Logic:</span><span class="en-hide">智慧量測與警報邏輯：</span></strong>
+                            <span class="zh-hide">Features a built-in 60-second measurement cycle with the first 5 seconds as the signal stabilization period. SpO2 is calculated using an empirical formula based on the R/IR ratio. The system implements a "Three-Level Dynamic Alarm" (Danger/Warning/Normal) based on SpO2 and heart rate, using non-blocking time-difference control for the buzzer throughout the system to prevent traditional delay-induced sampling stalls.</span>
+                            <span class="en-hide">系統內建 60 秒量測機制，前 5 秒為信號穩定收斂期。血氧採紅光與紅外光比值之經驗公式計算。系統依據血氧與心率指標實施「三級動態警報」（危險/警告/正常），並全機採用非阻塞式時間差控制蜂鳴器，避免傳統延遲卡死採樣。</span>
+                        </li>
+                        <li class="mb-3">
+                            <strong><span class="zh-hide">Power Saving & Robustness:</span><span class="en-hide">省電與防呆機制：</span></strong>
+                            <span class="zh-hide">Includes "Finger-off Detection" that resets the timer when no signal is detected. If the sensor remains idle for too long, the system automatically enters Deep Sleep to conserve power, supporting wake-up via button interrupt. The button also supports long-press reset, clearing system queues and sending a reset notification to the cloud via MQTT.</span>
+                            <span class="en-hide">具備「離手偵測」功能，當感測器無訊號時重置計時；若維持離手狀態過久，系統自動進入深層睡眠（Deep Sleep）以節省功耗，並支援按鍵中斷喚醒。此外，按鍵亦支援長按重置功能，同步清空系統佇列並對雲端 MQTT 發送重置通知。</span>
+                        </li>
+                    </ul>
+                </div>
+                <div class="col-lg-6 text-center">
+                    <div class="portal-card p-5">
+                         <div class="feature-icon-wrapper mx-auto mb-4" style="background: rgba(0, 230, 118, 0.1); color: var(--primary-green);">⚡</div>
+                         <h5 class="fw-bold mb-3">Edge Optimization</h5>
+                         <p class="small text-muted">Real-time processing directly on ESP32 silicon</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Backend -->
+            <div class="row g-5 align-items-center mb-5 pb-5 flex-lg-row-reverse">
+                <div class="col-lg-6">
+                    <div class="feature-icon-wrapper">🧠</div>
+                    <h3 class="h2 fw-bold mb-4">
+                        <span class="zh-hide">2. Backend: Stream Processing & Intelligent Analysis</span>
+                        <span class="en-hide">2. 後端：串流處理與智慧分析</span>
+                    </h3>
+                    <p class="text-muted">
+                        <span class="zh-hide">The Python backend serves as the system brain, responsible for receiving MQTT physiological data streams, performing real-time noise reduction, measurement lifecycle management, and multi-dimensional health assessment:</span>
+                        <span class="en-hide">Python 後端作為系統大腦，負責接收 MQTT 生理數據串流，進行即時降噪、量測生命週期管理與多維度健康狀態判定：</span>
+                    </p>
+                    <ul class="text-muted list-unstyled">
+                        <li class="mb-3">
+                            <strong><span class="zh-hide">Data Cleaning & Source Isolation:</span><span class="en-hide">資料清洗與來源隔離：</span></strong>
+                            <span class="zh-hide">Automatically distinguishes and labels Production and Test data via MQTT topics. Performs real-time integrity checks; if sensor detachment (OFF-CHIP) or invalid values are detected, data is discarded to avoid polluting the processing window.</span>
+                            <span class="en-hide">透過 MQTT Topic 自動區分並標記正式（Production）與測試（Test）數據。系統即時檢查數據完整性，若偵測到感測器脫落（OFF-CHIP）或數值不合法，將直接捨棄該筆資料，避免污染後續的運算視窗。</span>
+                        </li>
+                        <li class="mb-3">
+                            <strong><span class="zh-hide">EMA Noise Reduction & Analytics:</span><span class="en-hide">時序指標運算與 EMA 降噪：</span></strong>
+                            <span class="zh-hide">Combines MA and EMA for dual smoothing. Utilizes collections.deque(maxlen=15) for a 15-point window and applies a fixed weight (α = 0.3) for EMA to capture trends. Calculates the absolute difference (Delta) between current heart rate and window average for sudden abnormality analysis.</span>
+                            <span class="en-hide">結合滑動平均（MA）與指數移動平均（EMA）進行雙重平滑。利用 collections.deque(maxlen=15) 維持 15 筆時序視窗計算平均值，並採用固定權重（α = 0.3）計算 EMA 以捕捉長期趨勢。同步計算當前心率與視窗平均的絕對差值（Delta），作為突發異常的分析依據。</span>
+                        </li>
+                        <li class="mb-3">
+                            <strong><span class="zh-hide">Health Evaluation & Reporting:</span><span class="en-hide">雙軌制健康評估與報告生成：</span></strong>
+                            <span class="zh-hide">Integrates "Real-time Threshold Monitoring" and "Interval Trend Analysis" to differentiate transient anomalies from long-term risks. Automatically generates structured LINE Flex Message reports at the end of a session (Production only).</span>
+                            <span class="en-hide">結合「單點即時閾值監控」與「區間趨勢統計分析」，精準區分短暫的突發性異常與長期的持續性風險。於動態量測生命週期（Session）結束時，系統自動將評估結果轉譯為專業的 LINE Flex Message 結構化報告，即時推送至使用者手機（僅限正式環境）。</span>
+                        </li>
+                        <li class="mb-3">
+                            <strong><span class="zh-hide">Intelligent DB Persistence Strategy:</span><span class="en-hide">智慧型資料庫持久化策略：</span></strong>
+                            <span class="zh-hide">Balances real-time alerts and MongoDB write load via event-driven and heartbeat strategies. Writes data on "First valid data," "DANGER status," "State transition," or "20-second interval." Includes fault tolerance with automatic retries if disconnected.</span>
+                            <span class="en-hide">為平衡即時警報需求並降低 MongoDB 寫入壓力，系統採事件驅動結合定時心跳策略。僅在「首筆有效資料」、「危險狀態（DANGER）」、「狀態轉換」或「間隔滿 20 秒」時執行寫入。具備斷線容錯機制，寫入成功後才更新狀態指標，若斷線則於下一秒自動重試，確保數據不漏失。</span>
+                        </li>
+                        <li class="mb-3">
+                            <strong><span class="zh-hide">Dynamic Session Management:</span><span class="en-hide">動態生命週期（Session）管理：</span></strong>
+                            <span class="zh-hide">Generates unique UUIDs upon first valid data. COMPLETED status triggers reporting and cache clearing. Hardware RESET marks interruptions in the database and resets all session states.</span>
+                            <span class="en-hide">收到首筆有效數據時動態生成 UUID 唯一識別碼。當量測正常結束（COMPLETED）時，觸發報告模組並清空全域快取；若接收到硬體端長按觸發的系統重置（RESET），則於資料庫標記異常中斷，並同步完成快取清空與狀態重置。</span>
+                        </li>
+                    </ul>
+                </div>
+                <div class="col-lg-6 text-center">
+                    <div class="portal-card p-5">
+                         <div class="feature-icon-wrapper mx-auto mb-4" style="background: rgba(187, 134, 252, 0.1); color: #BB86FC;">🧪</div>
+                         <h5 class="fw-bold mb-3">Intelligent Backend</h5>
+                         <p class="small text-muted">Advanced signal processing and automated reporting</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Analytics -->
+            <div class="row g-5 align-items-center mb-5 pb-5">
+                <div class="col-lg-6">
+                    <div class="feature-icon-wrapper">📊</div>
+                    <h3 class="h2 fw-bold mb-4">
+                        <span class="zh-hide">3. Analytics: Data Visualization & Insights</span>
+                        <span class="en-hide">3. 分析端：數據視覺化與洞察</span>
+                    </h3>
+                    <p class="text-muted">
+                        <span class="zh-hide">The Streamlit-based dashboard provides a powerful interface for reviewing historical trends and system performance:</span>
+                        <span class="en-hide">基於 Streamlit 的分析看板為使用者與開發者提供了強大的介面，用於回溯歷史趨勢與系統表現：</span>
+                    </p>
+                    <ul class="text-muted list-unstyled">
+                        <li class="mb-3">
+                            <strong><span class="zh-hide">Multi-Environment & i18n Support:</span><span class="en-hide">多環境與雙語系切換：</span></strong>
+                            <span class="zh-hide">Supports dynamic environment switching (?env=test) and full i18n support for Traditional Chinese and English via URL parameters.</span>
+                            <span class="en-hide">支援 URL 動態參數解析，可透過 ?env=test 無縫切換資料庫來源以隔離測試數據；同步整合 i18n 模組，支援經由 ?lang= 參數動態切換介面。</span>
+                        </li>
+                        <li class="mb-3">
+                            <strong><span class="zh-hide">High-Availability DB Integration:</span><span class="en-hide">高可用資料庫整合與容錯：</span></strong>
+                            <span class="zh-hide">Features built-in automatic degradation; redirects to Mock Data if MongoDB is unreachable, ensuring UI availability.</span>
+                            <span class="en-hide">透過 pymongo 連接 MongoDB 叢集。內建自動降級與容錯機制，若遇資料庫連線失敗，系統將導向「模擬測試數據（Mock Data）」，確保前端 UI 高可用性。</span>
+                        </li>
+                        <li class="mb-3">
+                            <strong><span class="zh-hide">Multi-Dimensional Aggregation:</span><span class="en-hide">多維度資料預處理與聚合：</span></strong>
+                            <span class="zh-hide">Implements dual logic: daily summaries for long-term trends and hourly deduplication prioritizing critical events (DANGER > WARNING > NORMAL).</span>
+                            <span class="en-hide">設計雙重聚合邏輯，按日統計心率極值與血氧最低值走勢；並按小時去重，依嚴重程度優先級（DANGER > WARNING > NORMAL）保留關鍵事件。</span>
+                        </li>
+                        <li class="mb-3">
+                            <strong><span class="zh-hide">Interactive Time-Series Charts:</span><span class="en-hide">時序指標監控與雙軸圖表：</span></strong>
+                            <span class="zh-hide">Leverages Plotly for multi-axis physiological trend charts, including 90% SpO2 danger baselines and health status distribution.</span>
+                            <span class="en-hide">整合 Plotly 繪製多軸生理趨勢圖，將心率區間以填充色呈現，並標記 90% 血氧危險紅線。另搭配圓餅圖直觀呈現健康狀態佔比。</span>
+                        </li>
+                        <li class="mb-3">
+                            <strong><span class="zh-hide">Advanced Log Rendering:</span><span class="en-hide">進階異常日誌檢索與渲染：</span></strong>
+                            <span class="zh-hide">Utilizes st_aggrid with dynamic conditional rendering via JavaScript to highlight high-risk events (DANGER/WARNING).</span>
+                            <span class="en-hide">導入 st_aggrid 元件。透過注入 JavaScript 實作動態條件渲染，根據健康狀態（DANGER / WARNING）即時改變背景顏色。</span>
+                        </li>
+                    </ul>
+                </div>
+                <div class="col-lg-6 text-center">
+                    <div class="portal-card p-5">
+                         <div class="feature-icon-wrapper mx-auto mb-4" style="background: rgba(0, 229, 255, 0.1); color: var(--accent-cyan);">📈</div>
+                         <h5 class="fw-bold mb-3">Data Intelligence</h5>
+                         <p class="small text-muted">Transforming raw signals into medical insights</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Hardware Section -->
+    <section id="hardware" class="py-5 bg-dark-section">
+        <div class="container">
+            <div class="text-center mb-5">
+                <h2 class="section-title">
+                    <span class="zh-hide">Hardware Configuration</span>
+                    <span class="en-hide">硬體腳位配置</span>
+                </h2>
+            </div>
+
+            <div class="row g-4 mb-5">
+                <div class="col-lg-6">
+                    <div class="pinout-container h-100">
+                        <h4 class="mb-4 fw-bold">
+                            <span class="zh-hide">TFT Display</span><span class="en-hide">TFT 腳位</span>
+                        </h4>
+                        <table class="pinout-table">
+                            <thead>
+                                <tr>
+                                    <th><span class="zh-hide">TFT Pin</span><span class="en-hide">TFT 腳位</span></th>
+                                    <th><span class="zh-hide">ESP32 Pin</span><span class="en-hide">ESP32 腳位</span></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr><td>LED</td><td>GPIO 4</td></tr>
+                                <tr><td>SCK / SCL</td><td>GPIO 18</td></tr>
+                                <tr><td>SDA / MOSI</td><td>GPIO 23</td></tr>
+                                <tr><td>A0 / DC</td><td>GPIO 16</td></tr>
+                                <tr><td>RESET (RST)</td><td>GPIO 17</td></tr>
+                                <tr><td>CS</td><td>GPIO 5</td></tr>
+                                <tr><td>GND</td><td>GND</td></tr>
+                                <tr><td>VCC</td><td>5V</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="col-lg-6">
+                    <div class="h-100 d-flex align-items-center justify-content-center">
+                        <img src="img/hardware.jpg" alt="Hardware Setup" class="img-preview" style="max-height: 400px; width: auto;">
+                    </div>
+                </div>
+            </div>
+
+            <div class="row g-4">
+                <!-- MAX30102 Card -->
+                <div class="col-md-4">
+                    <div class="pinout-container h-100">
+                        <h4 class="mb-4 fw-bold text-center">
+                            <span class="zh-hide">MAX30102 Sensor</span><span class="en-hide">MAX30102 腳位</span>
+                        </h4>
+                        <table class="pinout-table">
+                            <thead>
+                                <tr>
+                                    <th><span class="zh-hide">Sensor Pin</span><span class="en-hide">MAX30102 腳位</span></th>
+                                    <th><span class="zh-hide">ESP32 Pin</span><span class="en-hide">ESP32 腳位</span></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr><td>VIN</td><td>3.3V</td></tr>
+                                <tr><td>SDA</td><td>GPIO 21</td></tr>
+                                <tr><td>SCL</td><td>GPIO 22</td></tr>
+                                <tr><td>GND</td><td>GND</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <!-- BUTTON Card -->
+                <div class="col-md-4">
+                    <div class="pinout-container h-100">
+                        <h4 class="mb-4 fw-bold text-center">
+                            <span class="zh-hide">Control Button</span><span class="en-hide">BUTTON 腳位</span>
+                        </h4>
+                        <table class="pinout-table">
+                            <thead>
+                                <tr>
+                                    <th><span class="zh-hide">Signal</span><span class="en-hide">訊號語意</span></th>
+                                    <th><span class="zh-hide">ESP32 Pin</span><span class="en-hide">ESP32 腳位</span></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr><td>OUT / SIGNAL</td><td>GPIO 15</td></tr>
+                                <tr><td>GND</td><td>GND</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <!-- BUZZER Card -->
+                <div class="col-md-4">
+                    <div class="pinout-container h-100">
+                        <h4 class="mb-4 fw-bold text-center">
+                            <span class="zh-hide">Buzzer</span><span class="en-hide">BUZZER 腳位</span>
+                        </h4>
+                        <table class="pinout-table">
+                            <thead>
+                                <tr>
+                                    <th><span class="zh-hide">Buzzer Pin</span><span class="en-hide">BUZZER 腳位</span></th>
+                                    <th><span class="zh-hide">ESP32 Pin</span><span class="en-hide">ESP32 腳位</span></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr><td>+ (Positive)</td><td>GPIO 19</td></tr>
+                                <tr><td>- (GND)</td><td>GND</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+
+    <!-- Portals -->
+    <section id="portals" class="py-5 bg-dark-section">
+        <div class="container text-center">
+            <h2 class="section-title">
+                <span class="zh-hide">System Portals</span>
+                <span class="en-hide">系統入口</span>
+            </h2>
+            <div class="row g-4 justify-content-center mt-2">
+                <div class="col-md-5">
+                    <div class="portal-card p-5 h-100 d-flex flex-column">
+                        <h3 class="h4 fw-bold mb-3">
+                            <span class="zh-hide">Real-time Dashboard</span>
+                            <span class="en-hide">即時監控儀表板</span>
+                        </h3>
+                        <p class="text-muted mb-4 flex-grow-1">
+                            <span class="zh-hide">Experience low-latency physiological data monitoring via WebSocket and MQTT.js.</span>
+                            <span class="en-hide">透過 MQTT.js 與 WebSocket 技術，體驗秒級延遲的生理數據即時監控。</span>
+                        </p>
+                        <div class="portal-actions">
+                            <a href="https://pulse-guard-iot.vercel.app" target="_blank" class="btn btn-primary-custom btn-portal w-100 mb-3 portal-link" data-base="https://pulse-guard-iot.vercel.app/">
+                                <span class="zh-hide">Launch Production</span><span class="en-hide">啟動正式環境</span>
+                            </a>
+                            <a href="https://pulse-guard-iot.vercel.app/test" target="_blank" class="btn btn-outline-custom btn-portal w-100 portal-link" data-base="https://pulse-guard-iot.vercel.app/test">
+                                <span class="zh-hide">Enter Test Environment</span><span class="en-hide">進入測試環境</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-5">
+                    <div class="portal-card p-5 h-100 d-flex flex-column">
+                        <h3 class="h4 fw-bold mb-3">
+                            <span class="zh-hide">Analytics Dashboard</span>
+                            <span class="en-hide">數據分析儀表板</span>
+                        </h3>
+                        <p class="text-muted mb-4 flex-grow-1">
+                            <span class="zh-hide">Deep dive into historical EMA trends and clinical KPI reports powered by Streamlit.</span>
+                            <span class="en-hide">利用 Streamlit 深入分析歷史 EMA 趨勢與臨床 KPI 健康報告。</span>
+                        </p>
+                        <div class="portal-actions">
+                            <a href="https://huggingface.co/spaces/Chou1210/pulseguard-analytics" target="_blank" class="btn btn-primary-custom btn-portal w-100 mb-3 portal-link" data-base="https://huggingface.co/spaces/Chou1210/pulseguard-analytics">
+                                <span class="zh-hide">Launch Production</span><span class="en-hide">啟動正式環境</span>
+                            </a>
+                            <a href="https://huggingface.co/spaces/Chou1210/pulseguard-analytics?env=test" target="_blank" class="btn btn-outline-custom btn-portal w-100 portal-link" data-base="https://huggingface.co/spaces/Chou1210/pulseguard-analytics" data-env="test">
+                                <span class="zh-hide">Enter Test Environment</span><span class="en-hide">進入測試環境</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="text-center">
+        <div class="container">
+            <p class="mb-1 fw-bold text-white">&copy; 2026 PulseGuard AIoT Project. All rights reserved.</p>
+            <p class="small">Smart Healthcare & IoT Security Solution</p>
+        </div>
+    </footer>
+
+    <script src="lib/bootstrap.bundle.min.js"></script>
+    <script>
+        const langToggle = document.getElementById('langToggle');
+        const urlParams = new URLSearchParams(window.location.search);
+        const currentLang = urlParams.get('lang') === 'zh' ? 'zh' : 'en';
+
+        function setLanguage(lang) {
+            document.documentElement.setAttribute('lang', lang);
+            if (lang === 'zh') {
+                document.title = "PulseGuard AIoT | 智慧健康監控";
+            } else {
+                document.title = "PulseGuard AIoT | Smart Health Monitoring";
+            }
+            updatePortalLinks(lang);
+        }
+
+        function updatePortalLinks(lang) {
+            const links = document.querySelectorAll('.portal-link');
+            links.forEach(link => {
+                const base = link.getAttribute('data-base');
+                const env = link.getAttribute('data-env');
+                let newHref = base;
+
+                // Use URL object to handle existing query params in data-base
+                const url = new URL(base);
+
+                if (env) url.searchParams.set('env', env);
+                if (lang === 'zh') url.searchParams.set('lang', 'zh');
+                else url.searchParams.delete('lang');
+
+                link.href = url.toString();
+            });
+        }
+
+        // Initialize
+        setLanguage(currentLang);
+
+        langToggle.addEventListener('click', () => {
+            const isZh = document.documentElement.getAttribute('lang') === 'zh';
+            const newLang = isZh ? 'en' : 'zh';
+
+            const newUrl = new URL(window.location);
+            if (newLang === 'zh') {
+                newUrl.searchParams.set('lang', 'zh');
+            } else {
+                newUrl.searchParams.delete('lang');
+            }
+            window.location.href = newUrl.toString();
+        });
+    </script>
+</body>
+</html>
