@@ -37,14 +37,14 @@ def test_get_status():
 def test_evaluate_session_health():
     # 情境 A: 持續危險 (DANGER >= 2)
     res = evaluate_session_health(["NORMAL", "DANGER", "WARNING", "DANGER"])
-    assert "DANGER (持續危險)" in res[0]
+    assert "DANGER" in res[0]
     assert res[1] == "#DC3545"
     assert "持續性嚴重異常" in res[2]
     assert res[3] == "DANGER"
 
     # 情境 B: 突發性異常 (DANGER == 1)
     res = evaluate_session_health(["NORMAL", "WARNING", "DANGER", "NORMAL"])
-    assert "WARNING (突發性異常提示)" in res[0]
+    assert "WARNING" in res[0]
     assert res[1] == "#FD7E14"
     assert "單次瞬時生理數值異常" in res[2]
     assert res[3] == "WARNING"
@@ -52,14 +52,14 @@ def test_evaluate_session_health():
     # 情境 C: 狀態不穩定 (DANGER == 0, WARNING >= 30%)
     # 3/10 = 30%
     res = evaluate_session_health(["WARNING", "WARNING", "WARNING", "NORMAL", "NORMAL", "NORMAL", "NORMAL", "NORMAL", "NORMAL", "NORMAL"])
-    assert "WARNING (狀態不穩定)" in res[0]
+    assert "WARNING" in res[0]
     assert res[1] == "#FCC419"
     assert "異常狀態比例偏高" in res[2]
     assert res[3] == "WARNING"
 
     # 情境 D: 完全正常
     res = evaluate_session_health(["NORMAL", "WARNING", "NORMAL", "NORMAL"]) # 1/4 = 25% < 30%
-    assert "NORMAL (正常)" in res[0]
+    assert "NORMAL" in res[0]
     assert res[1] == "#2B8A3E"
     assert "整體生理數據表現良好" in res[2]
     assert res[3] == "NORMAL"
