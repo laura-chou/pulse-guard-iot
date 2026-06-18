@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PulseGuard AIoT | 智慧健康監控系統</title>
     <link rel="icon" href="img/icon.png" type="image/png">
-    <!-- Local Bootstrap CSS -->
+    <!-- 本地 Bootstrap CSS -->
     <link rel="stylesheet" href="lib/bootstrap.min.css">
     <style>
         :root {
@@ -33,29 +33,29 @@
         }
 
         .hero-section {
-            padding: 120px 0 80px;
-            background: radial-gradient(circle at 50% 30%, rgba(0, 230, 118, 0.08), transparent);
+            padding: 140px 0 100px;
+            background: radial-gradient(circle at 50% 30%, rgba(0, 230, 118, 0.1), transparent);
         }
 
         .hero-title {
-            font-size: 3.8rem;
+            font-size: clamp(2.5rem, 8vw, 4.5rem);
             font-weight: 800;
             background: linear-gradient(45deg, var(--primary-green), var(--accent-cyan));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             margin-bottom: 1.5rem;
-            letter-spacing: -1px;
+            letter-spacing: -2px;
         }
 
         .hero-subtitle {
-            font-size: 1.4rem;
+            font-size: clamp(1.1rem, 3vw, 1.4rem);
             color: var(--text-muted);
-            max-width: 800px;
+            max-width: 850px;
             margin: 0 auto;
         }
 
         .section-title {
-            margin-bottom: 50px;
+            margin-bottom: 60px;
             font-weight: 700;
             position: relative;
             padding-bottom: 15px;
@@ -68,7 +68,7 @@
             bottom: 0;
             left: 50%;
             transform: translateX(-50%);
-            width: 50px;
+            width: 60px;
             height: 4px;
             background-color: var(--primary-green);
             border-radius: 2px;
@@ -77,60 +77,68 @@
         .feature-box {
             background-color: var(--card-bg);
             border: 1px solid var(--border-color);
-            border-radius: 16px;
+            border-radius: 20px;
             padding: 40px;
             height: 100%;
-            transition: all 0.3s ease;
+            transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+            position: relative;
+            overflow: hidden;
         }
 
         .feature-box:hover {
             border-color: var(--primary-green);
-            box-shadow: 0 0 20px rgba(0, 230, 118, 0.1);
+            transform: translateY(-10px);
+            box-shadow: 0 20px 40px rgba(0, 230, 118, 0.1);
         }
 
         .feature-icon-wrapper {
-            width: 60px;
-            height: 60px;
+            width: 64px;
+            height: 64px;
             background-color: rgba(0, 230, 118, 0.1);
-            border-radius: 12px;
+            border-radius: 16px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.8rem;
-            margin-bottom: 25px;
+            font-size: 2rem;
+            margin-bottom: 30px;
             color: var(--primary-green);
         }
 
         .portal-card {
             background: linear-gradient(145deg, #1A1D23, #111418);
             border: 1px solid var(--border-color);
-            border-radius: 20px;
+            border-radius: 24px;
             overflow: hidden;
-            transition: transform 0.3s ease;
+            transition: all 0.3s ease;
         }
 
         .portal-card:hover {
-            transform: scale(1.02);
             border-color: var(--accent-cyan);
+            box-shadow: 0 10px 30px rgba(0, 229, 255, 0.1);
         }
 
         .tech-badge {
             background-color: #21262D;
             border: 1px solid var(--border-color);
             color: var(--accent-cyan);
-            padding: 8px 16px;
-            border-radius: 8px;
-            margin: 5px;
+            padding: 10px 18px;
+            border-radius: 10px;
+            margin: 6px;
             display: inline-block;
-            font-size: 0.85rem;
+            font-size: 0.9rem;
             font-weight: 500;
         }
 
         .img-preview {
-            border-radius: 16px;
+            border-radius: 20px;
             border: 1px solid var(--border-color);
-            box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+            box-shadow: 0 30px 60px rgba(0,0,0,0.7);
             max-width: 100%;
+            transition: transform 0.5s ease;
+        }
+
+        .img-preview:hover {
+            transform: scale(1.02);
         }
 
         .lang-label {
@@ -138,23 +146,25 @@
             font-size: 0.85rem;
             color: var(--text-muted);
             margin-top: 5px;
+            font-weight: 400;
         }
 
         footer {
-            padding: 60px 0;
+            padding: 80px 0 40px;
             border-top: 1px solid var(--border-color);
             color: var(--text-muted);
         }
 
         .btn-portal {
-            padding: 12px 20px;
+            padding: 14px 24px;
             font-weight: 600;
-            border-radius: 10px;
+            border-radius: 12px;
             transition: all 0.3s ease;
-            margin-bottom: 10px;
+            margin-bottom: 12px;
             display: inline-block;
             text-decoration: none;
             width: 100%;
+            text-align: center;
         }
 
         .btn-primary-custom {
@@ -167,6 +177,7 @@
             background-color: #00C853;
             transform: translateY(-2px);
             color: #000;
+            box-shadow: 0 5px 15px rgba(0, 230, 118, 0.3);
         }
 
         .btn-outline-custom {
@@ -192,15 +203,41 @@
             color: var(--text-main);
             transform: translateY(-2px);
         }
+
+        .tech-section-header {
+            color: var(--primary-green);
+            font-weight: 700;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+        }
+
+        .tech-section-header::before {
+            content: '';
+            width: 4px;
+            height: 24px;
+            background: var(--primary-green);
+            margin-right: 12px;
+            border-radius: 2px;
+        }
+
+        @media (max-width: 768px) {
+            .hero-section {
+                padding: 100px 0 60px;
+            }
+            .feature-box {
+                padding: 30px;
+            }
+        }
     </style>
 </head>
 <body>
 
-    <!-- Navbar -->
+    <!-- 導覽列 Navbar -->
     <nav class="navbar navbar-dark sticky-top">
         <div class="container">
             <a class="navbar-brand d-flex align-items-center" href="#">
-                <img src="img/icon.png" alt="Logo" width="30" height="30" class="d-inline-block align-text-top me-2">
+                <img src="img/icon.png" alt="Logo" width="32" height="32" class="d-inline-block align-text-top me-2">
                 <span class="fw-bold">PulseGuard AIoT</span>
             </a>
             <div class="d-flex">
@@ -211,7 +248,7 @@
         </div>
     </nav>
 
-    <!-- Hero Section -->
+    <!-- 主視覺 Hero Section -->
     <header class="hero-section text-center">
         <div class="container">
             <h1 class="hero-title">PulseGuard AIoT</h1>
@@ -219,53 +256,53 @@
                 整合 ESP32、Python 與 Streamlit 的全方位遠端健康監控解決方案，提供即時生理數據採樣與智慧化分析。
                 <span class="lang-label">A comprehensive remote health monitoring solution integrating ESP32, Python, and Streamlit.</span>
             </p>
-            <div class="mt-4">
-                <img src="img/hardware.jpg" alt="Hardware Setup" class="img-preview" style="max-height: 400px;">
+            <div class="mt-5">
+                <img src="img/hardware.jpg" alt="Hardware Setup" class="img-preview" style="max-height: 450px; width: auto;">
             </div>
         </div>
     </header>
 
-    <!-- Core Features Section -->
+    <!-- 核心特色 Core Features -->
     <section id="features" class="py-5">
         <div class="container text-center">
             <h2 class="section-title">核心功能特色 <small class="lang-label">Core Features</small></h2>
             <div class="row g-4 mt-2">
-                <!-- Firmware -->
+                <!-- 韌體端 -->
                 <div class="col-lg-4">
                     <div class="feature-box text-start">
                         <div class="feature-icon-wrapper">📟</div>
-                        <h3>韌體端：高效即時採樣</h3>
+                        <h3 class="h4 fw-bold">韌體端：高效即時採樣</h3>
                         <p class="text-muted">基於 FreeRTOS 雙核架構，在 Core 1 進行高頻感測器採樣，並透過 Core 0 處理 MQTT 異步通訊。</p>
-                        <ul class="small text-muted">
-                            <li>25Hz 高頻生理數據採樣</li>
+                        <ul class="small text-muted ps-3">
+                            <li>25Hz 高頻生理數據採樣 (MAX30102)</li>
                             <li>FreeRTOS 任務優先級管理</li>
-                            <li>省電模式與低功耗藍牙支援</li>
+                            <li>自動化省電模式與低功耗運行</li>
                         </ul>
                     </div>
                 </div>
-                <!-- Backend -->
+                <!-- 後端分析 -->
                 <div class="col-lg-4">
                     <div class="feature-box text-start">
                         <div class="feature-icon-wrapper">🐍</div>
-                        <h3>Python 後端：智慧數據分析</h3>
-                        <p class="text-muted">採用 Python 異步處理技術，結合 EMA 平滑演算法與雙軌制評估邏輯，過濾雜訊並判斷健康趨勢。</p>
-                        <ul class="small text-muted">
+                        <h3 class="h4 fw-bold">Python 後端：智慧數據分析</h3>
+                        <p class="text-muted">採用 Python 異步處理技術，結合 EMA 平滑演算法與雙軌制評估邏輯，過濾雜訊並精準判斷健康趨勢。</p>
+                        <ul class="small text-muted ps-3">
                             <li>EMA 指數加權移動平均演算法</li>
-                            <li>MongoDB 雲端數據存儲</li>
-                            <li>LINE Notify 即時異常推播</li>
+                            <li>MongoDB 雲端大數據存儲與查詢</li>
+                            <li>LINE Notify 即時健康異常警示</li>
                         </ul>
                     </div>
                 </div>
-                <!-- Streamlit -->
+                <!-- 視覺化 -->
                 <div class="col-lg-4">
                     <div class="feature-box text-start">
                         <div class="feature-icon-wrapper">📊</div>
-                        <h3>Streamlit：多維度視覺化</h3>
-                        <p class="text-muted">打造專業級數據儀表板，將繁瑣的生理紀錄轉化為直觀的圖表，並提供歷史報告匯出功能。</p>
-                        <ul class="small text-muted">
-                            <li>動態趨勢圖與 KPI 監控器</li>
+                        <h3 class="h4 fw-bold">Streamlit：多維度視覺化</h3>
+                        <p class="text-muted">打造專業級數據儀表板，將生理紀錄轉化為直觀圖表，並提供多語系支援與歷史報告匯出。</p>
+                        <ul class="small text-muted ps-3">
+                            <li>動態即時趨勢圖與 KPI 監控看板</li>
                             <li>跨平台 RWD 回應式網頁設計</li>
-                            <li>多語系（中/英）顯示介面</li>
+                            <li>多語系（中/英）一鍵切換介面</li>
                         </ul>
                     </div>
                 </div>
@@ -273,60 +310,62 @@
         </div>
     </section>
 
-    <!-- Tech Stack Section -->
-    <section id="tech" class="py-5">
+    <!-- 技術棧 Tech Stack -->
+    <section id="tech" class="py-5 bg-dark-section">
         <div class="container text-center">
             <h2 class="section-title">技術棧 <small class="lang-label">Tech Stack</small></h2>
             <div class="row align-items-center mt-4">
                 <div class="col-lg-7 text-start">
                     <div class="mb-4">
-                        <h5 class="text-white border-start border-primary border-3 ps-3">韌體與硬體</h5>
-                        <div class="ms-3">
+                        <h5 class="tech-section-header">韌體與硬體 <small class="text-muted ms-2">Embedded</small></h5>
+                        <div class="ps-2">
                             <span class="tech-badge">C++ (Arduino)</span>
                             <span class="tech-badge">FreeRTOS</span>
-                            <span class="tech-badge">ESP32</span>
-                            <span class="tech-badge">MAX30102</span>
-                            <span class="tech-badge">MQTT</span>
+                            <span class="tech-badge">ESP32 Dual-Core</span>
+                            <span class="tech-badge">MAX30102 Sensor</span>
+                            <span class="tech-badge">MQTT Protocol</span>
                         </div>
                     </div>
                     <div class="mb-4">
-                        <h5 class="text-white border-start border-primary border-3 ps-3">雲端與後端</h5>
-                        <div class="ms-3">
+                        <h5 class="tech-section-header">雲端與後端 <small class="text-muted ms-2">Cloud & Backend</small></h5>
+                        <div class="ps-2">
                             <span class="tech-badge">Python 3.12</span>
                             <span class="tech-badge">MongoDB Atlas</span>
                             <span class="tech-badge">Paho MQTT</span>
                             <span class="tech-badge">LINE Notify API</span>
+                            <span class="tech-badge">Docker Ready</span>
                         </div>
                     </div>
                     <div class="mb-4">
-                        <h5 class="text-white border-start border-primary border-3 ps-3">前端與分析</h5>
-                        <div class="ms-3">
+                        <h5 class="tech-section-header">前端與分析 <small class="text-muted ms-2">Frontend & Data</small></h5>
+                        <div class="ps-2">
                             <span class="tech-badge">Streamlit</span>
                             <span class="tech-badge">Pandas</span>
                             <span class="tech-badge">Plotly</span>
                             <span class="tech-badge">Bootstrap 5</span>
+                            <span class="tech-badge">MQTT.js</span>
                         </div>
                     </div>
                 </div>
                 <div class="col-lg-5">
-                    <img src="img/report.jpg" alt="Report Preview" class="img-preview">
+                    <img src="img/report.jpg" alt="Analysis Report" class="img-preview">
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- System Portals Section -->
+    <!-- 系統入口 System Portals -->
     <section id="portals" class="py-5">
         <div class="container text-center">
             <h2 class="section-title">系統入口 <small class="lang-label">System Portals</small></h2>
             <div class="row g-4 justify-content-center mt-2">
-                <!-- Web Dashboard -->
+                <!-- 即時監控儀表板 -->
                 <div class="col-md-5">
                     <div class="portal-card p-5 h-100 d-flex flex-column">
-                        <h3 class="mb-3">即時監控儀表板</h3>
+                        <h3 class="h4 fw-bold mb-3">即時監控儀表板</h3>
                         <p class="text-muted mb-4 flex-grow-1">
                             透過 MQTT.js 與 WebSocket 技術，實現秒級延遲的生理數據即時監控介面。
-                            <span class="lang-label">Real-time physiological data monitoring with MQTT.js.</span>
+                            <span class="lang-label">Real-time physiological data monitoring with low latency.</span>
                         </p>
                         <div class="portal-actions">
                             <a href="https://pulse-guard-iot.vercel.app?lang=zh" target="_blank" class="btn btn-primary-custom btn-portal">
@@ -338,10 +377,10 @@
                         </div>
                     </div>
                 </div>
-                <!-- Analytics Dashboard -->
+                <!-- 數據分析儀表板 -->
                 <div class="col-md-5">
                     <div class="portal-card p-5 h-100 d-flex flex-column">
-                        <h3 class="mb-3">數據分析儀表板</h3>
+                        <h3 class="h4 fw-bold mb-3">數據分析儀表板</h3>
                         <p class="text-muted mb-4 flex-grow-1">
                             整合 MongoDB 歷史數據，提供 EMA 趨勢分析、KPI 統計與異常事件紀錄。
                             <span class="lang-label">Advanced analytics and historical trends powered by Streamlit.</span>
@@ -360,15 +399,15 @@
         </div>
     </section>
 
-    <!-- Footer -->
+    <!-- 頁尾 Footer -->
     <footer class="text-center">
         <div class="container">
-            <p>&copy; 2024 PulseGuard AIoT. All rights reserved.</p>
-            <p class="small">Built with 💚 for Medical IoT Security.</p>
+            <p class="mb-1">&copy; 2024 PulseGuard AIoT Project. All rights reserved.</p>
+            <p class="small">Designed for Smart Healthcare & IoT Security.</p>
         </div>
     </footer>
 
-    <!-- Local Bootstrap JS -->
+    <!-- 本地 Bootstrap JS -->
     <script src="lib/bootstrap.bundle.min.js"></script>
 </body>
 </html>
