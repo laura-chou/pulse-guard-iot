@@ -1,0 +1,279 @@
+:root {
+    --bg-color: #0E1117;
+    --card-bg: #1A1D23;
+    --primary-green: #00E676;
+    --accent-cyan: #00E5FF;
+    --text-main: #FFFFFF; /* Increased contrast from #E0E0E0 */
+    --text-muted: #B0B0B0; /* Increased contrast from #9E9E9E */
+    --border-color: #30363D;
+    --code-bg: #010409;
+}
+
+body {
+    background-color: var(--bg-color);
+    color: var(--text-main);
+    font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    line-height: 1.6;
+    scroll-behavior: smooth;
+}
+
+.navbar {
+    background-color: rgba(14, 17, 23, 0.95);
+    border-bottom: 1px solid var(--border-color);
+    backdrop-filter: blur(10px);
+}
+
+.hero-section {
+    padding: 140px 0 100px;
+    background: radial-gradient(circle at 50% 30%, rgba(0, 230, 118, 0.1), transparent);
+}
+
+.hero-title {
+    font-size: clamp(2.5rem, 8vw, 4.5rem);
+    font-weight: 800;
+    background: linear-gradient(45deg, var(--primary-green), var(--accent-cyan));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 1.5rem;
+    letter-spacing: -2px;
+}
+
+.hero-subtitle {
+    font-size: clamp(1.1rem, 3vw, 1.4rem);
+    color: var(--text-muted);
+    max-width: 850px;
+    margin: 0 auto;
+}
+
+.section-title {
+    margin-bottom: 60px;
+    font-weight: 700;
+    position: relative;
+    padding-bottom: 15px;
+    display: inline-block;
+    color: var(--text-main);
+}
+
+.section-title::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 60px;
+    height: 4px;
+    background-color: var(--primary-green);
+    border-radius: 2px;
+}
+
+.feature-box {
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+    padding: 40px;
+    height: 100%;
+    transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.feature-box:hover {
+    border-color: var(--primary-green);
+    transform: translateY(-10px);
+    box-shadow: 0 20px 40px rgba(0, 230, 118, 0.1);
+}
+
+.feature-icon-wrapper {
+    width: 64px;
+    height: 64px;
+    background-color: rgba(0, 230, 118, 0.1);
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    margin-bottom: 30px;
+    color: var(--primary-green);
+}
+
+.portal-card {
+    background: linear-gradient(145deg, #1A1D23, #111418);
+    border: 1px solid var(--border-color);
+    border-radius: 24px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.portal-card:hover {
+    border-color: var(--accent-cyan);
+    box-shadow: 0 10px 30px rgba(0, 229, 255, 0.1);
+}
+
+.tech-badge {
+    background-color: #21262D;
+    border: 1px solid var(--border-color);
+    color: var(--accent-cyan);
+    padding: 10px 18px;
+    border-radius: 10px;
+    margin: 6px;
+    display: inline-block;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.img-preview {
+    border-radius: 20px;
+    border: 1px solid var(--border-color);
+    box-shadow: 0 30px 60px rgba(0,0,0,0.7);
+    max-width: 100%;
+    transition: transform 0.5s ease;
+}
+
+.img-preview:hover {
+    transform: scale(1.02);
+}
+
+.lang-toggle {
+    cursor: pointer;
+    color: var(--text-main);
+    text-decoration: none;
+    font-weight: 600;
+    padding: 5px 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    font-size: 0.9rem;
+}
+
+.lang-toggle:hover {
+    border-color: var(--primary-green);
+    color: var(--primary-green);
+}
+
+footer {
+    padding: 80px 0 40px;
+    border-top: 1px solid var(--border-color);
+    color: var(--text-muted);
+}
+
+.btn-portal {
+    padding: 14px 24px;
+    font-weight: 600;
+    border-radius: 12px;
+    transition: all 0.3s ease;
+    margin-bottom: 12px;
+    display: inline-block;
+    text-decoration: none;
+    width: 100%;
+    text-align: center;
+}
+
+.btn-primary-custom {
+    background-color: var(--primary-green);
+    color: #000;
+    border: none;
+}
+
+.btn-primary-custom:hover {
+    background-color: #00C853;
+    transform: translateY(-2px);
+    color: #000;
+    box-shadow: 0 5px 15px rgba(0, 230, 118, 0.3);
+}
+
+.btn-outline-custom {
+    border: 1px solid var(--accent-cyan);
+    color: var(--accent-cyan);
+    background: transparent;
+}
+
+.btn-outline-custom:hover {
+    background-color: rgba(0, 229, 255, 0.1);
+    color: var(--accent-cyan);
+    transform: translateY(-2px);
+}
+
+.btn-test {
+    background-color: #21262D;
+    border: 1px solid var(--border-color);
+    color: var(--text-muted);
+}
+
+.btn-test:hover {
+    border-color: var(--text-muted);
+    color: var(--text-main);
+    transform: translateY(-2px);
+}
+
+.tech-section-header {
+    color: var(--primary-green);
+    font-weight: 700;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+}
+
+.tech-section-header::before {
+    content: '';
+    width: 4px;
+    height: 24px;
+    background: var(--primary-green);
+    margin-right: 12px;
+    border-radius: 2px;
+}
+
+/* Pinout Table Styles */
+.pinout-container {
+    background-color: var(--card-bg);
+    border-radius: 15px;
+    padding: 25px;
+    margin-bottom: 30px;
+    border: 1px solid var(--border-color);
+}
+
+.pinout-table {
+    width: 100%;
+    color: var(--text-main);
+    border-collapse: collapse;
+    margin-bottom: 0;
+}
+
+.pinout-table th {
+    background-color: #21262D;
+    color: var(--primary-green);
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.85rem;
+    letter-spacing: 0.5px;
+    border-bottom: 2px solid var(--border-color);
+}
+
+.pinout-table td, .pinout-table th {
+    padding: 12px 15px;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.pinout-table tr:last-child td {
+    border-bottom: none;
+}
+
+.pinout-table tr:hover {
+    background-color: rgba(255, 255, 255, 0.03);
+}
+
+[lang="zh"] .zh-hide,
+[lang="en"] .en-hide {
+    display: none !important;
+}
+
+@media (max-width: 768px) {
+    .hero-section {
+        padding: 100px 0 60px;
+    }
+    .feature-box {
+        padding: 30px;
+    }
+    .pinout-container {
+        padding: 15px;
+    }
+}
