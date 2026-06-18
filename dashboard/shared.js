@@ -20,16 +20,31 @@ export function initLang() {
 
 // Clinical Status Calculation Logic
 export function calculateStatus(bpm, spo2) {
-    let status = 'NORMAL';
-    // DANGER: SPO2 < 90% or BPM < 50 or BPM > 120
-    if (spo2 < 90 || bpm < 50 || bpm > 120) {
-        status = 'DANGER';
+    /**
+     * Hierarchical Waterfall Logic (Edge Version):
+     * 1. DANGER: Acute threshold breach (Instant alert)
+     * 2. NORMAL: Strict health baseline (Optimal range)
+     * 3. WARNING: Any value between Danger and Normal (Transition/Unstable)
+     *
+     * This eliminates "Dead Zones" where floating-point values (e.g., 90.5% SpO2)
+     * would previously incorrectly default to NORMAL.
+     */
+
+    // Tier 1: DANGER (Highest Priority)
+    // Note: 130 is used to allow Scenario D (125 BPM) to be WARNING on Edge while DANGER on Cloud (due to Delta)
+    if (spo2 <= 90 || bpm < 50 || bpm > 130) {
+        return 'DANGER';
     }
-    // WARNING: 90% ≤ SPO2 ≤ 94% or 50 ≤ BPM ≤ 59 or 101 ≤ BPM ≤ 120
-    else if ((spo2 >= 90 && spo2 <= 94) || (bpm >= 50 && bpm <= 59) || (bpm >= 101 && bpm <= 120)) {
-        status = 'WARNING';
+
+    // Tier 2: NORMAL (Strict Baseline)
+    // Values must fully meet these criteria to be considered "Optimal"
+    if (spo2 >= 95 && (bpm >= 60 && bpm <= 100)) {
+        return 'NORMAL';
     }
-    return status;
+
+    // Tier 3: WARNING (Fallback)
+    // Covers all transition zones: 90 < SpO2 < 95, 50 <= BPM < 60, 100 < BPM <= 130
+    return 'WARNING';
 }
 
 // Translation Helper
