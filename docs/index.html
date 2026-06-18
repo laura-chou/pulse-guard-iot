@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PulseGuard IoT | 智慧心率血氧監測系統</title>
+    <link rel="stylesheet" href="lib/bootstrap.min.css">
+    <style>
+        :root {
+            --primary-color: #0d6efd;
+            --secondary-color: #6c757d;
+            --dark-bg: #212529;
+            --light-bg: #f8f9fa;
+        }
+        body {
+            font-family: "Helvetica Neue", Arial, "Noto Sans TC", sans-serif;
+            line-height: 1.6;
+            color: #333;
+        }
+        .hero-section {
+            background: linear-gradient(135deg, #0d6efd 0%, #00d4ff 100%);
+            color: white;
+            padding: 80px 0;
+            margin-bottom: 50px;
+        }
+        .feature-icon {
+            font-size: 2.5rem;
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+        }
+        .tech-tag {
+            display: inline-block;
+            background: var(--light-bg);
+            border: 1px solid #dee2e6;
+            padding: 5px 15px;
+            border-radius: 20px;
+            margin: 5px;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+        .tech-tag:hover {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+        .code-block {
+            background: var(--dark-bg);
+            color: #f8f8f2;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'Courier New', Courier, monospace;
+            overflow-x: auto;
+            margin-top: 20px;
+        }
+        .card {
+            border: none;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            transition: transform 0.3s ease;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+        }
+        .footer {
+            background: var(--light-bg);
+            padding: 40px 0;
+            margin-top: 80px;
+            border-top: 1px solid #dee2e6;
+        }
+        .btn-outline-primary {
+            border-width: 2px;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Hero Section -->
+    <header class="hero-section text-center">
+        <div class="container">
+            <h1 class="display-4 fw-bold mb-3">PulseGuard IoT</h1>
+            <p class="lead mb-4">結合 IoT、雲端運算與時序分析的智慧心率血氧監控系統</p>
+            <div class="d-flex justify-content-center gap-3">
+                <a href="#links" class="btn btn-light btn-lg px-4">前往儀表板</a>
+                <a href="#features" class="btn btn-outline-light btn-lg px-4">查看特色</a>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <!-- Features Section -->
+        <section id="features" class="mb-5">
+            <h2 class="text-center mb-5 fw-bold">核心功能特色</h2>
+            <div class="row g-4 text-center">
+                <div class="col-md-4">
+                    <div class="card h-100 p-4">
+                        <div class="feature-icon">📊</div>
+                        <h3>實時監測與分析</h3>
+                        <p>透過 ESP32 與 MQTT 實現低延遲數據傳輸，後端導入 EMA (指數移動平均) 濾波演算法，精準判定生理健康狀態。</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card h-100 p-4">
+                        <div class="feature-icon">💬</div>
+                        <h3>LINE 自動化報告</h3>
+                        <p>量測結束後即時推播 LINE Flex Message，提供單次工作階段的生理指標統計、異常分析與醫療建議備註。</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card h-100 p-4">
+                        <div class="feature-icon">📈</div>
+                        <h3>深度的數據洞察</h3>
+                        <p>基於 Streamlit 的數據分析平台，提供長期健康趨勢視覺化、每週異常事件統計與歷史日誌追蹤。</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Tech Stack Section -->
+        <section id="tech-stack" class="py-5">
+            <h2 class="text-center mb-4 fw-bold">技術棧 (Tech Stack)</h2>
+            <div class="text-center">
+                <div class="mb-4">
+                    <h5 class="text-muted mb-3">Hardware & Communication</h5>
+                    <span class="tech-tag">ESP32</span>
+                    <span class="tech-tag">MAX30102 (BPM/SpO2)</span>
+                    <span class="tech-tag">MQTT (HiveMQ Cloud)</span>
+                </div>
+                <div class="mb-4">
+                    <h5 class="text-muted mb-3">Backend & Analytics</h5>
+                    <span class="tech-tag">Python 3.x</span>
+                    <span class="tech-tag">Paho-MQTT</span>
+                    <span class="tech-tag">NumPy / Pandas</span>
+                    <span class="tech-tag">Streamlit</span>
+                    <span class="tech-tag">Plotly</span>
+                </div>
+                <div class="mb-4">
+                    <h5 class="text-muted mb-3">Storage & Integration</h5>
+                    <span class="tech-tag">MongoDB Atlas</span>
+                    <span class="tech-tag">LINE Messaging API</span>
+                    <span class="tech-tag">Vercel</span>
+                </div>
+                <div class="mb-4">
+                    <h5 class="text-muted mb-3">Frontend Library</h5>
+                    <span class="tech-tag">HTML5 / CSS3</span>
+                    <span class="tech-tag">MQTT.js</span>
+                    <span class="tech-tag">Chart.js</span>
+                    <span class="tech-tag">Bootstrap 5</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Links Section -->
+        <section id="links" class="py-5">
+            <h2 class="text-center mb-5 fw-bold">系統入口</h2>
+            <div class="row g-4">
+                <div class="col-md-6">
+                    <div class="card p-4 h-100">
+                        <h4>🌐 Web Dashboard (即時監控)</h4>
+                        <p class="text-muted small">檢視即時心率波形與血氧數據</p>
+                        <div class="mt-auto">
+                            <a href="https://pulse-guard-iot.vercel.app?lang=zh" target="_blank" class="btn btn-primary w-100 mb-2">正式環境</a>
+                            <a href="https://pulse-guard-iot.vercel.app/test?lang=zh" target="_blank" class="btn btn-outline-primary w-100">測試環境</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card p-4 h-100">
+                        <h4>📊 Streamlit Analytics (歷史分析)</h4>
+                        <p class="text-muted small">多維度趨勢統計與異常紀錄查詢</p>
+                        <div class="mt-auto">
+                            <a href="https://huggingface.co/spaces/Chou1210/pulseguard-analytics?lang=zh" target="_blank" class="btn btn-primary w-100 mb-2">正式環境</a>
+                            <a href="https://huggingface.co/spaces/Chou1210/pulseguard-analytics?env=test&lang=zh" target="_blank" class="btn btn-outline-primary w-100">測試環境</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Data Structure (Code Preview) -->
+        <section id="data-structure" class="py-5">
+            <h2 class="text-center mb-4 fw-bold">通訊協議規格</h2>
+            <div class="code-block">
+                <pre class="mb-0">
+// MQTT Real-time Data Payload
+{
+  "bpm": 78,
+  "spo2": 98,
+  "device_status": "NORMAL"
+}
+
+// Measurement Completed Signal
+{
+  "device_status": "COMPLETED",
+  "duration_sec": 30
+}</pre>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer text-center">
+        <div class="container">
+            <p class="text-muted mb-0">PulseGuard IoT © 2024 - 智慧健康監測解決方案</p>
+            <p class="text-muted small mt-2">Built with Bootstrap 5.3.3</p>
+        </div>
+    </footer>
+
+    <script src="lib/bootstrap.bundle.min.js"></script>
+</body>
+</html>
