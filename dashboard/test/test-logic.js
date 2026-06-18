@@ -86,12 +86,12 @@ async function autoConnect() {
     }
 }
 
-function publish(bpm, spo2) {
+function publish(bpm, spo2, statusOverride = null) {
     if (!connected) {
         log(`<span style="color:${neonYellow}">Not connected.</span>`);
         return;
     }
-    const status = calculateStatus(bpm, spo2);
+    const status = statusOverride || calculateStatus(bpm, spo2);
     const payload = JSON.stringify({
         bpm: parseInt(bpm),
         spo2: parseInt(spo2),
@@ -179,28 +179,32 @@ document.getElementById('presetSelect').addEventListener('change', (e) => {
 // Scenario descriptions
 const scenarios = {
     'A': {
-        en: 'Sends a single valid record (72 BPM, 98% SpO2). Used for cold-start write verification.',
-        zh: '發送單筆有效記錄 (72 BPM, 98% SpO2)。用於冷啟動寫入驗證。'
+        en: 'Sends a single valid record (72 BPM, 98% SpO2). Assert: Cold-start session creation and first DB write.',
+        zh: '發送單筆有效記錄 (72 BPM, 98% SpO2)。斷言：冷啟動 Session 建立與首次資料庫寫入。'
     },
-    'B': {
-        en: '3 normal points → Continuous invalid values (999 BPM, 40% SpO2). Tests sensor detachment filtering logic.',
-        zh: '3 筆正常數據 → 持續無效值 (999 BPM, 40% SpO2)。測試感測器脫落過濾邏輯。'
+    'B1': {
+        en: '3 normal points → 999 BPM / 40% SpO2. Assert: Backend filters invalid values and stops DB writes.',
+        zh: '3 筆正常數據 → 999 BPM / 40% SpO2。斷言：後端過濾無效數值且停止寫入資料庫。'
+    },
+    'B2': {
+        en: '3 normal points → device_status: "OFF-CHIP". Assert: Backend detects hardware detachment and logs event.',
+        zh: '3 筆正常數據 → 狀態設為 "OFF-CHIP"。斷言：後端偵測到硬體脫離並記錄事件。'
     },
     'C': {
-        en: '15 normal points (70 BPM, 98% SpO2) → Sudden SpO2 88%. Tests immediate database write on emergency.',
-        zh: '15 筆正常數據 (70 BPM, 98% SpO2) → 突然血氧 88%。測試緊急情況下的立即資料庫寫入。'
+        en: '15 normal points (70 BPM, 98% SpO2) → SpO2 88%. Assert: Immediate DB write due to DANGER status.',
+        zh: '15 筆正常數據 (70 BPM, 98% SpO2) → 血氧 88%。斷言：觸發 DANGER 狀態並立即寫入資料庫。'
     },
     'D': {
-        en: '15 stable points (70 BPM, 98% SpO2) → Sudden BPM 125 (ΔBPM=55). Tests change detection logic.',
-        zh: '15 筆穩定數據 (70 BPM, 98% SpO2) → 突然心率 125 (ΔBPM=55)。測試變化偵測邏輯。'
+        en: '15 stable points (70 BPM, 98% SpO2) → BPM 125. Assert: Edge sends WARNING, but Cloud asserts DANGER (ΔBPM=55).',
+        zh: '15 筆穩定數據 (70 BPM, 98% SpO2) → 心率 125。斷言：前端發送 WARNING，但雲端判定為 DANGER (ΔBPM=55)。'
     },
     'E': {
-        en: '12 normal points (70 BPM, 98% SpO2) sent every 2s. Observes 20-second interval writes.',
-        zh: '每 2 秒發送一次正常數據，共 12 筆。觀察 20 秒間隔寫入。'
+        en: 'Constant 75 BPM / 98% SpO2 sent every 2s. Assert: DB writes only at 0s and 20s (Heartbeat mechanism).',
+        zh: '全程固定 75 BPM / 98% SpO2 每 2 秒發送。斷言：僅在 0s 與 20s 執行寫入（心跳機制）。'
     },
     'F': {
-        en: 'Simulates 5s warm-up: Waits 5s after finger placement before sending first valid data point.',
-        zh: '模擬 5 秒預熱：放上手指後等待 5 秒才發送第一筆有效數據。'
+        en: 'Wait 5s then start stream. Assert: No ghost records before 5s; Session start_time matches first valid point.',
+        zh: '等待 5 秒才開始串流。斷言：5s 前無任何記錄；Session 開始時間與首筆有效數據吻合。'
     }
 };
 
@@ -258,18 +262,38 @@ window.executeScenario = function() {
 
     switch(val) {
         case 'A':
+            log(`Expected Backend: Create Session & Write DB (NORMAL)`);
             publish(72, 98);
             break;
-        case 'B':
-            let countB = 0;
+        case 'B1':
+            let countB1 = 0;
+            log(`Expected Backend: Filter 999/40 values.`);
             scenarioInterval = setInterval(() => {
-                countB++;
-                if (countB <= 3) publish(72, 98);
-                else publish(999, 40);
+                countB1++;
+                if (countB1 <= 3) publish(72, 98);
+                else {
+                    log(`<span style="color:${neonRed}">Sending invalid values (999/40)...</span>`);
+                    publish(999, 40);
+                    if (countB1 >= 6) stopScenarios();
+                }
+            }, 2000);
+            break;
+        case 'B2':
+            let countB2 = 0;
+            log(`Expected Backend: Detect OFF-CHIP detachment.`);
+            scenarioInterval = setInterval(() => {
+                countB2++;
+                if (countB2 <= 3) publish(72, 98);
+                else {
+                    log(`<span style="color:${neonRed}">Sending OFF-CHIP status...</span>`);
+                    publish(72, 98, "OFF-CHIP");
+                    stopScenarios();
+                }
             }, 2000);
             break;
         case 'C':
             let countC = 0;
+            log(`Expected Backend: Immediate write at point 16 (SpO2=88 -> DANGER)`);
             scenarioInterval = setInterval(() => {
                 countC++;
                 if (countC <= 15) publish(70, 98);
@@ -277,10 +301,11 @@ window.executeScenario = function() {
                     publish(70, 88);
                     stopScenarios();
                 }
-            }, 2000);
+            }, 1000);
             break;
         case 'D':
             let countD = 0;
+            log(`Expected Backend: DANGER at point 16 (ΔBPM=55) though Edge sends WARNING (125 BPM)`);
             scenarioInterval = setInterval(() => {
                 countD++;
                 if (countD <= 15) publish(70, 98);
@@ -288,20 +313,21 @@ window.executeScenario = function() {
                     publish(125, 98);
                     stopScenarios();
                 }
-            }, 2000);
+            }, 1000);
             break;
         case 'E':
             let countE = 0;
+            log(`Expected Backend: Write at 0s and 20s (Heartbeat) with stable 75/98`);
             scenarioInterval = setInterval(() => {
                 countE++;
-                publish(70, 98);
+                publish(75, 98);
                 if (countE >= 12) stopScenarios();
             }, 2000);
             break;
         case 'F':
-            log(`<span style="color:${neonYellow}">Finger placed. Warming up for 5 seconds...</span>`);
+            log(`<span style="color:${neonYellow}">Finger placed. Assert: No ghost records for next 5 seconds...</span>`);
             setTimeout(() => {
-                log(`<span style="color:${neonGreen}">Warm-up complete. Starting data stream.</span>`);
+                log(`<span style="color:${neonGreen}">Warm-up complete. Starting data stream at T=5s.</span>`);
                 let countF = 0;
                 scenarioInterval = setInterval(() => {
                     countF++;
