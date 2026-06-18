@@ -179,28 +179,24 @@ document.getElementById('presetSelect').addEventListener('change', (e) => {
 // Scenario descriptions
 const scenarios = {
     'A': {
-        en: 'Sends a single valid record (72 BPM, 98% SpO2). Assert: Cold-start session creation and first DB write.',
-        zh: '發送單筆有效記錄 (72 BPM, 98% SpO2)。斷言：冷啟動 Session 建立與首次資料庫寫入。'
+        en: 'Sends a single valid record (72 BPM, 98% SpO₂). Used for cold-start write verification.',
+        zh: '發送單筆有效記錄 (72 BPM, 98% SpO₂)。用於冷啟動寫入驗證。'
     },
-    'B1': {
-        en: '3 normal points → 999 BPM / 40% SpO2. Assert: Backend filters invalid values and stops DB writes.',
-        zh: '3 筆正常數據 → 999 BPM / 40% SpO2。斷言：後端過濾無效數值且停止寫入資料庫。'
-    },
-    'B2': {
-        en: '3 normal points → device_status: "OFF-CHIP". Assert: Backend detects hardware detachment and logs event.',
-        zh: '3 筆正常數據 → 狀態設為 "OFF-CHIP"。斷言：後端偵測到硬體脫離並記錄事件。'
+    'B': {
+        en: '3 normal points → Continuous invalid values (999 BPM, 40% SpO₂). Tests sensor detachment filtering logic.',
+        zh: '3 筆正常數據 → 持續無效值 (999 BPM, 40% SpO₂)。測試感測器脫落過濾邏輯。'
     },
     'C': {
-        en: '15 normal points (70 BPM, 98% SpO2) → SpO2 88%. Assert: Immediate DB write due to DANGER status.',
-        zh: '15 筆正常數據 (70 BPM, 98% SpO2) → 血氧 88%。斷言：觸發 DANGER 狀態並立即寫入資料庫。'
+        en: '15 normal points (70 BPM, 98% SpO₂) → Sudden SpO₂ 88%. Tests immediate database write on emergency.',
+        zh: '15 筆正常數據 (70 BPM, 98% SpO₂) → 突然血氧 88%。測試緊急情況下的立即資料庫寫入。'
     },
     'D': {
-        en: '15 stable points (70 BPM, 98% SpO2) → BPM 125. Assert: Edge sends WARNING, but Cloud asserts DANGER (ΔBPM=55).',
-        zh: '15 筆穩定數據 (70 BPM, 98% SpO2) → 心率 125。斷言：前端發送 WARNING，但雲端判定為 DANGER (ΔBPM=55)。'
+        en: '15 stable points (70 BPM, 98% SpO₂) → Sudden BPM 125 (ΔBPM=55). Tests change detection logic.',
+        zh: '15 筆穩定數據 (70 BPM, 98% SpO₂) → 突然心率 125 (ΔBPM=55)。測試變化偵測邏輯。'
     },
     'E': {
-        en: 'Constant 75 BPM / 98% SpO2 sent every 2s. Assert: DB writes only at 0s and 20s (Heartbeat mechanism).',
-        zh: '全程固定 75 BPM / 98% SpO2 每 2 秒發送。斷言：僅在 0s 與 20s 執行寫入（心跳機制）。'
+        en: '12 normal points (70 BPM, 98% SpO₂) sent every 2s. Observes 20-second interval writes.',
+        zh: '每 2 秒發送一次正常數據，共 12 筆。觀察 20 秒間隔寫入。'
     },
     'F': {
         en: 'Wait 5s then start stream. Assert: No ghost records before 5s; Session start_time matches first valid point.',

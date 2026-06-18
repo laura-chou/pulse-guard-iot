@@ -35,19 +35,19 @@ def get_translations(lang_code):
             'tab_stats': '📊 Status Statistics',
             'tab_logs': '📋 Abnormal Logs & Export',
             'bpm_trend_title': 'Heart Rate Trend (Daily Range & Avg)',
-            'spo2_trend_title': 'Oxygen Saturation Trend (Daily Min SpO2)',
+            'spo2_trend_title': 'Oxygen Saturation Trend (Daily Min SpO₂)',
             'status_dist_title': 'Overall Health Status Distribution',
             'weekly_stats_title': 'Weekly Abnormal Event Trends',
             'bpm_range': 'BPM Range',
             'avg_bpm_trace': 'Avg BPM',
-            'min_spo2_trace': 'Min SpO2',
+            'min_spo2_trace': 'Min SpO₂',
             'event_count': 'Event Count',
             'tt_week': 'Week',
             'tt_status': 'Status',
             'tt_count': 'Event Count',
             'tt_date': 'Date',
             'tt_avg_bpm': 'Avg BPM',
-            'tt_min_spo2': 'Min SpO2',
+            'tt_min_spo2': 'Min SpO₂',
             'tt_percent': 'Percent',
             'download_csv': 'Download Filtered Data as CSV',
             'week_format': '%G-W%V',
@@ -57,9 +57,9 @@ def get_translations(lang_code):
             'col_status': 'Status',
             'col_avg_bpm': 'Avg BPM',
             'col_ema_bpm': 'EMA BPM',
-            'col_spo2': 'SpO2 (%)',
+            'col_spo2': 'SpO₂ (%)',
             'help_status': """
-            * 🚨 **DANGER**: SpO2 ≤ 90%, EMA ≤ 50 or ≥ 140, or |ΔBPM| ≥ 50
+            * 🚨 **DANGER**: SpO₂ ≤ 90%, EMA ≤ 50 or ≥ 140, or |ΔBPM| ≥ 50
             * ⚠️ **WARNING**: Metrics outside normal range but not meeting danger criteria
             * 💡 **Note**: This log automatically records non-normal events (DANGER, WARNING) for clinical tracking. Normal historical data can be viewed in the Trends and Statistics tabs..""",
             'help_avg_bpm': "15s Moving Average BPM: Calculates the mean of the last 15 signals to smooth out noise.",
@@ -83,7 +83,7 @@ def get_translations(lang_code):
             'tab_stats': '📊 狀態統計',
             'tab_logs': '📋 異常日誌與匯出',
             'bpm_trend_title': '心率趨勢（日範圍與平均）',
-            'spo2_trend_title': '血氧趨勢（每日最低 SpO2）',
+            'spo2_trend_title': '血氧趨勢（每日最低 SpO₂）',
             'status_dist_title': '整體健康狀態佔比',
             'weekly_stats_title': '每週異常事件趨勢',
             'bpm_range': '心率範圍',
@@ -107,7 +107,7 @@ def get_translations(lang_code):
             'col_ema_bpm': 'EMA心率',
             'col_spo2': '血氧飽和度 (%)',
             'help_status': """
-            * 🚨 **危險 (DANGER)**：滿足任一條件 (SpO2 <= 90%, EMA <= 50 或 >= 140, |ΔBPM| >= 50)
+            * 🚨 **危險 (DANGER)**：滿足任一條件 (SpO₂ <= 90%, EMA <= 50 或 >= 140, |ΔBPM| >= 50)
             * ⚠️ **警告 (WARNING)**：未達危急標準，但任一指標超出正常範圍
             * 💡 **說明**：本誌僅自動節錄並留存「非正常（DANGER, WARNING）」之觸發事件，正常（NORMAL）數據請至生理趨勢與統計分頁檢視。""",
             'help_avg_bpm': "15秒移動平均心率 (Moving Average)：計算最近 15 筆訊號均值，用以平滑即時雜訊，呈現穩定的心跳趨勢。",
@@ -255,7 +255,7 @@ def build_combined_physiological_chart(df_daily, t):
         hovertemplate=f"{t['tt_date']}: %{{x}}<br>{t['tt_avg_bpm']}: %{{y:.1f}}<extra></extra>"
     ), row=1, col=1)
 
-    # --- Row 2: SpO2 ---
+    # --- Row 2: SpO₂ ---
     fig.add_trace(go.Scatter(
         x=df_daily['date'],
         y=df_daily['spo2_min'],
@@ -523,7 +523,7 @@ def main():
                     st.markdown("""
 - **Avg BPM**: Moving average of the last 15 signals to smooth out noise.
 - **EMA BPM**: Exponential Moving Average (30% current, 70% historical) to suppress measurement errors.
-- **SpO2 (%)**: 15-second moving average, providing better clinical representation.
+- **SpO₂ (%)**: 15-second moving average, providing better clinical representation.
                     """)
 
         # 使用 AgGrid 顯示模擬數據
@@ -632,7 +632,7 @@ def main():
                         st.markdown("""
 - **Avg BPM**: Moving average of the last 15 signals to smooth out noise.
 - **EMA BPM**: Exponential Moving Average (30% current, 70% historical) to suppress measurement errors.
-- **SpO2 (%)**: 15-second moving average, providing better clinical representation.
+- **SpO₂ (%)**: 15-second moving average, providing better clinical representation.
                         """)
 
             log_df = df_hourly[df_hourly['analysis_status'] != "NORMAL"].copy()
