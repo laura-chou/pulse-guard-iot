@@ -29,40 +29,51 @@ PulseGuard IoT 是一套結合物聯網（IoT）、雲端運算與資料分析�
 
 # 3. 系統架構
 
-```text
-MAX30102
-    │
-    ▼
-ESP32
- ├─ BPM 計算
- ├─ SpO₂ 計算
- ├─ TFT 顯示
- ├─ LED 指示
- ├─ Buzzer 提示
- ├─ Button 控制
- └─ MQTT Publish
-          │
-          ▼
-     HiveMQ Cloud
-          │
- ┌────────┴────────┐
- ▼                 ▼
-Web Dashboard   Python Service
-(MQTT.js)         (Railway)
-                     │
-                     ▼
-              Health Analysis
-                     │
-                     ▼
-               MongoDB Atlas
-                     │
-                     ▼
-          Streamlit Dashboard
+```mermaid
+graph TD
+    subgraph Edge_Device [Edge Device - ESP32]
+        E1[MAX30102 Sensor Sampling<br/>感測器採樣]
+        E2[Finger Detection Check<br/>手指偵測檢查]
+        E3[Edge Filtering & State Determination<br/>邊緣濾波與狀態判定]
+        E4[Real-time Feedback<br/>即時 LED/BUZZER/TFT 回饋]
+        E5[Send MQTT Data<br/>發送 MQTT 資料]
+        E1 --> E2 --> E3 --> E4 --> E5
+    end
 
-Python
-   │
-   ▼
-LINE Messaging API
+    subgraph Cloud_Backend ["Cloud Backend - Python"]
+        B1["MQTT Subscription Center<br/>MQTT 訂閱中心"]
+        B2["Session Lifecycle Management<br/>會話生命週期管理"]
+        B3["EMA Calculation<br/>EMA 指數降噪計算"]
+        B4["Smart DB Persistence Strategy<br/>Smart DB 寫入策略決策"]
+        B1 --> B2 --> B3 --> B4
+    end
+
+    subgraph User_Interface ["User Interface"]
+        subgraph Real_time_UI [Real-time Monitoring]
+            U1["Web Dashboard (MQTT.js)<br/>即時網頁儀表板"]
+        end
+
+        subgraph Analytics_UI [Streamlit Dashboard]
+            U2["Trend Charts<br/>趨勢圖表"]
+            U3["Abnormal Log Export<br/>異常日誌匯出"]
+        end
+
+        U4["LINE Flex Message Notification<br/>LINE 訊息通知"]
+    end
+
+    DB[(MongoDB Atlas)]
+
+    E5 -- "MQTT Protocol" --> B1
+    E5 -- "MQTT Protocol" --> U1
+    B4 -- "Write" --> DB
+    B4 -- "LINE Messaging API" --> U4
+    DB -- "Read" --> U2
+    DB -- "Read" --> U3
+
+    style Edge_Device fill:#00331a,stroke:#00E676,stroke-width:2px
+    style Cloud_Backend fill:#003333,stroke:#00E5FF,stroke-width:2px
+    style User_Interface fill:#1a1d23,stroke:#D1D5DB,stroke-width:2px
+    style DB fill:#1a1a1a,stroke:#4DB33D,stroke-width:2px
 ```
 
 ---
