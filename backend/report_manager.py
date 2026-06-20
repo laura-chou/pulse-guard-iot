@@ -138,7 +138,7 @@ def generate_and_send_report(session_id, duration_sec):
     # Body -> Box 1 (Averages Row)
     stats_row_contents = body_contents[1]["contents"]
     stats_row_contents[0]["contents"][1]["text"] = f"{avg_bpm:.0f}" # BPM
-    stats_row_contents[1]["contents"][1]["text"] = f"{avg_spo2:.0f}" # SpO2
+    stats_row_contents[1]["contents"][1]["text"] = f"{avg_spo2:.0f}" # SpO₂
 
     # Body -> Box 2 (Remark Box)
     remark_box_contents = body_contents[2]["contents"]

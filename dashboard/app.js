@@ -114,7 +114,7 @@ const bpmZones = [
     { min: 121, max: 180, color: `${colorRed}2e` }  // DANGER
 ];
 
-// SpO2 Chart zones
+// SpO₂ Chart zones
 const spo2Zones = [
     { min: 80, max: 90, color: `${colorRed}2e` },   // DANGER
     { min: 90, max: 95, color: `${colorYellow}26` },   // WARNING

@@ -21,11 +21,11 @@ export function initLang() {
 // Clinical Status Calculation Logic
 export function calculateStatus(bpm, spo2) {
     let status = 'NORMAL';
-    // DANGER: SPO2 < 90% or BPM < 50 or BPM > 120
+    // DANGER: SpO₂ < 90% or BPM < 50 or BPM > 120
     if (spo2 < 90 || bpm < 50 || bpm > 120) {
         status = 'DANGER';
     }
-    // WARNING: 90% ≤ SPO2 ≤ 94% or 50 ≤ BPM ≤ 59 or 101 ≤ BPM ≤ 120
+    // WARNING: 90% ≤ SpO₂ ≤ 94% or 50 ≤ BPM ≤ 59 or 101 ≤ BPM ≤ 120
     else if ((spo2 >= 90 && spo2 <= 94) || (bpm >= 50 && bpm <= 59) || (bpm >= 101 && bpm <= 120)) {
         status = 'WARNING';
     }

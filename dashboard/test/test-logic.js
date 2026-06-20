@@ -179,23 +179,23 @@ document.getElementById('presetSelect').addEventListener('change', (e) => {
 // Scenario descriptions
 const scenarios = {
     'A': {
-        en: 'Sends a single valid record (72 BPM, 98% SpO2). Used for cold-start write verification.',
-        zh: '發送單筆有效記錄 (72 BPM, 98% SpO2)。用於冷啟動寫入驗證。'
+        en: 'Sends a single valid record (72 BPM, 98% SpO₂). Used for cold-start write verification.',
+        zh: '發送單筆有效記錄 (72 BPM, 98% SpO₂)。用於冷啟動寫入驗證。'
     },
     'B': {
-        en: '3 normal points → Continuous invalid values (999 BPM, 40% SpO2). Tests sensor detachment filtering logic.',
-        zh: '3 筆正常數據 → 持續無效值 (999 BPM, 40% SpO2)。測試感測器脫落過濾邏輯。'
+        en: '3 normal points → Continuous invalid values (999 BPM, 40% SpO₂). Tests sensor detachment filtering logic.',
+        zh: '3 筆正常數據 → 持續無效值 (999 BPM, 40% SpO₂)。測試感測器脫落過濾邏輯。'
     },
     'C': {
-        en: '15 normal points (70 BPM, 98% SpO2) → Sudden SpO2 88%. Tests immediate database write on emergency.',
-        zh: '15 筆正常數據 (70 BPM, 98% SpO2) → 突然血氧 88%。測試緊急情況下的立即資料庫寫入。'
+        en: '15 normal points (70 BPM, 98% SpO₂) → Sudden SpO₂ 88%. Tests immediate database write on emergency.',
+        zh: '15 筆正常數據 (70 BPM, 98% SpO₂) → 突然血氧 88%。測試緊急情況下的立即資料庫寫入。'
     },
     'D': {
-        en: '15 stable points (70 BPM, 98% SpO2) → Sudden BPM 125 (ΔBPM=55). Tests change detection logic.',
-        zh: '15 筆穩定數據 (70 BPM, 98% SpO2) → 突然心率 125 (ΔBPM=55)。測試變化偵測邏輯。'
+        en: '15 stable points (70 BPM, 98% SpO₂) → Sudden BPM 125 (ΔBPM=55). Tests change detection logic.',
+        zh: '15 筆穩定數據 (70 BPM, 98% SpO₂) → 突然心率 125 (ΔBPM=55)。測試變化偵測邏輯。'
     },
     'E': {
-        en: '12 normal points (70 BPM, 98% SpO2) sent every 2s. Observes 20-second interval writes.',
+        en: '12 normal points (70 BPM, 98% SpO₂) sent every 2s. Observes 20-second interval writes.',
         zh: '每 2 秒發送一次正常數據，共 12 筆。觀察 20 秒間隔寫入。'
     },
     'F': {

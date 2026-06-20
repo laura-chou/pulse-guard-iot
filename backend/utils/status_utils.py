@@ -25,7 +25,7 @@ def get_status(raw_bpm, ema_t, delta_bpm, raw_spo2):
     核心醫療狀態判定邏輯 (階層式判定)：
 
     1. 危險 (DANGER) - 優先級最高，符合任一即觸發：
-        - 血氧濃度 (SpO2) 降至 90% 或以下 (急性缺氧)
+        - 血氧濃度 (SpO₂) 降至 90% 或以下 (急性缺氧)
         - EMA 心率低於 50 或高於 140 (嚴重心律不整/過速)
         - 即時心率與視窗平均值之差值 (|ΔBPM|) >= 50 (偵測到極端突發狀況)
 
@@ -37,7 +37,7 @@ def get_status(raw_bpm, ema_t, delta_bpm, raw_spo2):
     3. 警告 (WARNING) - 次要優先級：
         - 若非危險且未達完全正常標準，則歸類為警告。
 
-    注意：此處 SpO2 判斷使用即時值 (raw_spo2) 以確保對急性缺氧的極速反應。
+    注意：此處 SpO₂ 判斷使用即時值 (raw_spo2) 以確保對急性缺氧的極速反應。
     """
     # 第一層：危險判定 (任何一項符合即為 DANGER)
     if raw_spo2 <= 90 or ema_t <= 50 or ema_t >= 140 or delta_bpm >= 50:

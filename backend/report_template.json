@@ -217,7 +217,7 @@
             "contents": [
               {
                 "type": "text",
-                "text": "💧 血氧 SpO2",
+                "text": "💧 血氧 SpO₂",
                 "size": "sm",
                 "color": "#1C7ED6",
                 "weight": "bold"
