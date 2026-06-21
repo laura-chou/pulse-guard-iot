@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PulseGuard AIoT | Smart Health Monitoring</title>
+    <title>PulseGuard IoT</title>
     <link rel="icon" href="img/icon.png" type="image/png">
     <link rel="stylesheet" href="lib/bootstrap.min.css">
     <link rel="stylesheet" href="style.css">
@@ -24,7 +24,7 @@
         <div class="container">
             <a class="navbar-brand d-flex align-items-center" href="#">
                 <img src="img/icon.png" alt="Logo" width="32" height="32" class="d-inline-block align-text-top me-2">
-                <span class="fw-bold">PulseGuard AIoT</span>
+                <span class="fw-bold">PulseGuard IoT</span>
             </a>
             <div class="d-flex align-items-center">
                 <a href="#architecture" class="nav-link text-white me-3 d-none d-sm-block">
@@ -36,7 +36,7 @@
                 <a href="#hardware" class="nav-link text-white me-3 d-none d-sm-block">
                     <span class="en-hide">硬體配置</span><span class="zh-hide">Hardware</span>
                 </a>
-                <a href="#portals" class="nav-link text-white me-3">
+                <a href="#portals" class="nav-link text-white me-3 d-none d-sm-block">
                     <span class="en-hide">系統入口</span><span class="zh-hide">Portals</span>
                 </a>
                 <a id="langToggle" class="lang-toggle">
@@ -49,10 +49,10 @@
     <!-- Hero Section -->
     <header class="hero-section text-center">
         <div class="container">
-            <h1 class="hero-title">PulseGuard AIoT</h1>
+            <h1 class="hero-title">PulseGuard IoT</h1>
             <p class="hero-subtitle mb-4">
-                <span class="zh-hide">A professional-grade remote health monitoring solution integrating ESP32, Python, and Streamlit. Features dual-core real-time scheduling, EMA stream processing, and intelligent health reporting.</span>
-                <span class="en-hide">整合 ESP32、Python 與 Streamlit 的專業級遠端健康監控解決方案。具備雙核即時調度、EMA 串流降噪與智慧化健康報告系統。</span>
+                <span class="zh-hide">A professional-grade remote health monitoring solution integrating ESP32, Python, and Streamlit. Features dual-core real-time scheduling, EMA stream noise reduction, and automated report generation with active push notifications.</span>
+                <span class="en-hide">整合 ESP32、Python 與 Streamlit 的專業級遠端健康監控解決方案。具備雙核即時調度、EMA 串流降噪與自動化報告主動推播系統。</span>
             </p>
         </div>
     </header>
@@ -493,11 +493,6 @@ graph TD
 
         function setLanguage(lang) {
             document.documentElement.setAttribute('lang', lang);
-            if (lang === 'zh') {
-                document.title = "PulseGuard AIoT | 智慧健康監控";
-            } else {
-                document.title = "PulseGuard AIoT | Smart Health Monitoring";
-            }
             updatePortalLinks(lang);
         }
 
