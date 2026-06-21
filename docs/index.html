@@ -74,7 +74,7 @@ graph TD
         E1["MAX30102 Sensor Sampling"]
         E2["Finger Detection Check"]
         E3["Edge Filtering & State Determination"]
-        E4["Real-time Feedback<br/>(LED/BUZZER/TFT)"]
+        E4["Real-time Feedback<br/>(BUZZER/TFT)"]
         E5["Send MQTT Data"]
         E1 --> E2 --> E3 --> E4 --> E5
     end
@@ -121,7 +121,7 @@ graph TD
         E1["MAX30102 感測器採樣"]
         E2["手指偵測檢查"]
         E3["邊緣濾波與狀態判定"]
-        E4["即時 LED/蜂鳴器/TFT 回饋"]
+        E4["即時 蜂鳴器/TFT 回饋"]
         E5["發送 MQTT 資料"]
         E1 --> E2 --> E3 --> E4 --> E5
     end
@@ -177,11 +177,11 @@ graph TD
 
             <!-- Firmware -->
             <div class="row g-5 align-items-center mb-5 pb-5">
-                <div class="col-lg-6">
-                    <div class="feature-icon-wrapper">📟</div>
-                    <h3 class="h2 fw-bold mb-4">
-                        <span class="zh-hide">1. Firmware: Dual-Core Real-time Scheduling & Power Optimization</span>
-                        <span class="en-hide">1. 韌體端：雙核即時調度與功耗優化</span>
+                <div class="col">
+                    <h3 class="h2 fw-bold mb-4 d-flex align-items-center">
+                        <div class="feature-icon-wrapper">📟</div>
+                        <span class="zh-hide">Firmware: Dual-Core Real-time Scheduling & Power Optimization</span>
+                        <span class="en-hide">韌體端：雙核即時調度與功耗優化</span>
                     </h3>
                     <p class="text-muted">
                         <span class="zh-hide">Based on the ESP32 and FreeRTOS real-time operating system, the firmware adopts a dual-core thread isolation architecture to ensure physiological signal capture is free from network communication and peripheral latency.</span>
@@ -205,22 +205,25 @@ graph TD
                         </li>
                     </ul>
                 </div>
-                <div class="col-lg-6 text-center">
-                    <div class="portal-card p-5">
-                         <div class="feature-icon-wrapper mx-auto mb-4" style="background: rgba(0, 230, 118, 0.1); color: var(--primary-green);">⚡</div>
-                         <h5 class="fw-bold mb-3">Edge Optimization</h5>
-                         <p class="small text-muted">Real-time processing directly on ESP32 silicon</p>
-                    </div>
-                </div>
             </div>
 
             <!-- Backend -->
             <div class="row g-5 align-items-center mb-5 pb-5 flex-lg-row-reverse">
-                <div class="col-lg-6">
-                    <div class="feature-icon-wrapper">🧠</div>
-                    <h3 class="h2 fw-bold mb-4">
-                        <span class="zh-hide">2. Backend: Stream Processing & Intelligent Analysis</span>
-                        <span class="en-hide">2. 後端：串流處理與智慧分析</span>
+                <div class="col-lg-4">
+                    <div class="pinout-container d-flex flex-column align-items-center justify-content-center p-4 text-center">
+                        <img src="img/line-report.jpg" alt="LINE Flex Message Report" class="img-preview img-fluid rounded shadow" style="max-height: 480px; width: auto; object-fit: contain;">
+                        <small class="text-muted mt-3 d-block">
+                            <span class="zh-hide">Actual LINE Flex Message measurement report preview</span>
+                            <span class="en-hide">LINE Flex Message 量測報告實際推送畫面</span>
+                        </small>
+                    </div>
+                </div>
+
+                <div class="col-lg-8">
+                    <h3 class="h2 fw-bold mb-4 d-flex align-items-center">
+                        <div class="feature-icon-wrapper">🧠</div>
+                        <span class="zh-hide">Backend: Stream Processing & Intelligent Analysis</span>
+                        <span class="en-hide">後端：串流處理與智慧分析</span>
                     </h3>
                     <p class="text-muted">
                         <span class="zh-hide">The Python backend serves as the system brain, responsible for receiving MQTT physiological data streams, performing real-time noise reduction, measurement lifecycle management, and multi-dimensional health assessment:</span>
@@ -229,51 +232,55 @@ graph TD
                     <ul class="text-muted list-unstyled">
                         <li class="mb-3">
                             <strong><span class="zh-hide">Data Cleaning & Source Isolation:</span><span class="en-hide">資料清洗與來源隔離：</span></strong>
-                            <span class="zh-hide">Automatically distinguishes and labels Production and Test data via MQTT topics. Performs real-time integrity checks; if sensor detachment (OFF-CHIP) or invalid values are detected, data is discarded to avoid polluting the processing window.</span>
-                            <span class="en-hide">透過 MQTT Topic 自動區分並標記正式（Production）與測試（Test）數據。系統即時檢查數據完整性，若偵測到感測器脫落（OFF-CHIP）或數值不合法，將直接捨棄該筆資料，避免污染後續的運算視窗。</span>
+                            <span class="zh-hide">Automatically distinguishes and labels Production and Test data via MQTT topics, filtering out invalid physiological values.</span>
+                            <span class="en-hide">透過 MQTT Topic 自動區分並標記正式（Production）與測試（Test）數據，過濾不合法數值。</span>
                         </li>
                         <li class="mb-3">
                             <strong><span class="zh-hide">EMA Noise Reduction & Analytics:</span><span class="en-hide">時序指標運算與 EMA 降噪：</span></strong>
-                            <span class="zh-hide">Combines MA and EMA for dual smoothing. Utilizes collections.deque(maxlen=15) for a 15-point window and applies a fixed weight (α = 0.3) for EMA to capture trends. Calculates the absolute difference (Delta) between current heart rate and window average for sudden abnormality analysis.</span>
-                            <span class="en-hide">結合滑動平均（MA）與指數移動平均（EMA）進行雙重平滑。利用 collections.deque(maxlen=15) 維持 15 筆時序視窗計算平均值，並採用固定權重（α = 0.3）計算 EMA 以捕捉長期趨勢。同步計算當前心率與視窗平均的絕對差值（Delta），作為突發異常的分析依據。</span>
+                            <span class="zh-hide">Combines MA and EMA for dual smoothing, maintaining a 15-point time window to capture long-term physiological trends.</span>
+                            <span class="en-hide">結合 MA 與 EMA 進行雙重平滑，計算 15 筆時序視窗平均值以捕捉長期趨勢。</span>
                         </li>
                         <li class="mb-3">
-                            <strong><span class="zh-hide">Health Evaluation & Reporting:</span><span class="en-hide">雙軌制健康評估與報告生成：</span></strong>
-                            <span class="zh-hide">Integrates "Real-time Threshold Monitoring" and "Interval Trend Analysis" to differentiate transient anomalies from long-term risks. Automatically generates structured LINE Flex Message reports at the end of a session (Production only).</span>
-                            <span class="en-hide">結合「單點即時閾值監控」與「區間趨勢統計分析」，精準區分短暫的突發性異常與長期的持續性風險。於動態量測生命週期（Session）結束時，系統自動將評估結果轉譯為專業的 LINE Flex Message 結構化報告，即時推送至使用者手機（僅限正式環境）。</span>
+                            <strong><span class="zh-hide">Dual-Track Health Evaluation:</span><span class="en-hide">雙軌制多維度健康評估：</span></strong>
+                            <span class="zh-hide">Integrates single-point thresholds and interval trends to determine health risk levels and dynamically generate medical advice.</span>
+                            <span class="en-hide">結合單點閾值與區間趨勢判定健康層級（如正常/注意/危險），動態產出客製化醫囑。</span>
+                        </li>
+                        <li class="mb-3">
+                            <strong><span class="zh-hide">Automated Report & Template Injection:</span><span class="en-hide">自動化報告生成與樣板注入：</span></strong>
+                            <span class="zh-hide">Extracts valid metrics to compute full-session averages, utilizing dictionary-mapping techniques to precisely inject data into a JSON template.</span>
+                            <span class="en-hide">提取有效心率與血氧流計算全階段平均數值，並利用字典尋址技術將結果精準注入 JSON 樣板。</span>
+                        </li>
+                        <li class="mb-3">
+                            <strong><span class="zh-hide">Active Push & Time Localization:</span><span class="en-hide">主動式遠端告警與時區校正：</span></strong>
+                            <span class="zh-hide">Calibrates raw UTC timestamps to local Taipei time, and actively pushes structured Flex Message reports via the LINE Messaging API upon session completion.</span>
+                            <span class="en-hide">校正 UTC 為台北時間。量測結束時透過 LINE Messaging API 將結構化報告圖卡主動推播至手機。</span>
                         </li>
                         <li class="mb-3">
                             <strong><span class="zh-hide">Intelligent DB Persistence Strategy:</span><span class="en-hide">智慧型資料庫持久化策略：</span></strong>
-                            <span class="zh-hide">Balances real-time alerts and MongoDB write load via event-driven and heartbeat strategies. Writes data on "First valid data," "DANGER status," "State transition," or "20-second interval." Includes fault tolerance with automatic retries if disconnected.</span>
-                            <span class="en-hide">為平衡即時警報需求並降低 MongoDB 寫入壓力，系統採事件驅動結合定時心跳策略。僅在「首筆有效資料」、「危險狀態（DANGER）」、「狀態轉換」或「間隔滿 20 秒」時執行寫入。具備斷線容錯機制，寫入成功後才更新狀態指標，若斷線則於下一秒自動重試，確保數據不漏失。</span>
+                            <span class="zh-hide">Executes MongoDB data writes based on event-driven rules and timers, featuring built-in automatic disconnection fault tolerance and retry mechanisms.</span>
+                            <span class="en-hide">採事件驅動結合定時心跳策略執行 MongoDB 寫入，並具備斷線自動容錯與重試機制。</span>
                         </li>
                         <li class="mb-3">
                             <strong><span class="zh-hide">Dynamic Session Management:</span><span class="en-hide">動態生命週期（Session）管理：</span></strong>
-                            <span class="zh-hide">Generates unique UUIDs upon first valid data. COMPLETED status triggers reporting and cache clearing. Hardware RESET marks interruptions in the database and resets all session states.</span>
-                            <span class="en-hide">收到首筆有效數據時動態生成 UUID 唯一識別碼。當量測正常結束（COMPLETED）時，觸發報告模組並清空全域快取；若接收到硬體端長按觸發的系統重置（RESET），則於資料庫標記異常中斷，並同步完成快取清空與狀態重置。</span>
+                            <span class="zh-hide">Dynamically generates a unique UUID upon initialization, resetting all system states and memory caches during a COMPLETED end or hardware RESET.</span>
+                            <span class="en-hide">動態生成 UUID 唯一識別碼，並於 COMPLETED 正常結束或 RESET 異常中斷時精確重置狀態與快取。</span>
                         </li>
                     </ul>
                 </div>
-                <div class="col-lg-6 text-center">
-                    <div class="portal-card p-5">
-                         <div class="feature-icon-wrapper mx-auto mb-4" style="background: rgba(187, 134, 252, 0.1); color: #BB86FC;">🧪</div>
-                         <h5 class="fw-bold mb-3">Intelligent Backend</h5>
-                         <p class="small text-muted">Advanced signal processing and automated reporting</p>
-                    </div>
-                </div>
             </div>
+
 
             <!-- Analytics -->
             <div class="row g-5 align-items-center mb-5 pb-5">
-                <div class="col-lg-6">
-                    <div class="feature-icon-wrapper">📊</div>
-                    <h3 class="h2 fw-bold mb-4">
-                        <span class="zh-hide">3. Analytics: Data Visualization & Insights</span>
-                        <span class="en-hide">3. 分析端：數據視覺化與洞察</span>
+                <div class="col">
+                    <h3 class="h2 fw-bold mb-4 d-flex align-items-center">
+                        <span class="feature-icon-wrapper">📊</span>
+                        <span class="zh-hide">Analytics: Data Visualization & Insights</span>
+                        <span class="en-hide">分析端：數據視覺化與洞察</span>
                     </h3>
                     <p class="text-muted">
                         <span class="zh-hide">The Streamlit-based dashboard provides a powerful interface for reviewing historical trends and system performance:</span>
-                        <span class="en-hide">基於 Streamlit 的分析看板為使用者與開發者提供了強大的介面，用於回溯歷史趨勢與系統表現：</span>
+                        <span class="en-hide">基於 Streamlit 的分析看板提供了強大的介面，用於回溯歷史趨勢與系統表現：</span>
                     </p>
                     <ul class="text-muted list-unstyled">
                         <li class="mb-3">
@@ -303,13 +310,6 @@ graph TD
                         </li>
                     </ul>
                 </div>
-                <div class="col-lg-6 text-center">
-                    <div class="portal-card p-5">
-                         <div class="feature-icon-wrapper mx-auto mb-4" style="background: rgba(0, 229, 255, 0.1); color: var(--accent-cyan);">📈</div>
-                         <h5 class="fw-bold mb-3">Data Intelligence</h5>
-                         <p class="small text-muted">Transforming raw signals into medical insights</p>
-                    </div>
-                </div>
             </div>
         </div>
     </section>
@@ -325,6 +325,11 @@ graph TD
             </div>
 
             <div class="row g-4 mb-5">
+                <div class="col-lg-6">
+                    <div class="pinout-container h-100 d-flex align-items-center justify-content-center" style="min-height: 350px;">
+                        <img src="img/hardware.jpg" alt="Hardware Setup" class="img-preview" style="max-height: 320px; width: auto; object-fit: contain;">
+                    </div>
+                </div>
                 <div class="col-lg-6">
                     <div class="pinout-container h-100">
                         <h4 class="mb-4 fw-bold">
@@ -348,11 +353,6 @@ graph TD
                                 <tr><td>VCC</td><td>5V</td></tr>
                             </tbody>
                         </table>
-                    </div>
-                </div>
-                <div class="col-lg-6">
-                    <div class="h-100 d-flex align-items-center justify-content-center">
-                        <img src="img/hardware.jpg" alt="Hardware Setup" class="img-preview" style="max-height: 400px; width: auto;">
                     </div>
                 </div>
             </div>
@@ -389,7 +389,7 @@ graph TD
                         <table class="pinout-table">
                             <thead>
                                 <tr>
-                                    <th><span class="zh-hide">Signal</span><span class="en-hide">訊號語意</span></th>
+                                    <th><span class="zh-hide">Button Pin</span><span class="en-hide">訊號語意</span></th>
                                     <th><span class="zh-hide">ESP32 Pin</span><span class="en-hide">ESP32 腳位</span></th>
                                 </tr>
                             </thead>
