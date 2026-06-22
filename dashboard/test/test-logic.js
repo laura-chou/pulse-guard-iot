@@ -201,6 +201,10 @@ const scenarios = {
     'F': {
         en: 'Wait 5s then start stream. Assert: No ghost records before 5s; Session start_time matches first valid point.',
         zh: '等待 5 秒才開始串流。斷言：5s 前無任何記錄；Session 開始時間與首筆有效數據吻合。'
+    },
+    'G': {
+        en: 'Sends 3 normal points then stops. Assert: Backend deletes the session records after 10s of inactivity.',
+        zh: '發送 3 筆正常數據後停止。斷言：後端將在 10 秒無活動後自動刪除該 Session 的所有紀錄。'
     }
 };
 
@@ -331,6 +335,18 @@ window.executeScenario = function() {
                     if (countF >= 5) stopScenarios();
                 }, 1000);
             }, 5000);
+            break;
+        case 'G':
+            let countG = 0;
+            log(`Sending 3 initial points...`);
+            scenarioInterval = setInterval(() => {
+                countG++;
+                publish(72, 98);
+                if (countG >= 3) {
+                    stopScenarios();
+                    log(`<span style="color:${neonYellow}">Stopped. Please wait 10s and check DB for session deletion.</span>`);
+                }
+            }, 1000);
             break;
     }
 }

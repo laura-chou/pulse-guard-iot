@@ -165,7 +165,7 @@ def fetch_data(start_date, end_date, env="production"):
     }
     query = {
         "timestamp": {"$gte": start_dt, "$lte": end_dt},
-        "analysis_status": {"$ne": "RESET"},
+        "analysis_status": {"$nin": ["RESET", "ABORTED"]},
         "data_source": env
     }
     cursor = collection.find(query, projection).sort("timestamp", 1)

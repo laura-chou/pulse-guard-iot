@@ -41,7 +41,9 @@ const char* mqtt_server = "e7d7279e03264dbfab5013301db086d8.s1.eu.hivemq.cloud";
 const int mqtt_port = 8883;     // 埠號                 
 const char* mqtt_user = "pulse-guard-iot";    // 帳號
 const char* mqtt_pass = "t8d7GPs4TuvI";    // 密碼
-const char* mqtt_topic = "pulseguard/data";          // 發布主題 
+
+// 動態建構的 MQTT Topic 緩衝區
+char dynamic_mqtt_topic[64];
 
 WiFiClientSecure espClient;
 PubSubClient mqttClient(espClient);
@@ -406,6 +408,18 @@ void configModeCallback(WiFiManager *myWiFiManager) {
 void networkTask(void *pvParameters) {
     espClient.setInsecure();
     mqttClient.setServer(mqtt_server, mqtt_port);
+
+    // 取得裝置 MAC 地址作為唯一識別碼 (Device ID)
+    String macAddr = WiFi.macAddress();
+    macAddr.replace(":", ""); // 移除冒號以簡化 Topic 結構
+
+    // 定義環境 (production/test)
+    const char* env = "production";
+
+    // 建構萬用 Topic 結構: pulseguard/<env>/<device_id>/data
+    snprintf(dynamic_mqtt_topic, sizeof(dynamic_mqtt_topic), "pulseguard/%s/%s/data", env, macAddr.c_str());
+    Serial.print("MQTT Topic initialized: "); Serial.println(dynamic_mqtt_topic);
+
     SensorData dataToPublish; 
     for (;;) { 
         if (WiFi.status() != WL_CONNECTED) {
@@ -426,7 +440,7 @@ void networkTask(void *pvParameters) {
         if (mqttClient.connected()) { 
             if (!bootResetSent) {
                 const char* initResetPayload = "{\"device_status\":\"RESET\"}";
-                if (mqttClient.publish(mqtt_topic, initResetPayload)) { 
+                if (mqttClient.publish(dynamic_mqtt_topic, initResetPayload)) {
                     bootResetSent = true;
                 }
             } 
@@ -455,7 +469,7 @@ void networkTask(void *pvParameters) {
                                  "{\"bpm\":%d,\"spo2\":%d,\"device_status\":\"%s\"}",
                                  dataToPublish.bpm, dataToPublish.spo2, sStr); 
                     }
-                    mqttClient.publish(mqtt_topic, jsonPayload);
+                    mqttClient.publish(dynamic_mqtt_topic, jsonPayload);
                 }
             }
         }
@@ -659,6 +673,10 @@ void loop()  {
             // 只有當 5 秒熱身結束，且數值有效時，才允許更新狀態、響蜂鳴器與發送 MQTT
             if (now - fingerOnStartTime >= 5000) {
                 if (SPO2 > 0 && beatAvg > 0) { 
+                    // 【架構設計註解】：
+                    // 韌體端閾值設定較低 (> 120 BPM 為 DANGER) 是為了提供高敏感度的「瞬時防禦」。
+                    // 這能讓使用者透過本地 OLED 警示即時調整呼吸或姿勢。
+                    // 最終醫療診斷與 LINE 報告將由後端依據 EMA 平均值 (140 BPM) 判定。
                     if (SPO2 < 90 || beatAvg < 50 || beatAvg > 120) { currentStatus = STATUS_DANGER; } 
                     else if (SPO2 < 95 || beatAvg < 60 || beatAvg > 100) { currentStatus = STATUS_WARNING; } 
                     else { currentStatus = STATUS_NORMAL; } 
