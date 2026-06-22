@@ -406,6 +406,19 @@ void configModeCallback(WiFiManager *myWiFiManager) {
 void networkTask(void *pvParameters) {
     espClient.setInsecure();
     mqttClient.setServer(mqtt_server, mqtt_port);
+
+    // 取得裝置 MAC 地址作為唯一識別碼 (Device ID)
+    uint64_t chipMac = ESP.getEfuseMac();
+    char macStr[13];
+    snprintf(macStr, sizeof(macStr), "%012llX", chipMac);
+
+    // 定義環境 (prod/test)
+    const char* env = "prod";
+
+    // 建構萬用 Topic 結構: pulseguard/<env>/<device_id>/data
+    snprintf(dynamic_mqtt_topic, sizeof(dynamic_mqtt_topic), "pulseguard/%s/%s/data", env, macStr);
+    Serial.print("MQTT Topic initialized: "); Serial.println(dynamic_mqtt_topic);
+
     SensorData dataToPublish; 
     for (;;) { 
         if (WiFi.status() != WL_CONNECTED) {
@@ -416,9 +429,9 @@ void networkTask(void *pvParameters) {
         }
 
         if (WiFi.status() == WL_CONNECTED && !mqttClient.connected()) {
-            String clientId = "ESP32_HR_O2_";
-            clientId += String(random(0xffff), HEX); 
-            mqttClient.connect(clientId.c_str(), mqtt_user, mqtt_pass);
+            char clientId[32];
+            snprintf(clientId, sizeof(clientId), "%s", macStr);
+            mqttClient.connect(clientId, mqtt_user, mqtt_pass);
             vTaskDelay(500 / portTICK_PERIOD_MS);
         }
         
@@ -426,7 +439,7 @@ void networkTask(void *pvParameters) {
         if (mqttClient.connected()) { 
             if (!bootResetSent) {
                 const char* initResetPayload = "{\"device_status\":\"RESET\"}";
-                if (mqttClient.publish(mqtt_topic, initResetPayload)) { 
+                if (mqttClient.publish(dynamic_mqtt_topic, initResetPayload)) {
                     bootResetSent = true;
                 }
             } 
@@ -455,7 +468,7 @@ void networkTask(void *pvParameters) {
                                  "{\"bpm\":%d,\"spo2\":%d,\"device_status\":\"%s\"}",
                                  dataToPublish.bpm, dataToPublish.spo2, sStr); 
                     }
-                    mqttClient.publish(mqtt_topic, jsonPayload);
+                    mqttClient.publish(dynamic_mqtt_topic, jsonPayload);
                 }
             }
         }
@@ -659,6 +672,9 @@ void loop()  {
             // 只有當 5 秒熱身結束，且數值有效時，才允許更新狀態、響蜂鳴器與發送 MQTT
             if (now - fingerOnStartTime >= 5000) {
                 if (SPO2 > 0 && beatAvg > 0) { 
+                    // 【架構設計註解】：
+                    // 韌體端閾值設定較低 (> 120 BPM 為 DANGER) 是為了提供高敏感度的「瞬時防禦」。
+                    // 最終報告將由後端依據 EMA 平均值 (140 BPM) 判定。
                     if (SPO2 < 90 || beatAvg < 50 || beatAvg > 120) { currentStatus = STATUS_DANGER; } 
                     else if (SPO2 < 95 || beatAvg < 60 || beatAvg > 100) { currentStatus = STATUS_WARNING; } 
                     else { currentStatus = STATUS_NORMAL; } 

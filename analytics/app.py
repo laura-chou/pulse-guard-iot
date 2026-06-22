@@ -133,7 +133,7 @@ def init_connection():
     return MongoClient(mongo_uri)
 
 @st.cache_data(ttl=600)
-def fetch_data(start_date, end_date, env="production"):
+def fetch_data(start_date, end_date, env="prod", device_id="MOCK_DEVICE_001"):
     """從 MongoDB 讀取數據並進行預處理，返回 (DataFrame, 是否發生錯誤)"""
     try:
         client = MongoClient(os.getenv("MONGO_URI"), serverSelectionTimeoutMS=2000)
@@ -161,12 +161,14 @@ def fetch_data(start_date, end_date, env="production"):
         "avg_bpm": 1,
         "ema_bpm": 1,
         "spo2": 1,
+        "device_id": 1,
         "_id": 0
     }
     query = {
         "timestamp": {"$gte": start_dt, "$lte": end_dt},
-        "analysis_status": {"$ne": "RESET"},
-        "data_source": env
+        "analysis_status": {"$nin": ["RESET", "ABORTED"]},
+        "data_source": env,
+        "device_id": device_id
     }
     cursor = collection.find(query, projection).sort("timestamp", 1)
 
@@ -380,8 +382,11 @@ def main():
     if env_param not in ["prod", "test"]:
         env_param = "prod"
 
-    # 內部邏輯對照：prod -> production, test -> test
-    initial_env = "production" if env_param == "prod" else "test"
+    # 處理裝置 ID：若 URL 未提供則預設為 MOCK_DEVICE_001
+    device_id = query_params.get("did", "MOCK_DEVICE_001")
+
+    # 內部邏輯對照：prod -> prod, test -> test
+    initial_env = "prod" if env_param == "prod" else "test"
 
     # --- 2. 頁面配置 ---
     icon_path = os.path.join(os.path.dirname(__file__), "icon.png")
@@ -394,6 +399,7 @@ def main():
 
     # --- 3. UI 頁面標題 ---
     st.title(t['title'])
+    st.caption(f"Device ID: {device_id}")
 
     # --- 4. 側邊欄篩選器 ---
     st.sidebar.header(t['sidebar_filters'])
@@ -434,7 +440,7 @@ def main():
     st.sidebar.markdown('<div style="height: 600px;"></div>', unsafe_allow_html=True)
 
     # --- 數據抓取與處理 ---
-    fetched_df, connection_error = fetch_data(start_date, end_date, env=env_mode)
+    fetched_df, connection_error = fetch_data(start_date, end_date, env=env_mode, device_id=device_id)
 
     # 強制過濾所有 OFF-CHIP 紀錄 (確保 legacy 數據也不會顯示)
     if not fetched_df.empty:
@@ -458,7 +464,7 @@ def main():
         m_col2.metric(t['kpi_danger'], 5, delta_color="inverse")
         m_col3.metric(t['kpi_warning'], 12, delta_color="off")
 
-        if env_mode == "production":
+        if env_mode == "prod":
             mock_records = [
                 {
                     "timestamp": datetime.now(local_tz).strftime('%Y-%m-%d %H:%M:%S'),
