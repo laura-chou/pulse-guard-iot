@@ -103,11 +103,6 @@ def on_connect(client, userdata, flags, rc):
         logger.info("Connected to MQTT Broker!")
         # 訂閱萬用主題格式: pulseguard/<env>/<device_id>/data
         client.subscribe(config["MQTT_TOPIC_PATTERN"])
-        # 同時保留舊主題相容性 (如果有需要)
-        if os.getenv("MQTT_TOPIC"):
-            client.subscribe(os.getenv("MQTT_TOPIC"))
-        if os.getenv("MQTT_TEST_TOPIC"):
-            client.subscribe(os.getenv("MQTT_TEST_TOPIC"))
     else:
         logger.error(f"Failed to connect, return code {rc}")
 
@@ -126,10 +121,9 @@ def on_message(client, userdata, msg):
             data_source = topic_parts[1]
             device_id = topic_parts[2]
         else:
-            # 舊版 Topic 相容邏輯
-            config = get_config()
-            data_source = "production" if msg.topic == os.getenv("MQTT_TOPIC") else "test"
-            device_id = "legacy_device"
+            # 不符合格式的 Topic 則忽略
+            logger.warning(f"Message received on unexpected topic: {msg.topic}")
+            return
 
         state = get_device_state(data_source, device_id)
         state.last_seen = time.time()
