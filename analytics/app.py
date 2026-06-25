@@ -383,7 +383,7 @@ def main():
         env_param = "prod"
 
     # 處理裝置 ID：若 URL 未提供則預設為 MOCK_DEVICE_001
-    device_id = query_params.get("device_id", "MOCK_DEVICE_001")
+    device_id = query_params.get("did", "MOCK_DEVICE_001")
 
     # 內部邏輯對照：prod -> production, test -> test
     initial_env = "production" if env_param == "prod" else "test"
