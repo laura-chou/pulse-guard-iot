@@ -430,8 +430,7 @@ void networkTask(void *pvParameters) {
         }
 
         if (WiFi.status() == WL_CONNECTED && !mqttClient.connected()) {
-            String clientId = "ESP32_HR_O2_";
-            clientId += String(random(0xffff), HEX); 
+            String clientId = "PulseGuard_" + macAddr;
             mqttClient.connect(clientId.c_str(), mqtt_user, mqtt_pass);
             vTaskDelay(500 / portTICK_PERIOD_MS);
         }
