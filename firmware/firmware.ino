@@ -410,14 +410,15 @@ void networkTask(void *pvParameters) {
     mqttClient.setServer(mqtt_server, mqtt_port);
 
     // 取得裝置 MAC 地址作為唯一識別碼 (Device ID)
-    String macAddr = WiFi.macAddress();
-    macAddr.replace(":", ""); // 移除冒號以簡化 Topic 結構
+    uint64_t chipMac = ESP.getEfuseMac();
+    char macStr[13];
+    snprintf(macStr, sizeof(macStr), "%012llX", chipMac);
 
     // 定義環境 (prod/test)
     const char* env = "prod";
 
     // 建構萬用 Topic 結構: pulseguard/<env>/<device_id>/data
-    snprintf(dynamic_mqtt_topic, sizeof(dynamic_mqtt_topic), "pulseguard/%s/%s/data", env, macAddr.c_str());
+    snprintf(dynamic_mqtt_topic, sizeof(dynamic_mqtt_topic), "pulseguard/%s/%s/data", env, macStr);
     Serial.print("MQTT Topic initialized: "); Serial.println(dynamic_mqtt_topic);
 
     SensorData dataToPublish; 
@@ -430,8 +431,9 @@ void networkTask(void *pvParameters) {
         }
 
         if (WiFi.status() == WL_CONNECTED && !mqttClient.connected()) {
-            String clientId = "PulseGuard_" + macAddr;
-            mqttClient.connect(clientId.c_str(), mqtt_user, mqtt_pass);
+            char clientId[32];
+            snprintf(clientId, sizeof(clientId), "PulseGuard_%s", macStr);
+            mqttClient.connect(clientId, mqtt_user, mqtt_pass);
             vTaskDelay(500 / portTICK_PERIOD_MS);
         }
         
