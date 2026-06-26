@@ -136,7 +136,7 @@ async function initMQTT() {
 
         const host     = config.MQTT_HOST;
         const port     = config.MQTT_PORT;
-        const topic    = config.MQTT_TOPIC;
+        const topic    = config.MQTT_TOPIC_PATTERN;
         const username = config.MQTT_USERNAME;
         const password = config.MQTT_PASSWORD;
 

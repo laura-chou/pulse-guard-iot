@@ -27,7 +27,7 @@ def get_config():
         "MQTT_PORT": int(os.getenv("MQTT_PORT")) if os.getenv("MQTT_PORT") else None,
         "MQTT_USER": os.getenv("MQTT_USER"),
         "MQTT_PASSWORD": os.getenv("MQTT_PASSWORD"),
-        "MQTT_TOPIC_PATTERN": "pulseguard/+/+/data",
+        "MQTT_TOPIC_PATTERN": os.getenv("MQTT_TOPIC_PATTERN", "pulseguard/+/+/data"),
         "MONGO_URI": os.getenv("MONGO_URI"),
         "MONGO_DB_NAME": os.getenv("MONGO_DB_NAME"),
         "MONGO_COL_NAME": os.getenv("MONGO_COL_NAME")
