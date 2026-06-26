@@ -125,6 +125,11 @@ const isZh = lang === 'zh';
 const bpmChart = createChart('bpmChart', isZh ? '心率趨勢' : 'Heart Rate Trend', colorRed, `${colorRed}1a`, 40, 180, bpmZones, 'BPM');
 const spo2Chart = createChart('spo2Chart', isZh ? '血氧趨勢' : 'SpO₂ Trend', colorBlue, `${colorBlue}1a`, 80, 100, spo2Zones, '%');
 
+// Device filtering state
+const params = new URLSearchParams(window.location.search);
+let targetDeviceId = params.get('device_id');
+let activeDeviceId = targetDeviceId;
+
 // Initialize custom storage for full timestamps
 bpmChart.data.fullTimestamps = [];
 spo2Chart.data.fullTimestamps = [];
@@ -171,6 +176,30 @@ async function initMQTT() {
 
         client.on('message', (receivedTopic, message) => {
             try {
+                const topicParts = receivedTopic.split('/');
+                // Expected format: pulseguard/<env>/<device_id>/data
+                if (topicParts.length !== 4 || topicParts[0] !== 'pulseguard' || topicParts[3] !== 'data') {
+                    return;
+                }
+
+                const env = topicParts[1];
+                const deviceId = topicParts[2];
+
+                // 1. Environmental Filtering: Only process production data
+                if (env !== 'production') {
+                    return;
+                }
+
+                // 2. Device Filtering:
+                // If a specific device_id is in URL, only show that.
+                // Otherwise, lock onto the first device_id that sends data.
+                if (!activeDeviceId) {
+                    activeDeviceId = deviceId;
+                    console.log(`Locking dashboard to device: ${activeDeviceId}`);
+                } else if (deviceId !== activeDeviceId) {
+                    return;
+                }
+
                 const data = JSON.parse(message.toString());
 
                 // Status-based reset
