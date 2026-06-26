@@ -197,7 +197,7 @@ async function initMQTT() {
                 const data = JSON.parse(message.toString());
 
                 // Status-based reset
-                const deviceStatus = (data.device_status || data.status)?.toUpperCase();
+                const deviceStatus = data.device_status?.toUpperCase();
                 if (deviceStatus === 'RESET') {
                     resetDashboard();
                     return;
