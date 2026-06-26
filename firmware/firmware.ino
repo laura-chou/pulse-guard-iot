@@ -413,8 +413,8 @@ void networkTask(void *pvParameters) {
     String macAddr = WiFi.macAddress();
     macAddr.replace(":", ""); // 移除冒號以簡化 Topic 結構
 
-    // 定義環境 (production/test)
-    const char* env = "production";
+    // 定義環境 (prod/test)
+    const char* env = "prod";
 
     // 建構萬用 Topic 結構: pulseguard/<env>/<device_id>/data
     snprintf(dynamic_mqtt_topic, sizeof(dynamic_mqtt_topic), "pulseguard/%s/%s/data", env, macAddr.c_str());

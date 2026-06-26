@@ -45,7 +45,7 @@ def test_get_default_range():
         mock_datetime.combine = datetime.combine
 
         start_date, end_date = app.get_default_range()
-        assert start_date == date(2026, 5, 16)
+        assert start_date == date(2026, 3, 17)
         assert end_date == date(2026, 6, 15)
 
 # 2. fetch_data()
@@ -65,10 +65,10 @@ def test_fetch_data_logic(mock_mongo_client):
 
     # 測試正式環境
     with patch('analytics.app.init_connection', return_value=mock_mongo_client.return_value):
-        df, err = app.fetch_data.__wrapped__(date(2026, 5, 1), date(2026, 5, 31), env="production")
+        df, err = app.fetch_data.__wrapped__(date(2026, 5, 1), date(2026, 5, 31), env="prod")
 
     args, _ = mock_col.find.call_args
-    assert args[0]['data_source'] == "production"
+    assert args[0]['data_source'] == "prod"
     assert err is False
 
     # 測試測試環境
@@ -77,7 +77,7 @@ def test_fetch_data_logic(mock_mongo_client):
 
     args, _ = mock_col.find.call_args
     assert args[0]['data_source'] == "test"
-    assert args[0]['analysis_status']['$ne'] == "RESET"
+    assert args[0]['analysis_status']['$nin'] == ["RESET", "ABORTED"]
     assert err is False
 
     assert df['timestamp'].dt.tz == pytz.timezone('Asia/Taipei')

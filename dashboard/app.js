@@ -184,8 +184,8 @@ async function initMQTT() {
                 const env = topicParts[1];
                 const deviceId = topicParts[2];
 
-                // 1. Environmental Filtering: Only process production data
-                if (env !== 'production') {
+                // 1. Environmental Filtering: Only process prod data
+                if (env !== 'prod') {
                     return;
                 }
 

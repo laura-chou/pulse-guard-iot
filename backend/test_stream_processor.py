@@ -38,14 +38,14 @@ def reset_globals():
 
     return captured_writes
 
-def simulate_mqtt_message(payload_dict, topic="pulseguard/production/device1/data"):
+def simulate_mqtt_message(payload_dict, topic="pulseguard/prod/device1/data"):
     """模擬接收 MQTT 訊息的輔助函式"""
     msg = MagicMock()
     msg.topic = topic
     msg.payload = json.dumps(payload_dict).encode()
     subscriber.on_message(None, None, msg)
 
-def get_state(data_source="production", device_id="device1"):
+def get_state(data_source="prod", device_id="device1"):
     return subscriber.get_device_state(data_source, device_id)
 
 # --- 測試案例 ---
@@ -53,14 +53,14 @@ def get_state(data_source="production", device_id="device1"):
 def test_multi_device_isolation(reset_globals):
     """驗證不同裝置之間的狀態是隔離的"""
     # 裝置 1 發送資料
-    simulate_mqtt_message({"bpm": 70, "spo2": 98}, topic="pulseguard/production/dev1/data")
-    state1 = get_state("production", "dev1")
+    simulate_mqtt_message({"bpm": 70, "spo2": 98}, topic="pulseguard/prod/dev1/data")
+    state1 = get_state("prod", "dev1")
     assert len(state1.bpm_window) == 1
     assert state1.current_session_id is not None
 
     # 裝置 2 發送資料
-    simulate_mqtt_message({"bpm": 80, "spo2": 95}, topic="pulseguard/production/dev2/data")
-    state2 = get_state("production", "dev2")
+    simulate_mqtt_message({"bpm": 80, "spo2": 95}, topic="pulseguard/prod/dev2/data")
+    state2 = get_state("prod", "dev2")
     assert len(state2.bpm_window) == 1
     assert state2.current_session_id != state1.current_session_id
     assert len(state1.bpm_window) == 1 # 確保沒被影響
@@ -68,7 +68,7 @@ def test_multi_device_isolation(reset_globals):
 def test_scenario_a_first_valid_write(reset_globals):
     captured_writes = reset_globals
     simulate_mqtt_message({"bpm": 72, "spo2": 98, "device_status": "NORMAL"})
-    state = get_state("production", "device1")
+    state = get_state("prod", "device1")
     assert len(captured_writes) == 1
     assert captured_writes[0]["analysis_status"] == "NORMAL"
     assert state.first_write_done is True
@@ -77,7 +77,7 @@ def test_scenario_a_first_valid_write(reset_globals):
 def test_scenario_b_invalid_data_discard_logic(reset_globals):
     captured_writes = reset_globals
     simulate_mqtt_message({"bpm": 72, "spo2": 98, "device_status": "NORMAL"})
-    state = get_state("production", "device1")
+    state = get_state("prod", "device1")
     initial_ema = state.last_ema_bpm
     initial_write_count = len(captured_writes)
     assert len(state.bpm_window) == 1
@@ -93,7 +93,7 @@ def test_scenario_c_spo2_drop_immediate_danger(reset_globals):
     for _ in range(15):
         simulate_mqtt_message({"bpm": 70, "spo2": 98, "device_status": "NORMAL"})
 
-    state = get_state("production", "device1")
+    state = get_state("prod", "device1")
     state.last_write_time = time.time()
     initial_write_count = len(captured_writes)
 
@@ -107,7 +107,7 @@ def test_timeout_deletion(reset_globals):
     """驗證逾時後會刪除資料庫紀錄並重置狀態"""
     captured_writes = reset_globals
     simulate_mqtt_message({"bpm": 70, "spo2": 98})
-    state = get_state("production", "device1")
+    state = get_state("prod", "device1")
     sid = state.current_session_id
     assert sid is not None
 
@@ -131,7 +131,7 @@ def test_reset_deletion(reset_globals):
     """驗證 RESET 會刪除資料庫紀錄"""
     captured_writes = reset_globals
     simulate_mqtt_message({"bpm": 70, "spo2": 98})
-    state = get_state("production", "device1")
+    state = get_state("prod", "device1")
     sid = state.current_session_id
 
     simulate_mqtt_message({"device_status": "RESET"})
@@ -141,7 +141,7 @@ def test_reset_deletion(reset_globals):
 def test_scenario_g_completed_signal(reset_globals):
     with patch('report_manager.generate_and_send_report') as mock_report:
         simulate_mqtt_message({"bpm": 70, "spo2": 98, "device_status": "NORMAL"})
-        state = get_state("production", "device1")
+        state = get_state("prod", "device1")
         session_id = state.current_session_id
 
         simulate_mqtt_message({"device_status": "COMPLETED", "duration_sec": 120})

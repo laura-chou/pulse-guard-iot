@@ -133,7 +133,7 @@ def init_connection():
     return MongoClient(mongo_uri)
 
 @st.cache_data(ttl=600)
-def fetch_data(start_date, end_date, env="production", device_id="MOCK_DEVICE_001"):
+def fetch_data(start_date, end_date, env="prod", device_id="MOCK_DEVICE_001"):
     """從 MongoDB 讀取數據並進行預處理，返回 (DataFrame, 是否發生錯誤)"""
     try:
         client = MongoClient(os.getenv("MONGO_URI"), serverSelectionTimeoutMS=2000)
@@ -385,8 +385,8 @@ def main():
     # 處理裝置 ID：若 URL 未提供則預設為 MOCK_DEVICE_001
     device_id = query_params.get("did", "MOCK_DEVICE_001")
 
-    # 內部邏輯對照：prod -> production, test -> test
-    initial_env = "production" if env_param == "prod" else "test"
+    # 內部邏輯對照：prod -> prod, test -> test
+    initial_env = "prod" if env_param == "prod" else "test"
 
     # --- 2. 頁面配置 ---
     icon_path = os.path.join(os.path.dirname(__file__), "icon.png")
@@ -464,7 +464,7 @@ def main():
         m_col2.metric(t['kpi_danger'], 5, delta_color="inverse")
         m_col3.metric(t['kpi_warning'], 12, delta_color="off")
 
-        if env_mode == "production":
+        if env_mode == "prod":
             mock_records = [
                 {
                     "timestamp": datetime.now(local_tz).strftime('%Y-%m-%d %H:%M:%S'),

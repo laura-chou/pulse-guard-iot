@@ -138,7 +138,7 @@ def on_message(client, userdata, msg):
             logger.info(f"[{device_id}] Measurement ended (source: {data_source}), duration: {duration}s")
 
             # 僅正式量測且有有效 Session 時才發送 LINE 報告
-            if data_source == "production" and duration > 0 and state.current_session_id:
+            if data_source == "prod" and duration > 0 and state.current_session_id:
                 report_manager.generate_and_send_report(state.current_session_id, duration)
 
             # 重置該裝置狀態，但不刪除資料 (因為已完成)
