@@ -46,7 +46,12 @@ async function autoConnect() {
         const port = parseInt(config.MQTT_PORT);
         const user = config.MQTT_USERNAME;
         const pass = config.MQTT_PASSWORD;
-        mqttTopic = config.MQTT_TOPIC_PATTERN.replace('+', 'test').replace('+', 'test_device');
+
+        // Construct topic by replacing the environment wildcard with 'test'
+        // and keeping whatever device_id is in the pattern.
+        const parts = config.MQTT_TOPIC_PATTERN.split('/');
+        parts[1] = 'test'; // Force test environment for tester
+        mqttTopic = parts.join('/');
 
         mqttClient = new Paho.MQTT.Client(host, port, "/mqtt", "tester_" + Math.random().toString(16).substr(2, 8));
 

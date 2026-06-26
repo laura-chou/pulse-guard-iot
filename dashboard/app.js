@@ -136,13 +136,17 @@ async function initMQTT() {
 
         const host     = config.MQTT_HOST;
         const port     = config.MQTT_PORT;
-        const topic    = config.MQTT_TOPIC_PATTERN;
+        const topicPattern = config.MQTT_TOPIC_PATTERN;
         const username = config.MQTT_USERNAME;
         const password = config.MQTT_PASSWORD;
 
-        if (!host || !topic) {
+        if (!host || !topicPattern) {
             throw new Error("Missing MQTT configuration");
         }
+
+        // Extract device_id from the pattern (3rd segment)
+        const patternParts = topicPattern.split('/');
+        const targetDeviceId = patternParts[2];
 
         const brokerUrl = `wss://${host}:${port}/mqtt`;
 
@@ -160,7 +164,7 @@ async function initMQTT() {
             connStatus.textContent = isZh ? '🟢 已連線' : '🟢 Connected';
             connStatus.style.borderColor = colorGreen;
             connStatus.style.color = colorGreen;
-            client.subscribe(topic);
+            client.subscribe(topicPattern);
         });
 
         client.on('error', (err) => {
@@ -178,9 +182,15 @@ async function initMQTT() {
                 }
 
                 const env = topicParts[1];
+                const deviceId = topicParts[2];
 
                 // 1. Environmental Filtering: Only process production data
                 if (env !== 'production') {
+                    return;
+                }
+
+                // 2. Device Filtering: Must match device_id from pattern
+                if (targetDeviceId !== '+' && deviceId !== targetDeviceId) {
                     return;
                 }
 
