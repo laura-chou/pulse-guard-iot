@@ -5,23 +5,15 @@ import logging
 from datetime import datetime, timedelta, timezone
 from utils.status_utils import evaluate_session_health
 from pymongo import MongoClient
-from dotenv import load_dotenv
+from config import Config
 
 # Setup logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-# Load environment variables
-load_dotenv()
-
-MONGO_URI = os.getenv("MONGO_URI")
-MONGO_DB_NAME = os.getenv("MONGO_DB_NAME")
-MONGO_COL_NAME = os.getenv("MONGO_COL_NAME")
-LINE_CHANNEL_ACCESS_TOKEN = os.getenv("LINE_CHANNEL_ACCESS_TOKEN")
-LINE_USER_ID = os.getenv("LINE_USER_ID")
 LINE_PUSH_API = "https://api.line.me/v2/bot/message/push"
 
-TEMPLATE_PATH = os.path.join(os.path.dirname(__file__), "report_template.json")
+TEMPLATE_PATH = os.path.join(os.path.dirname(__file__), "templates", "report_template.json")
 
 def load_report_template():
     """Loads the LINE Flex Message template from JSON file."""
@@ -60,9 +52,9 @@ def generate_and_send_report(session_id, duration_sec):
 
     # 1. Data Retrieval
     try:
-        client = MongoClient(MONGO_URI, tz_aware=True)
-        db = client[MONGO_DB_NAME]
-        collection = db[MONGO_COL_NAME]
+        client = MongoClient(Config.MONGO_URI, tz_aware=True)
+        db = client[Config.MONGO_DB_NAME]
+        collection = db[Config.MONGO_COL_NAME]
 
         # 同步查詢條件：status -> analysis_status，並限定 production 來源
         query = {
@@ -145,16 +137,16 @@ def generate_and_send_report(session_id, duration_sec):
     remark_box_contents[1]["text"] = remark
 
     # 5. Send to LINE Messaging API
-    if not LINE_CHANNEL_ACCESS_TOKEN or not LINE_USER_ID:
+    if not Config.LINE_CHANNEL_ACCESS_TOKEN or not Config.LINE_USER_ID:
         logger.error("LINE credentials not set.")
         return
 
     headers = {
         "Content-Type": "application/json",
-        "Authorization": f"Bearer {LINE_CHANNEL_ACCESS_TOKEN}"
+        "Authorization": f"Bearer {Config.LINE_CHANNEL_ACCESS_TOKEN}"
     }
     payload = {
-        "to": LINE_USER_ID,
+        "to": Config.LINE_USER_ID,
         "messages": [
             {
                 "type": "flex",

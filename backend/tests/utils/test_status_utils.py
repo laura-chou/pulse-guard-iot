@@ -1,5 +1,5 @@
 import pytest
-from backend.utils.status_utils import is_valid_bpm, is_valid_spo2, get_status, evaluate_session_health
+from utils.status_utils import is_valid_bpm, is_valid_spo2, get_status, evaluate_session_health
 
 def test_is_valid_bpm():
     assert is_valid_bpm(70) is True
