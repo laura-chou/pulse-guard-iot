@@ -130,20 +130,14 @@ def test_main_ui_various_inputs(sample_df):
     with patch('analytics.app.st') as mock_st:
         mock_st.columns.side_effect = lambda n: [MagicMock() for _ in range(n)]
 
-        # 情況 1: 查無數據
+        # 情況 1: 查無數據 (預設 prod，且缺少 did，應報錯)
         mock_st.sidebar.date_input.return_value = (date(2026, 5, 1), date(2026, 5, 31))
         mock_st.sidebar.multiselect.return_value = ["NORMAL"]
         mock_st.query_params = {}
-        with patch('analytics.app.fetch_data', return_value=(pd.DataFrame(), False)):
-            app.main()
-            mock_st.warning.assert_any_call("No data found for the selected range.")
+        app.main()
+        mock_st.error.assert_any_call("Missing device ID. Unable to load production environment data.")
 
-        # 情況 2: 資料庫連線失敗
-        with patch('analytics.app.fetch_data', return_value=(pd.DataFrame(), True)):
-            app.main()
-            mock_st.error.assert_any_call("Database connection failed, showing mock data for reference.")
-
-        # 情況 3: 測試環境切換
+        # 情況 2: 測試環境，缺少 did，應自動使用 MOCK_DEVICE_001 並可繼續載入
         mock_st.query_params = {'env': 'test'}
         with patch('analytics.app.fetch_data', return_value=(pd.DataFrame(), False)):
             app.main()

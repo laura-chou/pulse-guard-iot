@@ -49,7 +49,8 @@ def get_translations(lang_code):
             * 💡 **Note**: This log automatically records non-normal events (DANGER, WARNING) for clinical tracking. Normal historical data can be viewed in the Trends and Statistics tabs..""",
             'help_avg_bpm': "15s Moving Average BPM: Calculates the mean of the last 15 signals to smooth out noise.",
             'help_ema_bpm': "Exponential Moving Average (EMA): Uses a time-series filtering algorithm (30% current, 70% historical) to reduce measurement errors.",
-            'help_spo2': "Oxygen Saturation (%): Displays the 15-second moving average, which is more medically representative than raw data. Normal values are usually above 95%."
+            'help_spo2': "Oxygen Saturation (%): Displays the 15-second moving average, which is more medically representative than raw data. Normal values are usually above 95%.",
+            'missing_did': "Missing device ID. Unable to load production environment data."
         },
         'zh': {
             'page_title': '遠端健康數據分析',
@@ -97,7 +98,8 @@ def get_translations(lang_code):
             * 💡 **說明**：本誌僅自動節錄並留存「非正常（DANGER, WARNING）」之觸發事件，正常（NORMAL）數據請至生理趨勢與統計分頁檢視。""",
             'help_avg_bpm': "15秒移動平均心率 (Moving Average)：計算最近 15 筆訊號均值，用以平滑即時雜訊，呈現穩定的心跳趨勢。",
             'help_ema_bpm': "指數移動平均心率 (EMA)：導入時序濾波演算法（目前 30%，歷史 70% 權重），有效抑制單點量測誤差，精準反映心血管實際生理趨勢。",
-            'help_spo2': "血氧飽和度百分比：顯示最近 15 秒的訊號移動平均值，較純即時數值更具醫學代表性。正常值通常在 95% 以上。"
+            'help_spo2': "血氧飽和度百分比：顯示最近 15 秒的訊號移動平均值，較純即時數值更具醫學代表性。正常值通常在 95% 以上。",
+            'missing_did': "缺少裝置編號，無法載入正式環境資料。"
         }
     }
     lang = "zh" if lang_code == "zh" else "en"

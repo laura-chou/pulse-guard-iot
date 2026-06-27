@@ -24,8 +24,17 @@ def main():
     if env_param not in ["prod", "test"]:
         env_param = "prod"
 
-    device_id = query_params.get("did", "MOCK_DEVICE_001")
     env_mode = "prod" if env_param == "prod" else "test"
+
+    # 裝置 ID 邏輯處理
+    device_id = query_params.get("did")
+    if not device_id:
+        if env_mode == "test":
+            device_id = "MOCK_DEVICE_001"
+        else:
+            # prod 環境若缺少 did 則顯示錯誤並中斷
+            st.error(t['missing_did'])
+            return
 
     # --- 2. 頁面配置 ---
     icon_path = os.path.join(os.path.dirname(__file__), "icon.png")
@@ -37,7 +46,6 @@ def main():
 
     # --- 3. UI 頁面標題 ---
     st.title(t['title'])
-    st.caption(f"Device ID: {device_id}")
 
     # --- 4. 側邊欄篩選器 ---
     st.sidebar.header(t['sidebar_filters'])
