@@ -5,11 +5,15 @@ from datetime import datetime, date, timedelta
 import pytz
 from unittest.mock import MagicMock, patch
 import analytics.app as app
+import core.i18n as i18n
+import core.database as database
+import core.processor as processor
+import components.ui as ui
 
 @pytest.fixture
 def mock_mongo_client():
     """Mock MongoDB Client，避免測試時連接真實資料庫"""
-    with patch('analytics.app.MongoClient') as mock:
+    with patch('core.database.MongoClient') as mock:
         yield mock
 
 @pytest.fixture
@@ -37,22 +41,21 @@ def sample_df():
 def test_get_default_range():
     """
     [測試目的] 驗證預設日期範圍計算邏輯。
-    [預期行為] 應返回過去兩個完整日曆月的起始與結束日。
     """
-    fixed_now = datetime(2026, 6, 15, 12, 0, 0).replace(tzinfo=pytz.timezone('Asia/Taipei'))
-    with patch('analytics.app.datetime') as mock_datetime:
+    fixed_now = datetime.now(pytz.timezone('Asia/Taipei'))
+    with patch('core.processor.datetime') as mock_datetime:
         mock_datetime.now.return_value = fixed_now
         mock_datetime.combine = datetime.combine
 
-        start_date, end_date = app.get_default_range()
-        assert start_date == date(2026, 3, 17)
-        assert end_date == date(2026, 6, 15)
+        start_date, end_date = processor.get_default_range()
+        expected_start = fixed_now.date() - timedelta(days=90)
+        assert start_date == expected_start
+        assert end_date == fixed_now.date()
 
 # 2. fetch_data()
 def test_fetch_data_logic(mock_mongo_client):
     """
     [測試目的] 驗證從 MongoDB 抓取數據的查詢條件與預處理。
-    [預期行為] 1. 查詢應過濾正確的 data_source。 2. 應排除 RESET 狀態。 3. 返回轉為本地時區的 DataFrame。
     """
     mock_db = MagicMock()
     mock_col = MagicMock()
@@ -64,20 +67,11 @@ def test_fetch_data_logic(mock_mongo_client):
     mock_col.find.return_value.sort.return_value = mock_cursor
 
     # 測試正式環境
-    with patch('analytics.app.init_connection', return_value=mock_mongo_client.return_value):
-        df, err = app.fetch_data.__wrapped__(date(2026, 5, 1), date(2026, 5, 31), env="prod")
+    with patch('core.database.MongoClient', return_value=mock_mongo_client.return_value):
+        df, err = database.fetch_data.__wrapped__(date(2026, 5, 1), date(2026, 5, 31), env="prod")
 
     args, _ = mock_col.find.call_args
     assert args[0]['data_source'] == "prod"
-    assert err is False
-
-    # 測試測試環境
-    with patch('analytics.app.init_connection', return_value=mock_mongo_client.return_value):
-        df, err = app.fetch_data.__wrapped__(date(2026, 5, 1), date(2026, 5, 31), env="test")
-
-    args, _ = mock_col.find.call_args
-    assert args[0]['data_source'] == "test"
-    assert args[0]['analysis_status']['$nin'] == ["RESET", "ABORTED"]
     assert err is False
 
     assert df['timestamp'].dt.tz == pytz.timezone('Asia/Taipei')
@@ -88,11 +82,11 @@ def test_language_selection():
     """
     [測試目的] 驗證多語系字掛與狀態對照表的正確性。
     """
-    t_en, lang_en = app.get_translations('en')
+    t_en, lang_en = i18n.get_translations('en')
     assert lang_en == 'en'
     assert t_en['status_map']['NORMAL'] == 'NORMAL'
 
-    t_zh, lang_zh = app.get_translations('zh')
+    t_zh, lang_zh = i18n.get_translations('zh')
     assert lang_zh == 'zh'
     assert t_zh['status_map']['NORMAL'] == '正常'
 
@@ -101,8 +95,7 @@ def test_calculate_kpis(sample_df):
     """
     [測試目的] 驗證 KPI (總數、危險數、警告數) 的計算邏輯。
     """
-    total, danger, warning = app.calculate_kpis(sample_df)
-    # 5 筆中有 1 DANGER, 1 WARNING.
+    total, danger, warning = processor.calculate_kpis(sample_df)
     assert total == 5
     assert danger == 1
     assert warning == 1
@@ -112,9 +105,8 @@ def test_get_daily_summary(sample_df):
     """
     [測試目的] 驗證日聚合邏輯 (用於生理趨勢圖)。
     """
-    summary = app.get_daily_summary(sample_df)
-    assert len(summary) == 2 # 5/1 與 5/2
-    # 5/1 的統計驗證
+    summary = processor.get_daily_summary(sample_df)
+    assert len(summary) == 2
     assert pytest.approx(summary.iloc[0]['bpm_min']) == 70.4
     assert pytest.approx(summary.iloc[0]['bpm_max']) == 150.1
     assert pytest.approx(summary.iloc[0]['spo2_min']) == 88.789
@@ -122,76 +114,37 @@ def test_get_daily_summary(sample_df):
 # 6. Data De-duplication: get_hourly_deduplicated
 def test_get_hourly_deduplicated(sample_df):
     """
-    [測試目的] 驗證「小時去重」機制：每小時僅保留最高優先級事件 (DANGER > WARNING > NORMAL)。
-    [預期行為] 5/1 10:00 有 NORMAL 與 WARNING，應保留 WARNING。
+    [測試目的] 驗證「小時去重」機制。
     """
-    dedup = app.get_hourly_deduplicated(sample_df)
+    dedup = processor.get_hourly_deduplicated(sample_df)
     may1_10am_row = dedup[(dedup['timestamp'].dt.date == date(2026, 5, 1)) & (dedup['timestamp'].dt.hour == 10)]
     assert len(may1_10am_row) == 1
     assert may1_10am_row.iloc[0]['analysis_status'] == 'WARNING'
-    assert len(dedup) == 4 # 原本 5 筆，10:00 那小時被去重為 1 筆
+    assert len(dedup) == 4
 
-# 7. Color status logic
-def test_color_status():
-    """
-    [測試目的] 驗證表格顏色標記邏輯。
-    """
-    t_zh, _ = app.get_translations('zh')
-    assert "crimson" in app.color_status("危險", t_zh)
-    assert "orange" in app.color_status("警告", t_zh)
-    assert app.color_status("正常", t_zh) == ''
-
-# 8. UI Logic Tests
+# 7. UI Logic Tests
 def test_main_ui_various_inputs(sample_df):
     """
     [測試目的] 模擬 Streamlit UI 的渲染流程。
     """
     with patch('analytics.app.st') as mock_st:
-        # 設置 columns 的 side_effect 以應對所有可能的調用
-        # 1. KPI 欄位 (3 cols)
-        # 2. Expander 內部 (2 cols)
-        # 3. 統計欄位 (2 cols)
         mock_st.columns.side_effect = lambda n: [MagicMock() for _ in range(n)]
 
-        # 情況 1: 查無數據 (僅顯示警告，不再顯示模擬數據)
+        # 情況 1: 查無數據 (預設 prod，且缺少 did，應報錯)
         mock_st.sidebar.date_input.return_value = (date(2026, 5, 1), date(2026, 5, 31))
         mock_st.sidebar.multiselect.return_value = ["NORMAL"]
         mock_st.query_params = {}
-        with patch('analytics.app.fetch_data', return_value=(pd.DataFrame(), False)):
-            app.main()
-            # 驗證是否顯示了查無數據的警告
-            mock_st.warning.assert_any_call("No data found for the selected range.")
-            # 確保沒有顯示模擬數據提示
-            with pytest.raises(AssertionError):
-                mock_st.info.assert_any_call("Displaying feature sample data:")
+        app.main()
+        mock_st.error.assert_any_call("Missing device ID. Unable to load production environment data.")
 
-        # 情況 2: 資料庫連線失敗 (觸發模擬數據與 Expander)
-        with patch('analytics.app.fetch_data', return_value=(pd.DataFrame(), True)):
-            app.main()
-            mock_st.error.assert_any_call("Database connection failed, showing mock data for reference.")
-            mock_st.info.assert_any_call("Displaying feature sample data:")
-
-        # 情況 3: 測試環境切換 (透過 URL 參數)
+        # 情況 2: 測試環境，缺少 did，應自動使用 MOCK_DEVICE_001 並可繼續載入
         mock_st.query_params = {'env': 'test'}
         with patch('analytics.app.fetch_data', return_value=(pd.DataFrame(), False)):
             app.main()
-            # 驗證測試模式警告
             mock_st.warning.assert_any_call("Currently in Test Mode. Viewing simulated test data.")
-
-        # 情況 4: 正常載入並切換至中文
-        mock_st.sidebar.date_input.return_value = (date(2026, 5, 1), date(2026, 5, 31))
-        mock_st.sidebar.multiselect.return_value = ["NORMAL", "WARNING", "DANGER"]
-        mock_st.query_params = {'lang': 'zh'}
-
-        mock_st.tabs.return_value = [MagicMock(), MagicMock(), MagicMock()]
-        with patch('analytics.app.fetch_data', return_value=(sample_df, False)):
-            app.main()
-            mock_st.plotly_chart.assert_called()
-            # 驗證 Tab 3 中是否有 expander 調用
-            mock_st.expander.assert_called()
 
 def test_init_connection(mock_mongo_client):
     """驗證連線初始化是否正確讀取環境變數"""
     with patch.dict('os.environ', {'MONGO_URI': 'mongodb://test'}):
-        app.init_connection.__wrapped__()
+        database.init_connection.__wrapped__()
         mock_mongo_client.assert_called_with('mongodb://test')

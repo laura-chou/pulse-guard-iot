@@ -21,7 +21,7 @@ LINE_CHANNEL_ACCESS_TOKEN = os.getenv("LINE_CHANNEL_ACCESS_TOKEN")
 LINE_USER_ID = os.getenv("LINE_USER_ID")
 LINE_PUSH_API = "https://api.line.me/v2/bot/message/push"
 
-TEMPLATE_PATH = os.path.join(os.path.dirname(__file__), "report_template.json")
+TEMPLATE_PATH = os.path.join(os.path.dirname(__file__), "templates", "report_template.json")
 
 def load_report_template():
     """Loads the LINE Flex Message template from JSON file."""
