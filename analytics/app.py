@@ -11,7 +11,10 @@ load_dotenv()
 # 匯入核心邏輯與 UI 元件
 from core.i18n import get_translations
 from core.database import fetch_data, get_mock_data
-from core.processor import calculate_kpis, get_daily_summary, get_hourly_deduplicated, get_default_range
+from core.processor import (
+    calculate_kpis, get_daily_summary, get_hourly_deduplicated,
+    get_default_range, get_diagnosis_description
+)
 from components.ui import build_combined_physiological_chart, render_aggrid, load_custom_css
 
 def main():
@@ -195,14 +198,24 @@ def main():
 
             log_df = df_hourly[df_hourly['analysis_status'] != "NORMAL"].copy()
             if not log_df.empty:
-                display_df = log_df[['timestamp', 'analysis_status', 'avg_bpm', 'ema_bpm', 'spo2']].copy()
+                # 增加 Description 欄位
+                log_df['description'] = log_df.apply(lambda row: get_diagnosis_description(row, t), axis=1)
+
+                display_df = log_df[['timestamp', 'analysis_status', 'description', 'avg_bpm', 'ema_bpm', 'spo2']].copy()
                 display_df['timestamp'] = display_df['timestamp'].dt.strftime('%Y-%m-%d %H:%M:%S')
                 display_df['analysis_status'] = display_df['analysis_status'].map(t['status_map'])
                 display_df['avg_bpm'] = display_df['avg_bpm'].round(1)
                 display_df['ema_bpm'] = display_df['ema_bpm'].round(1)
                 display_df['spo2'] = display_df['spo2'].round(0).astype(int)
                 display_df.insert(0, t['col_no'], range(1, len(display_df) + 1))
-                column_mapping = {'timestamp': t['col_time'], 'analysis_status': t['col_status'], 'avg_bpm': t['col_avg_bpm'], 'ema_bpm': t['col_ema_bpm'], 'spo2': t['col_spo2']}
+                column_mapping = {
+                    'timestamp': t['col_time'],
+                    'analysis_status': t['col_status'],
+                    'description': t['col_desc'],
+                    'avg_bpm': t['col_avg_bpm'],
+                    'ema_bpm': t['col_ema_bpm'],
+                    'spo2': t['col_spo2']
+                }
                 display_df = display_df.rename(columns=column_mapping)
                 render_aggrid(display_df, t, t['col_status'])
                 csv = df.to_csv(index=False).encode('utf-8-sig')

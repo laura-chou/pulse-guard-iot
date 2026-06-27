@@ -41,3 +41,36 @@ def get_default_range():
     today = datetime.now(local_tz).date()
     start_date = today - timedelta(days=90)
     return start_date, today
+
+def get_diagnosis_description(row, t):
+    """
+    根據生理指標判定異常原因 (Description)
+    """
+    reasons = []
+    spo2 = row.get('spo2', 100)
+    ema_bpm = row.get('ema_bpm', 75)
+    delta_bpm = abs(row.get('delta_bpm', 0))
+
+    # SpO2 判定
+    if spo2 <= 90:
+        reasons.append(t['diag']['crit_low_spo2'])
+    elif 91 <= spo2 <= 94:
+        reasons.append(t['diag']['low_spo2'])
+
+    # 心率判定 (EMA)
+    if ema_bpm <= 50:
+        reasons.append(t['diag']['crit_low_hr'])
+    elif 50 < ema_bpm < 60:
+        reasons.append(t['diag']['low_hr'])
+    elif 100 < ema_bpm < 140:
+        reasons.append(t['diag']['high_hr'])
+    elif ema_bpm >= 140:
+        reasons.append(t['diag']['crit_high_hr'])
+
+    # 心率突變判定
+    if delta_bpm >= 50:
+        reasons.append(t['diag']['arrhythmia'])
+
+    # 透過 t['title'] 或特定欄位名稱來判斷語系較為可靠
+    separator = "、" if t['tt_week'] == "週別" else ", "
+    return separator.join(reasons)

@@ -96,9 +96,18 @@ def render_aggrid(df, t, status_col_key):
     gb.configure_column(
         status_col_key,
         cellStyle=cellsytle_jscode,
-        maxWidth=120,
+        maxWidth=100,
         flex=0
     )
+
+    # 異常原因 (Description) 欄位：靠左對齊，允許較大寬度
+    if t['col_desc'] in df.columns:
+        gb.configure_column(
+            t['col_desc'],
+            cellStyle={'textAlign': 'left'},
+            minWidth=200,
+            flex=2
+        )
     if t['col_no'] in df.columns:
         gb.configure_column(
             t['col_no'],
