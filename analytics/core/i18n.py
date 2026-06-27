@@ -1,4 +1,7 @@
 def get_translations(lang_code):
+    """
+    提供多語系支援的字典與處理函式
+    """
     translations = {
         'en': {
             'page_title': 'PulseGuard Analytics',

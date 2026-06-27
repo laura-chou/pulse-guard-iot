@@ -4,12 +4,6 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from st_aggrid import AgGrid, GridOptionsBuilder, JsCode, GridUpdateMode, DataReturnMode
 
-def color_status(val, t):
-    if val == t['status_map']['DANGER']: color = 'background-color: crimson; color: white'
-    elif val == t['status_map']['WARNING']: color = 'background-color: orange; color: black'
-    else: color = ''
-    return color
-
 def build_combined_physiological_chart(df_daily, t):
     """建立合併的生理趨勢圖 (心率與血氧共用 X 軸)"""
     fig = make_subplots(
@@ -20,7 +14,6 @@ def build_combined_physiological_chart(df_daily, t):
     )
 
     # --- Row 1: Heart Rate ---
-    # 範圍填充 (Min-Max)
     fig.add_trace(go.Scatter(
         x=pd.concat([df_daily['date'], df_daily['date'][::-1]]),
         y=pd.concat([df_daily['bpm_max'], df_daily['bpm_min'][::-1]]),
@@ -32,7 +25,6 @@ def build_combined_physiological_chart(df_daily, t):
         name=t['bpm_range']
     ), row=1, col=1)
 
-    # 平均線
     fig.add_trace(go.Scatter(
         x=df_daily['date'],
         y=df_daily['bpm_mean'],
@@ -50,11 +42,9 @@ def build_combined_physiological_chart(df_daily, t):
         hovertemplate=f"{t['tt_date']}: %{{x}}<br>{t['tt_min_spo2']}: %{{y:.1f}}<extra></extra>"
     ), row=2, col=1)
 
-    # 添加 90% 危險臨界線
     danger_label = f"{t['status_map']['DANGER']} (90%)"
     fig.add_hline(y=90, line_dash="dash", line_color="red", annotation_text=danger_label, row=2, col=1)
 
-    # --- Layout ---
     fig.update_layout(
         height=700,
         hovermode="x unified",
@@ -72,7 +62,6 @@ def render_aggrid(df, t, status_col_key):
     """
     gb = GridOptionsBuilder.from_dataframe(df)
 
-    # 默認配置：移除功能選單與篩選圖示，預設置中對齊
     gb.configure_default_column(
         suppressMenu=True,
         suppressHeaderFilterButton=True,
@@ -83,7 +72,6 @@ def render_aggrid(df, t, status_col_key):
         resizable=True
     )
 
-    # 針對數值欄位：靠右對齊 (內容)
     numeric_cols = [t['col_avg_bpm'], t['col_ema_bpm'], t['col_spo2']]
     for col in numeric_cols:
         if col in df.columns:
@@ -93,7 +81,6 @@ def render_aggrid(df, t, status_col_key):
                 cellStyle={'textAlign': 'right'}
             )
 
-    # 狀態欄位特殊處理：背景顏色 (JsCode)
     cellsytle_jscode = JsCode(f"""
     function(params) {{
         let baseStyle = {{ 'textAlign': 'center' }};
@@ -106,14 +93,12 @@ def render_aggrid(df, t, status_col_key):
         }}
     }};
     """)
-    # 狀態欄位：置中對齊且
     gb.configure_column(
         status_col_key,
         cellStyle=cellsytle_jscode,
         maxWidth=120,
         flex=0
     )
-    # 序號欄位：置中對齊且固定極小寬度
     if t['col_no'] in df.columns:
         gb.configure_column(
             t['col_no'],
@@ -125,7 +110,6 @@ def render_aggrid(df, t, status_col_key):
 
     gridOptions = gb.build()
 
-    # 將 AgGrid 表頭文字置中
     custom_css = {
         ".ag-header-cell-label": {
             "justify-content": "center !important"
@@ -146,7 +130,7 @@ def render_aggrid(df, t, status_col_key):
     )
 
 def load_custom_css():
-    """載入 CSS 視覺美化"""
+    """載入 CSS 視覺美化樣式塊"""
     st.markdown("""
     <style>
         [data-testid="stMetric"] {

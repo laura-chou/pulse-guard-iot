@@ -4,7 +4,7 @@ from pymongo import MongoClient
 from datetime import datetime, timedelta
 import pytz
 import os
-from config import local_tz
+from core.config import local_tz
 
 @st.cache_resource
 def init_connection():
@@ -33,8 +33,7 @@ def fetch_data(start_date, end_date, env="prod", device_id="MOCK_DEVICE_001"):
     db = client[db_name]
     collection = db[col_name]
 
-    # 執行查詢並按時間排序，使用投影減少傳輸量
-    # 排除 RESET 狀態與測試數據 (data_source="test")
+    # 執行查詢並按時間排序
     projection = {
         "timestamp": 1,
         "analysis_status": 1,
