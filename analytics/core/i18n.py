@@ -5,7 +5,7 @@ def get_translations(lang_code):
     translations = {
         'en': {
             'page_title': 'PulseGuard Analytics',
-            'title': 'PulseGuard | Remote Health Analytics Dashboard',
+            'title': 'PulseGuard | Long-term Trend Analytics Dashboard',
             'sidebar_filters': 'Filters',
             'date_range': 'Date Range',
             'status_filter': 'Status Filter',
@@ -64,8 +64,8 @@ def get_translations(lang_code):
             }
         },
         'zh': {
-            'page_title': '遠端健康數據分析',
-            'title': 'PulseGuard｜遠端健康智慧監控分析儀表板',
+            'page_title': 'PulseGuard 分析',
+            'title': 'PulseGuard | 中長期趨勢分析儀表板',
             'sidebar_filters': '篩選條件',
             'date_range': '日期範圍',
             'status_filter': '狀態過濾',

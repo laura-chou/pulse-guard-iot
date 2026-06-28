@@ -7,7 +7,7 @@ from collections import deque
 import numpy as np
 from pymongo import MongoClient
 from dotenv import load_dotenv
-from utils.status_utils import get_status, EMA_ALPHA
+from utils.status_utils import get_status_and_codes, EMA_ALPHA
 
 # Setup logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -102,14 +102,15 @@ def generate_session_data(start_time):
         delta_bpm = abs(raw_bpm - prev_xt_bpm)
         last_ema_bpm = ema_bpm
 
-        # 3. 獲取判定狀態 (引用核心 utils)
-        status = get_status(raw_bpm, ema_bpm, delta_bpm, raw_spo2)
+        # 3. 獲取判定狀態與代碼 (引用核心 utils)
+        status, reason_codes = get_status_and_codes(raw_bpm, ema_bpm, delta_bpm, raw_spo2)
 
         doc = {
             "timestamp": current_time,
             "session_id": session_id,
             "device_id": DEVICE_ID,
             "analysis_status": status,
+            "reason_codes": reason_codes,
             "avg_bpm": round(xt_bpm, 2),
             "ema_bpm": round(ema_bpm, 2),
             "delta_bpm": round(delta_bpm, 2),
