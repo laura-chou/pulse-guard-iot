@@ -105,21 +105,12 @@ def main():
             e_col1, e_col2 = st.columns(2)
             with e_col1:
                 st.markdown(f"**{t['expander_left_title']}**")
-                st.markdown(t['help_status'])
+                st.markdown(t['help_status_display'], help=t['help_status_tooltip'])
             with e_col2:
                 st.markdown(f"**{t['expander_right_title']}**")
-                if lang == 'zh':
-                    st.markdown("""
-- **平均心率**：最近 15 筆訊號的移動平均值，用以平滑即時雜訊，呈現穩定的心跳趨勢。
-- **EMA心率**：指數移動平均 (EMA)，導入時序濾波演算法（目前 30%，歷史 70% 權重），有效抑制單點量測誤差。
-- **血氧飽和度 (%)**：顯示最近 15 秒的訊號移動平均值，較純即時數值更具醫學代表性。
-                    """)
-                else:
-                    st.markdown("""
-- **Avg BPM**: Moving average of the last 15 signals to smooth out noise.
-- **EMA BPM**: Exponential Moving Average (30% current, 70% historical) to suppress measurement errors.
-- **SpO₂ (%)**: 15-second moving average, providing better clinical representation.
-                    """)
+                st.markdown(f"- **{t['col_avg_bpm']}**：{t['help_avg_bpm']}")
+                st.markdown(f"- **{t['col_ema_bpm']}**：{t['help_ema_bpm']}")
+                st.markdown(f"- **{t['col_spo2']}**：{t['help_spo2']}")
         render_aggrid(mock_display, t, t['col_status'])
 
     else:
@@ -180,21 +171,12 @@ def main():
                 e_col1, e_col2 = st.columns(2)
                 with e_col1:
                     st.markdown(f"**{t['expander_left_title']}**")
-                    st.markdown(t['help_status'])
+                    st.markdown(t['help_status_display'], help=t['help_status_tooltip'])
                 with e_col2:
                     st.markdown(f"**{t['expander_right_title']}**")
-                    if lang == 'zh':
-                        st.markdown("""
-- **平均心率**：最近 15 筆訊號的移動平均值，用以平滑即時雜訊，呈現穩定的心跳趨勢。
-- **EMA心率**：指數移動平均 (EMA)，導入時序濾波演算法（目前 30%，歷史 70% 權重），有效抑制單點量測誤差。
-- **血氧飽和度 (%)**：顯示最近 15 秒的訊號移動平均值，較純即時數值更具醫學代表性。
-                        """)
-                    else:
-                        st.markdown("""
-- **Avg BPM**: Moving average of the last 15 signals to smooth out noise.
-- **EMA BPM**: Exponential Moving Average (30% current, 70% historical) to suppress measurement errors.
-- **SpO₂ (%)**: 15-second moving average, providing better clinical representation.
-                        """)
+                    st.markdown(f"- **{t['col_avg_bpm']}**：{t['help_avg_bpm']}")
+                    st.markdown(f"- **{t['col_ema_bpm']}**：{t['help_ema_bpm']}")
+                    st.markdown(f"- **{t['col_spo2']}**：{t['help_spo2']}")
 
             log_df = df_hourly[df_hourly['analysis_status'] != "NORMAL"].copy()
             if not log_df.empty:
