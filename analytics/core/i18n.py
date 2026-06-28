@@ -59,7 +59,8 @@ def get_translations(lang_code):
                 'low_hr': "Mild Bradycardia",
                 'high_hr': "Mild Tachycardia",
                 'crit_high_hr': "Severe Tachycardia",
-                'arrhythmia': "Sudden Heart Rate Variation"
+                'arrhythmia': "Sudden Heart Rate Variation",
+                'hr_fluctuation': "Heart Rate Fluctuation"
             }
         },
         'zh': {
@@ -118,7 +119,8 @@ def get_translations(lang_code):
                 'low_hr': "心率偏低",
                 'high_hr': "心率偏高",
                 'crit_high_hr': "心率過高",
-                'arrhythmia': "心率突變異常"
+                'arrhythmia': "心率突變異常",
+                'hr_fluctuation': "心率微幅波動"
             }
         }
     }

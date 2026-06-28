@@ -13,7 +13,7 @@ from core.i18n import get_translations
 from core.database import fetch_data, get_mock_data
 from core.processor import (
     calculate_kpis, get_daily_summary, get_hourly_deduplicated,
-    get_default_range, get_diagnosis_description
+    get_default_range, translate_reason_codes
 )
 from components.ui import build_combined_physiological_chart, render_aggrid, load_custom_css
 
@@ -198,8 +198,8 @@ def main():
 
             log_df = df_hourly[df_hourly['analysis_status'] != "NORMAL"].copy()
             if not log_df.empty:
-                # 增加 Description 欄位
-                log_df['description'] = log_df.apply(lambda row: get_diagnosis_description(row, t), axis=1)
+                # 增加 Description 欄位 (由 reason_codes 翻譯而來)
+                log_df['description'] = log_df['reason_codes'].apply(lambda codes: translate_reason_codes(codes, t))
 
                 display_df = log_df[['timestamp', 'analysis_status', 'description', 'avg_bpm', 'ema_bpm', 'spo2']].copy()
                 display_df['timestamp'] = display_df['timestamp'].dt.strftime('%Y-%m-%d %H:%M:%S')

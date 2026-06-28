@@ -42,35 +42,17 @@ def get_default_range():
     start_date = today - timedelta(days=90)
     return start_date, today
 
-def get_diagnosis_description(row, t):
+def translate_reason_codes(reason_codes, t):
     """
-    根據生理指標判定異常原因 (Description)
+    將資料庫中的 reason_codes 翻譯為對應語系的文字描述。
+    落實 SSoT 原則：此處不再包含任何數值判定。
     """
-    reasons = []
-    spo2 = row.get('spo2', 100)
-    ema_bpm = row.get('ema_bpm', 75)
-    delta_bpm = abs(row.get('delta_bpm', 0))
+    if not reason_codes or not isinstance(reason_codes, list):
+        return ""
 
-    # SpO2 判定
-    if spo2 <= 90:
-        reasons.append(t['diag']['crit_low_spo2'])
-    elif 91 <= spo2 <= 94:
-        reasons.append(t['diag']['low_spo2'])
+    # 從 t['diag'] 字典中取出對應的翻譯
+    reasons = [t['diag'].get(code, code) for code in reason_codes]
 
-    # 心率判定 (EMA)
-    if ema_bpm <= 50:
-        reasons.append(t['diag']['crit_low_hr'])
-    elif 50 < ema_bpm < 60:
-        reasons.append(t['diag']['low_hr'])
-    elif 100 < ema_bpm < 140:
-        reasons.append(t['diag']['high_hr'])
-    elif ema_bpm >= 140:
-        reasons.append(t['diag']['crit_high_hr'])
-
-    # 心率突變判定
-    if delta_bpm >= 50:
-        reasons.append(t['diag']['arrhythmia'])
-
-    # 透過 t['title'] 或特定欄位名稱來判斷語系較為可靠
+    # 透過 t['tt_week'] == "週別" 判斷是否為中文語系
     separator = "、" if t['tt_week'] == "週別" else ", "
     return separator.join(reasons)

@@ -7,7 +7,7 @@ from collections import deque
 from typing import Dict, Optional, Tuple, Any, List
 import numpy as np
 import report_manager
-from utils.status_utils import is_valid_bpm, is_valid_spo2, get_status, EMA_ALPHA
+from utils.status_utils import is_valid_bpm, is_valid_spo2, get_status_and_codes, EMA_ALPHA
 from database import DatabaseHandler
 
 logger = logging.getLogger(__name__)
@@ -110,8 +110,8 @@ class StreamProcessor:
 
                 delta_bpm = abs(raw_bpm_f - prev_xt_bpm)
 
-                # 6. 狀態分析判斷
-                analysis_status = get_status(raw_bpm_f, ema_bpm, delta_bpm, raw_spo2_f)
+                # 6. 狀態分析判斷 (SSoT)
+                analysis_status, reason_codes = get_status_and_codes(raw_bpm_f, ema_bpm, delta_bpm, raw_spo2_f)
                 state.last_ema_bpm = ema_bpm
 
                 # 7. 智慧寫入機制
@@ -132,6 +132,7 @@ class StreamProcessor:
                     record = {
                         "timestamp": datetime.fromtimestamp(current_time, tz=timezone.utc),
                         "analysis_status": analysis_status,
+                        "reason_codes": reason_codes,
                         "session_id": state.current_session_id,
                         "data_source": data_source,
                         "device_id": device_id,

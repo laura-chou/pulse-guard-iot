@@ -41,6 +41,7 @@ def fetch_data(start_date, end_date, env="prod", device_id="MOCK_DEVICE_001"):
         "ema_bpm": 1,
         "delta_bpm": 1,
         "spo2": 1,
+        "reason_codes": 1,
         "device_id": 1,
         "_id": 0
     }
@@ -75,7 +76,8 @@ def get_mock_data(env, t):
                 "avg_bpm": 72.4,
                 "ema_bpm": 71.8,
                 "delta_bpm": 0.5,
-                "spo2": 98.5
+                "spo2": 98.5,
+                "reason_codes": []
             }
         ]
     else:
@@ -86,7 +88,8 @@ def get_mock_data(env, t):
                 "avg_bpm": 145.0,
                 "ema_bpm": 142.5,
                 "delta_bpm": 52.0,
-                "spo2": 88.0
+                "spo2": 88.0,
+                "reason_codes": ["crit_low_spo2", "crit_high_hr", "arrhythmia"]
             },
             {
                 "timestamp": (datetime.now(local_tz) - timedelta(minutes=2)).strftime('%Y-%m-%d %H:%M:%S'),
@@ -94,7 +97,8 @@ def get_mock_data(env, t):
                 "avg_bpm": 105.0,
                 "ema_bpm": 102.0,
                 "delta_bpm": 10.0,
-                "spo2": 94.0
+                "spo2": 94.0,
+                "reason_codes": ["low_spo2"]
             }
         ]
     mock_data = pd.DataFrame(mock_records)
