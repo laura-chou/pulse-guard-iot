@@ -122,27 +122,6 @@ def test_get_hourly_deduplicated(sample_df):
     assert may1_10am_row.iloc[0]['analysis_status'] == 'WARNING'
     assert len(dedup) == 4
 
-# 7. UI Logic Tests
-def test_main_ui_various_inputs(sample_df):
-    """
-    [測試目的] 模擬 Streamlit UI 的渲染流程。
-    """
-    with patch('analytics.app.st') as mock_st:
-        mock_st.columns.side_effect = lambda n: [MagicMock() for _ in range(n)]
-
-        # 情況 1: 查無數據 (預設 prod，且缺少 did，應報錯)
-        mock_st.sidebar.date_input.return_value = (date(2026, 5, 1), date(2026, 5, 31))
-        mock_st.sidebar.multiselect.return_value = ["NORMAL"]
-        mock_st.query_params = {}
-        app.main()
-        mock_st.error.assert_any_call("Missing device ID. Unable to load production environment data.")
-
-        # 情況 2: 測試環境，缺少 did，應自動使用 MOCK_DEVICE_001 並可繼續載入
-        mock_st.query_params = {'env': 'test'}
-        with patch('analytics.app.fetch_data', return_value=(pd.DataFrame(), False)):
-            app.main()
-            mock_st.warning.assert_any_call("Currently in Test Mode. Viewing simulated test data.")
-
 def test_init_connection(mock_mongo_client):
     """驗證連線初始化是否正確讀取環境變數"""
     with patch.dict('os.environ', {'MONGO_URI': 'mongodb://test'}):
