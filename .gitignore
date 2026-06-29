@@ -1,4 +1,4 @@
-﻿backend/__pycache__
-*.coverage
-analytics/__pycache__
-backend/utils/__pycache__
+﻿*.coverage
+*__pycache__
+*.env
+*.env

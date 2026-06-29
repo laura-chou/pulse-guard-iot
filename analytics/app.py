@@ -174,9 +174,9 @@ def main():
                     st.markdown(t['help_status_display'], help=t['help_status_tooltip'])
                 with e_col2:
                     st.markdown(f"**{t['expander_right_title']}**")
-                    st.markdown(f"- **{t['col_avg_bpm']}**：{t['help_avg_bpm']}")
-                    st.markdown(f"- **{t['col_ema_bpm']}**：{t['help_ema_bpm']}")
-                    st.markdown(f"- **{t['col_spo2']}**：{t['help_spo2']}")
+                    st.markdown(f"- {t['help_avg_bpm']}")
+                    st.markdown(f"- {t['help_ema_bpm']}")
+                    st.markdown(f"- {t['help_spo2']}")
 
             log_df = df_hourly[df_hourly['analysis_status'] != "NORMAL"].copy()
             if not log_df.empty:

@@ -7,7 +7,7 @@ from collections import deque
 import numpy as np
 from pymongo import MongoClient
 from dotenv import load_dotenv
-from utils.status_utils import get_status_and_codes, EMA_ALPHA
+from backend.utils.status_utils import get_status_and_codes, EMA_ALPHA
 
 # Setup logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
