@@ -105,6 +105,10 @@ def get_mock_data(env, t):
 
     # 轉換為顯示格式
     mock_display = mock_data.copy()
+
+    from core.processor import translate_reason_codes
+    mock_display['description'] = mock_display['reason_codes'].apply(lambda codes: translate_reason_codes(codes, t))
+
     mock_display['analysis_status'] = mock_display['analysis_status'].map(lambda x: t['status_map'].get(x, x))
 
     # 統一模擬數據的數值精度
@@ -112,12 +116,16 @@ def get_mock_data(env, t):
     mock_display['ema_bpm'] = mock_display['ema_bpm'].round(1)
     mock_display['spo2'] = mock_display['spo2'].round(0).astype(int)
 
-    mock_display.insert(0, t['col_no'], range(1, len(mock_display) + 1))
-    mock_display = mock_display.rename(columns={
+    # 依照 app.py 中的表格順序進行欄位重新命名
+    column_mapping = {
         'timestamp': t['col_time'],
         'analysis_status': t['col_status'],
+        'description': t['col_desc'],
         'avg_bpm': t['col_avg_bpm'],
         'ema_bpm': t['col_ema_bpm'],
         'spo2': t['col_spo2']
-    })
+    }
+    mock_display = mock_display.reindex(columns=['timestamp', 'analysis_status', 'description', 'avg_bpm', 'ema_bpm', 'spo2'])
+    mock_display.insert(0, t['col_no'], range(1, len(mock_display) + 1))
+    mock_display = mock_display.rename(columns=column_mapping)
     return mock_display

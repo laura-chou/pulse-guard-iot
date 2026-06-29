@@ -18,16 +18,14 @@ def mock_mongo_data():
 
 @patch("report_manager.MongoClient")
 @patch("report_manager.requests.post")
-@patch("report_manager.os.getenv")
-def test_generate_and_send_report_logic(mock_getenv, mock_post, mock_mongo, mock_mongo_data):
+@patch("report_manager.Config")
+def test_generate_and_send_report_logic(mock_config, mock_post, mock_mongo, mock_mongo_data):
     # 設定 Mock
-    mock_getenv.side_effect = lambda k: {
-        "MONGO_URI": "mongodb://localhost",
-        "MONGO_DB_NAME": "db",
-        "MONGO_COL_NAME": "col",
-        "LINE_CHANNEL_ACCESS_TOKEN": "token",
-        "LINE_USER_ID": "user"
-    }.get(k)
+    mock_config.MONGO_URI = "mongodb://localhost"
+    mock_config.MONGO_DB_NAME = "db"
+    mock_config.MONGO_COL_NAME = "col"
+    mock_config.LINE_CHANNEL_ACCESS_TOKEN = "token"
+    mock_config.LINE_USER_ID = "user"
 
     mock_db = mock_mongo.return_value["db"]
     mock_col = mock_db["col"]
@@ -52,16 +50,14 @@ def test_generate_and_send_report_logic(mock_getenv, mock_post, mock_mongo, mock
 
 @patch("report_manager.MongoClient")
 @patch("report_manager.requests.post")
-@patch("report_manager.os.getenv")
-def test_generate_and_send_report_interval_calculation(mock_getenv, mock_post, mock_mongo, mock_mongo_data):
+@patch("report_manager.Config")
+def test_generate_and_send_report_interval_calculation(mock_config, mock_post, mock_mongo, mock_mongo_data):
     """驗證時間區間顯示邏輯：結束時間應為開始時間加上 duration_sec，而非最後一筆記錄的時間"""
-    mock_getenv.side_effect = lambda k: {
-        "MONGO_URI": "mongodb://localhost",
-        "MONGO_DB_NAME": "db",
-        "MONGO_COL_NAME": "col",
-        "LINE_CHANNEL_ACCESS_TOKEN": "token",
-        "LINE_USER_ID": "user"
-    }.get(k)
+    mock_config.MONGO_URI = "mongodb://localhost"
+    mock_config.MONGO_DB_NAME = "db"
+    mock_config.MONGO_COL_NAME = "col"
+    mock_config.LINE_CHANNEL_ACCESS_TOKEN = "token"
+    mock_config.LINE_USER_ID = "user"
 
     mock_db = mock_mongo.return_value["db"]
     mock_col = mock_db["col"]
