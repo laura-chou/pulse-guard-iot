@@ -30,6 +30,9 @@
                 <a href="#architecture" class="nav-link text-white me-3 d-none d-sm-block">
                     <span class="en-hide">系統架構</span><span class="zh-hide">Architecture</span>
                 </a>
+                <a href="#quickstart" class="nav-link text-white me-3 d-none d-sm-block">
+                    <span class="en-hide">快速上手</span><span class="zh-hide">Quick Start</span>
+                </a>
                 <a href="#features" class="nav-link text-white me-3 d-none d-sm-block">
                     <span class="en-hide">核心技術</span><span class="zh-hide">Core Tech</span>
                 </a>
@@ -50,10 +53,21 @@
     <header class="hero-section text-center">
         <div class="container">
             <h1 class="hero-title">PulseGuard IoT</h1>
-            <p class="hero-subtitle mb-4">
+            <p class="hero-subtitle mb-5">
                 <span class="zh-hide">A professional-grade remote health monitoring solution integrating ESP32, Python, and Streamlit. Features dual-core real-time scheduling, EMA stream noise reduction, and automated report generation with active push notifications.</span>
                 <span class="en-hide">整合 ESP32、Python 與 Streamlit 的專業級遠端健康監控解決方案。具備雙核即時調度、EMA 串流降噪與自動化報告主動推播系統。</span>
             </p>
+            <div class="hero-actions d-flex flex-wrap justify-content-center gap-3">
+                <a href="https://pulse-guard-iot.vercel.app" target="_blank" class="btn btn-primary-custom btn-hero portal-link" data-base="https://pulse-guard-iot.vercel.app/">
+                    <span class="zh-hide">Monitor Dashboard</span><span class="en-hide">即時監控儀表板</span>
+                </a>
+                <a href="https://huggingface.co/spaces/Chou1210/pulseguard-analytics" target="_blank" class="btn btn-outline-custom btn-hero portal-link" data-base="https://huggingface.co/spaces/Chou1210/pulseguard-analytics">
+                    <span class="zh-hide">Trend Analytics</span><span class="en-hide">數據趨勢分析</span>
+                </a>
+                <a href="https://github.com/laura-chou/pulse-guard-iot" target="_blank" class="btn btn-github btn-hero">
+                    <img src="https://github.com/fluidicon.png" alt="GitHub" width="20" height="20" class="me-2">GitHub
+                </a>
+            </div>
         </div>
     </header>
 
@@ -66,9 +80,15 @@
                     <span class="en-hide">系統整體架構</span>
                 </h2>
             </div>
-            <div class="portal-card p-4">
-                <!-- English Diagram -->
-                <div class="mermaid text-center zh-hide">
+            <div class="row g-4">
+                <div class="col-lg-6">
+                    <div class="portal-card p-4 h-100">
+                        <h4 class="mb-4 text-center">
+                            <span class="zh-hide">Topology & Logic</span>
+                            <span class="en-hide">系統拓撲與邏輯</span>
+                        </h4>
+                        <!-- English Diagram -->
+                        <div class="mermaid text-center zh-hide">
 graph TD
     subgraph Edge_Device ["Edge Device - ESP32"]
         E1["MAX30102 Sensor Sampling"]
@@ -113,9 +133,9 @@ graph TD
     style Cloud_Backend fill:#003333,stroke:#00E5FF,stroke-width:2px
     style User_Interface fill:#1a1d23,stroke:#D1D5DB,stroke-width:2px
     style DB fill:#1a1a1a,stroke:#4DB33D,stroke-width:2px
-                </div>
-                <!-- Chinese Diagram -->
-                <div class="mermaid text-center en-hide">
+                        </div>
+                        <!-- Chinese Diagram -->
+                        <div class="mermaid text-center en-hide">
 graph TD
     subgraph Edge_Device ["邊緣裝置 - ESP32"]
         E1["MAX30102 感測器採樣"]
@@ -160,6 +180,62 @@ graph TD
     style Cloud_Backend fill:#003333,stroke:#00E5FF,stroke-width:2px
     style User_Interface fill:#1a1d23,stroke:#D1D5DB,stroke-width:2px
     style DB fill:#1a1a1a,stroke:#4DB33D,stroke-width:2px
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-6">
+                    <div class="portal-card p-4 h-100">
+                        <h4 class="mb-4 text-center">
+                            <span class="zh-hide">Data Flow Sequence</span>
+                            <span class="en-hide">數據流循序圖</span>
+                        </h4>
+                        <!-- English Sequence -->
+                        <div class="mermaid text-center zh-hide">
+sequenceDiagram
+    participant S as MAX30102
+    participant E as ESP32 (Edge)
+    participant M as MQTT Broker
+    participant B as Python Backend
+    participant D as MongoDB
+    participant L as LINE API
+    participant W as Web Dashboard
+
+    S->>E: Raw Physiological Signal
+    E->>E: Signal Filtering & Status Logic
+    E->>M: Publish JSON (BPM, SpO2, Status)
+    M->>W: Real-time Update (MQTT.js)
+    M->>B: Stream Ingestion
+    B->>B: EMA Smoothing & SSoT Analysis
+    alt High Risk or 20s Interval
+        B->>D: Persistence
+    end
+    Note over B,L: On Session COMPLETED
+    B->>L: Push Flex Message Report
+                        </div>
+                        <!-- Chinese Sequence -->
+                        <div class="mermaid text-center en-hide">
+sequenceDiagram
+    participant S as MAX30102 感測器
+    participant E as ESP32 (邊緣端)
+    participant M as MQTT 經紀人
+    participant B as Python 後端
+    participant D as MongoDB 資料庫
+    participant L as LINE Messaging API
+    participant W as 即時網頁看板
+
+    S->>E: 原始生理訊號
+    E->>E: 濾波處理與狀態判定
+    E->>M: 發布 JSON 數據 (BPM, SpO2, Status)
+    M->>W: 即時更新 (MQTT.js)
+    M->>B: 串流資料接入
+    B->>B: EMA 平滑運算與 SSoT 醫療判定
+    alt 高風險或每 20 秒
+        B->>D: 資料持久化
+    end
+    Note over B,L: 當量測狀態為 COMPLETED
+    B->>L: 推播 Flex Message 視覺化報告
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -241,6 +317,11 @@ graph TD
                             <span class="en-hide">結合 MA 與 EMA 進行雙重平滑，計算 15 筆時序視窗平均值以捕捉長期趨勢。</span>
                         </li>
                         <li class="mb-3">
+                            <strong><span class="zh-hide">SSoT Diagnostic Logic:</span><span class="en-hide">SSoT 單一事實來源診斷：</span></strong>
+                            <span class="zh-hide">Adheres to the "Single Source of Truth" principle, where the backend centralizes all medical threshold evaluations (SpO2, EMA BPM, ΔBPM), ensuring consistent status results across all platforms (Mobile/Web/LINE).</span>
+                            <span class="en-hide">落實「單一事實來源」原則，由後端統一執行所有醫療閾值判定（血氧、EMA 心率、心率突變），確保手機、網頁與 LINE 報告的健康狀態完全一致。</span>
+                        </li>
+                        <li class="mb-3">
                             <strong><span class="zh-hide">Dual-Track Health Evaluation:</span><span class="en-hide">雙軌制多維度健康評估：</span></strong>
                             <span class="zh-hide">Integrates single-point thresholds and interval trends to determine health risk levels and dynamically generate medical advice.</span>
                             <span class="en-hide">結合單點閾值與區間趨勢判定健康層級（如正常/注意/危險），動態產出客製化醫囑。</span>
@@ -309,6 +390,85 @@ graph TD
                             <span class="en-hide">導入 st_aggrid 元件。透過注入 JavaScript 實作動態條件渲染，根據健康狀態（DANGER / WARNING）即時改變背景顏色。</span>
                         </li>
                     </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Quick Start Section -->
+    <section id="quickstart" class="py-5">
+        <div class="container">
+            <div class="text-center mb-5">
+                <h2 class="section-title">
+                    <span class="zh-hide">Getting Started</span>
+                    <span class="en-hide">快速上手指南</span>
+                </h2>
+            </div>
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <div class="feature-box">
+                        <h4 class="fw-bold mb-3">1. <span class="zh-hide">Hardware Setup</span><span class="en-hide">硬體部署</span></h4>
+                        <p class="text-muted small">
+                            <span class="zh-hide">Connect the MAX30102, ST7735, and Buzzer to the ESP32 according to the pinout below. Power the device via USB.</span>
+                            <span class="en-hide">參照下方的腳位圖將 MAX30102、TFT 螢幕與蜂鳴器連接至 ESP32，並透過 USB 供電。</span>
+                        </p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="feature-box">
+                        <h4 class="fw-bold mb-3">2. <span class="zh-hide">Measurement</span><span class="en-hide">開始量測</span></h4>
+                        <p class="text-muted small">
+                            <span class="zh-hide">Place your finger on the sensor. The 60s countdown starts after a 5s stabilization. Real-time data will stream to the cloud.</span>
+                            <span class="en-hide">將手指放置於感測器上。經過 5 秒穩定後將開始 60 秒倒數，生理數據將即時同步至雲端。</span>
+                        </p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="feature-box">
+                        <h4 class="fw-bold mb-3">3. <span class="zh-hide">Check Reports</span><span class="en-hide">查看報告</span></h4>
+                        <p class="text-muted small">
+                            <span class="zh-hide">View real-time charts on the Monitor Dashboard. A clinical report will be pushed to LINE once completed.</span>
+                            <span class="en-hide">在監控儀表板查看即時趨勢。量測結束後，系統會自動將分析報告推播至您的 LINE。</span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Developer Integration -->
+            <div class="portal-card mt-5 p-4">
+                <h4 class="fw-bold mb-4 d-flex align-items-center">
+                    <span class="feature-icon-wrapper" style="width: 40px; height: 40px; font-size: 1.2rem;">🛠️</span>
+                    <span class="zh-hide">Developer Integration (MQTT)</span>
+                    <span class="en-hide">開發者整合 (MQTT 規範)</span>
+                </h4>
+                <div class="row">
+                    <div class="col-lg-7">
+                        <p class="text-muted">
+                            <span class="zh-hide">Developers can subscribe to the following MQTT topic to receive real-time JSON payloads:</span>
+                            <span class="en-hide">開發者可透過訂閱以下 MQTT Topic 來獲取即時的 JSON 數據內容：</span>
+                        </p>
+                        <code class="d-block p-3 mb-3" style="background: var(--code-bg); border-radius: 10px; color: var(--accent-cyan);">
+                            pulseguard/{env}/{device_id}/data
+                        </code>
+                        <p class="text-muted small">
+                            <span class="zh-hide">Available <code>{env}</code>: <code>prod</code>, <code>test</code>. <code>{device_id}</code> is the 12-char MAC address.</span>
+                            <span class="en-hide">可用的 <code>{env}</code> 為 <code>prod</code> 或 <code>test</code>；<code>{device_id}</code> 為裝置之 12 位 MAC 位址。</span>
+                        </p>
+                    </div>
+                    <div class="col-lg-5">
+                        <div class="p-3" style="background: rgba(255,255,255,0.03); border-radius: 10px; border: 1px solid var(--border-color);">
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="small text-secondary">Example Payload</span>
+                                <span class="badge bg-success">JSON</span>
+                            </div>
+                            <pre class="mb-0" style="font-size: 0.8rem; color: #aaa;">{
+  "bpm": 75,
+  "spo2": 98,
+  "device_status": "NORMAL",
+  "duration_sec": 45
+}</pre>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -480,8 +640,16 @@ graph TD
     <!-- Footer -->
     <footer class="text-center">
         <div class="container">
+            <div class="mb-4">
+                <a href="https://github.com/laura-chou/pulse-guard-iot" target="_blank" class="text-white me-4 text-decoration-none opacity-75">
+                    <img src="https://github.com/fluidicon.png" alt="GitHub" width="20" height="20" class="me-2 filter-white"> GitHub Repository
+                </a>
+                <a href="mailto:contact@example.com" class="text-white text-decoration-none opacity-75">
+                    📧 Contact Us
+                </a>
+            </div>
             <p class="mb-1 fw-bold text-white">&copy; 2026 PulseGuard AIoT Project. All rights reserved.</p>
-            <p class="small">Smart Healthcare & IoT Security Solution</p>
+            <p class="small text-muted">Smart Healthcare & IoT Security Solution | Integrated Remote Monitoring System</p>
         </div>
     </footer>
 
