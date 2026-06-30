@@ -3,7 +3,7 @@
 *
 * j.n.magee 15-10-2019
 */
-#include "Pulse.h"
+#include "pulse.h"
 
 Pulse::Pulse(){
     cycle_max = 20;

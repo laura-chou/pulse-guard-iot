@@ -6,7 +6,7 @@
 */
 
 #include "Wire.h"
-#include "MAX30102.h"
+#include "max30102.h"
 
 
 static const uint8_t MAX_30102_ID = 0x15;
