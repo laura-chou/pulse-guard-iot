@@ -3,7 +3,12 @@
 
 #include <Arduino.h>
 
-// --- TFT Pins ---
+/**
+ * @file config.h
+ * @brief Global configuration, pin definitions, and shared data structures.
+ */
+
+// --- TFT Display Pins ---
 #define TFT_BLK    4
 #define TFT_DC    16
 #define TFT_RST   17
@@ -15,24 +20,27 @@
 #define BUZZER_PIN 19
 
 // --- MQTT & Network Settings ---
-const char* const AP_NAME = "PulseGuard-IoT";
-const char* const MQTT_SERVER = "YOUR_BROKER";
-const int MQTT_PORT = 8883;
+const char* const AP_NAME = "PulseGuard-IoT";      // Access Point name for WiFi Setup
+const char* const MQTT_SERVER = "YOUR_BROKER";     // MQTT Broker URL
+const int MQTT_PORT = 8883;                        // Secure MQTT port
 const char* const MQTT_USER = "YOUR_MQTT_USERNAME";
 const char* const MQTT_PASS = "YOUR_MQTT_PASSWORD";
-const char* const ENV_PROD = "prod";
+const char* const ENV_PROD = "prod";               // Environment prefix for MQTT topic
 
 // --- Timing & Thresholds ---
-const unsigned long LONG_PRESS_TIME = 2000;
-const unsigned long DEBOUNCE_TIME = 50;
-const uint32_t TARGET_MEASUREMENT_SECONDS = 60;
-const uint32_t STABILIZATION_MS = 5000;
+const unsigned long LONG_PRESS_TIME = 2000;        // 2 seconds for system reset
+const unsigned long DEBOUNCE_TIME = 50;            // 50ms button debounce
+const uint32_t TARGET_MEASUREMENT_SECONDS = 60;    // Target measurement duration
+const uint32_t STABILIZATION_MS = 5000;            // 5 seconds warm-up for sensor stabilization
 
-const int BEEP_ON_TIME = 50;
-const int BEEP_OFF_TIME = 50;
-const int BEEP_FREQ = 2000;
+const int BEEP_ON_TIME = 50;                       // Buzzer on duration
+const int BEEP_OFF_TIME = 50;                      // Buzzer off duration between beeps
+const int BEEP_FREQ = 2000;                        // Buzzer frequency (Hz)
 
-// --- Status & Data Structures ---
+/**
+ * @enum DeviceStatus
+ * @brief Health status levels and system states.
+ */
 enum DeviceStatus {
     STATUS_NORMAL,
     STATUS_WARNING,
@@ -41,6 +49,10 @@ enum DeviceStatus {
     STATUS_COMPLETED
 };
 
+/**
+ * @struct SensorData
+ * @brief Structure for passing measurement data to the Network task.
+ */
 struct SensorData {
     int bpm;
     int spo2;

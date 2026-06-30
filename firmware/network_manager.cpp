@@ -1,6 +1,9 @@
 #include "network_manager.h"
 #include "display_manager.h"
 
+/**
+ * @brief Callback triggered when WiFiManager enters Config Portal mode.
+ */
 void configModeCallback(WiFiManager *myWiFiManager) {
     DisplayMgr.updateScreen(5, 0, 0, STATUS_NORMAL, 0, 0);
 }
@@ -13,18 +16,23 @@ NetworkManager::NetworkManager() :
 }
 
 void NetworkManager::begin() {
+    // 1. WiFi Setup using WiFiManager
     WiFiManager wm;
     wm.setConnectTimeout(10);
     wm.setConfigPortalTimeout(180);
     wm.setAPCallback(configModeCallback);
     if (!wm.autoConnect(AP_NAME)) {
-        ESP.restart();
+        ESP.restart(); // Restart if AP config times out
     }
 
+    // 2. Generate unique Device ID from MAC Address
     uint64_t chipMac = ESP.getEfuseMac();
     snprintf(macStr, sizeof(macStr), "%012llX", chipMac);
+
+    // Topic: pulseguard/<env>/<device_id>/data
     snprintf(dynamic_mqtt_topic, sizeof(dynamic_mqtt_topic), "pulseguard/%s/%s/data", ENV_PROD, macStr);
 
+    // 3. Start the MQTT Background Task on Core 0
     dataQueue = xQueueCreate(5, sizeof(SensorData));
     if (dataQueue != NULL) {
         xTaskCreatePinnedToCore(
@@ -51,11 +59,12 @@ void NetworkManager::networkTask(void *pvParameters) {
 }
 
 void NetworkManager::runTask() {
-    espClient.setInsecure();
+    espClient.setInsecure(); // Use TLS without certificate verification for simplicity
     mqttClient.setServer(MQTT_SERVER, MQTT_PORT);
 
     SensorData dataToPublish;
     for (;;) {
+        // --- WiFi Monitoring ---
         if (WiFi.status() != WL_CONNECTED) {
             WiFi.disconnect();
             WiFi.reconnect();
@@ -64,19 +73,24 @@ void NetworkManager::runTask() {
             }
         }
 
+        // --- MQTT Connection Management ---
         if (WiFi.status() == WL_CONNECTED && !mqttClient.connected()) {
             mqttClient.connect(macStr, MQTT_USER, MQTT_PASS);
             vTaskDelay(500 / portTICK_PERIOD_MS);
         }
 
         mqttClient.loop();
+
         if (mqttClient.connected()) {
+            // --- Send Boot Reset Message once ---
             if (!bootResetSent) {
                 const char* initResetPayload = "{\"device_status\":\"RESET\"}";
                 if (mqttClient.publish(dynamic_mqtt_topic, initResetPayload)) {
                     bootResetSent = true;
                 }
-            } else {
+            }
+            // --- Process Data Queue ---
+            else {
                 if (xQueueReceive(dataQueue, &dataToPublish, 0) == pdPASS) {
                     char jsonPayload[128];
                     const char* sStr = "NORMAL";
@@ -102,7 +116,7 @@ void NetworkManager::runTask() {
                 }
             }
         }
-        vTaskDelay(10 / portTICK_PERIOD_MS);
+        vTaskDelay(10 / portTICK_PERIOD_MS); // Yield to other tasks
     }
 }
 

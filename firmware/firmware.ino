@@ -1,3 +1,11 @@
+/**
+ * @file firmware.ino
+ * @brief Main entry point for the PulseGuard ESP32 firmware.
+ *
+ * Orchestrates the modularized components for physiological monitoring (BPM/SpO2).
+ * Follows a non-blocking architecture using FreeRTOS for networking.
+ */
+
 #include <Arduino.h>
 #include <Wire.h>
 #include "config.h"
@@ -6,100 +14,109 @@
 #include "network_manager.h"
 #include "peripherals.h"
 
-// --- 全域變數 ---
-uint32_t totalFingerSeconds = 0;
-uint32_t lastTimerUpdate = 0;
-uint8_t sleep_counter = 0;
-uint32_t lastSleepCounterTime = 0;
+// --- Global Variables & State Tracking ---
+uint32_t totalFingerSeconds = 0;   // Accumulated measurement time (seconds)
+uint32_t lastTimerUpdate = 0;      // Timestamp for the 1s timer update
+uint8_t sleep_counter = 0;         // Auto-sleep countdown counter (ticks)
+uint32_t lastSleepCounterTime = 0; // Timestamp for the sleep counter tick
 
-bool isShowingReset = false;
+bool isShowingReset = false;       // Flag for the persistent "RESET SUCCESS" screen
 unsigned long resetMessageStartTime = 0;
 
-unsigned long lastDisplayUpdate = 0;
-unsigned long lastBeatTime = 0;
+unsigned long lastDisplayUpdate = 0; // Screen refresh timer
+unsigned long lastBeatTime = 0;      // Timestamp for LED heartbeat feedback
 bool ledOn = false;
 
-// --- 函式宣告 ---
+// --- Function Prototypes ---
 void handleShortPress();
 void handleLongPress();
 void handleCompletion();
 void updateTimer();
 void handleResetScreen();
 
+/**
+ * @brief Standard Arduino Setup.
+ */
 void setup() {
     Serial.begin(115200);
 
+    // Initialize modules
     Periph.begin();
     DisplayMgr.begin();
-    DisplayMgr.updateScreen(3, 0, 0, STATUS_NORMAL, 0, 0); // Welcome screen
+    DisplayMgr.updateScreen(3, 0, 0, STATUS_NORMAL, 0, 0); // Show Welcome screen
 
-    NetworkMgr.begin();
+    NetworkMgr.begin(); // Setup WiFi and MQTT Task
 
     Wire.begin(21, 22);
     if (!SensorProc.begin()) {
-        DisplayMgr.updateScreen(0, 0, 0, STATUS_NORMAL, 0, 0); // Error screen
-        while (1);
+        DisplayMgr.updateScreen(0, 0, 0, STATUS_NORMAL, 0, 0); // Show Device Error screen
+        while (1); // Halt on I2C error
     }
 }
 
+/**
+ * @brief Main Execution Loop.
+ */
 void loop() {
-    // 1. MQTT 重置未完成前，僅執行感測器維護
+    // 1. Wait for MQTT Connection and the initial RESET packet
     if (!NetworkMgr.isBootResetSent()) {
-        SensorProc.update();
+        SensorProc.update(); // Keep sensor buffer clear
         vTaskDelay(10 / portTICK_PERIOD_MS);
         return;
     }
 
-    // 2. 切換初始畫面
+    // 2. Initial UI Transition after boot
     static bool initialScreenSwitched = false;
     if (!initialScreenSwitched) {
-        DisplayMgr.updateScreen(1, 0, 0, STATUS_NORMAL, 0, 0); // Place finger
+        DisplayMgr.updateScreen(1, 0, 0, STATUS_NORMAL, 0, 0); // Show "Place Finger"
         initialScreenSwitched = true;
     }
 
-    // 3. 更新硬體周邊與按鍵狀態
+    // 3. Update Hardware Peripherals (Button, Buzzer)
     Periph.update();
     if (Periph.isShortPressDetected()) handleShortPress();
     if (Periph.isLongPressDetected()) handleLongPress();
 
-    // 4. 處理系統重置顯示狀態
+    // 4. Handle persistent Reset Screen display period
     if (isShowingReset) {
         handleResetScreen();
         return;
     }
 
-    // 5. 更新感測器數據 (若無新樣本則直接結束 loop)
-    if (!SensorProc.update()) return;
+    // 5. Update Sensor and Processing (Non-blocking)
+    if (!SensorProc.update()) return; // No new samples, yield loop
     unsigned long now = millis();
 
     if (!SensorProc.isFingerDetected()) {
-        // --- 手指移開邏輯 ---
+        // --- CASE A: Finger Removed ---
         totalFingerSeconds = 0;
         lastTimerUpdate = 0;
 
+        // Switch between "Place Finger" and "Power Off" countdown
         int current_msg = (sleep_counter <= 50 ? 1 : 4);
         DisplayMgr.updateScreen(current_msg, 0, 0, STATUS_NORMAL, sleep_counter, 0);
 
+        // Increment sleep counter every 200ms
         if (now - lastSleepCounterTime >= 200) {
             lastSleepCounterTime = now;
             ++sleep_counter;
             if (sleep_counter > 100) {
-                Periph.goSleep();
+                Periph.goSleep(); // 20s idle -> deep sleep
                 sleep_counter = 0;
             }
         }
     } else {
-        // --- 手指放置邏輯 ---
+        // --- CASE B: Finger Detected (Measuring) ---
         sleep_counter = 0;
         updateTimer();
 
-        // 處理心跳事件
+        // Heartbeat Visual/Audio Feedback
         if (SensorProc.wasBeatDetected()) {
             lastBeatTime = now;
             Periph.setLed(true);
             ledOn = true;
 
-            // 觸發蜂鳴器 (5秒穩定後)
+            // Trigger status-specific buzzer beeps (after 5s stabilization)
             if (now - SensorProc.getFingerOnStartTime() >= STABILIZATION_MS) {
                 DeviceStatus status = SensorProc.getStatus();
                 if (status == STATUS_NORMAL) Periph.triggerBeeps(1);
@@ -108,10 +125,10 @@ void loop() {
             }
         }
 
-        // 紀錄波形 (100% 等價邏輯：每次 sensor 讀取時紀錄)
+        // Record PPG Waveform Sample
         DisplayMgr.recordWaveform(-SensorProc.getIRSignal());
 
-        // 定時更新螢幕 (50ms)
+        // Update UI at 20Hz (50ms)
         if (now - lastDisplayUpdate > 50) {
             lastDisplayUpdate = now;
             DisplayMgr.updateScreen(2, SensorProc.getBeatAvg(), SensorProc.getSPO2(),
@@ -120,23 +137,31 @@ void loop() {
         }
     }
 
-    // 關閉心跳指示燈
+    // Turn off heartbeat indicator LED after 25ms
     if (ledOn && (now - lastBeatTime) > 25) {
         Periph.setLed(false);
         ledOn = false;
     }
 }
 
+/**
+ * @brief Handles short button press (Wake up or Reset status UI).
+ */
 void handleShortPress() {
     sleep_counter = 0;
     DisplayMgr.updateScreen(1, 0, 0, STATUS_NORMAL, 0, 0);
 }
 
+/**
+ * @brief Handles long button press (System Reset).
+ */
 void handleLongPress() {
+    // Clear MQTT queue and send RESET packet
     NetworkMgr.clearQueue();
     SensorData resetData = {0, 0, STATUS_RESET, 0};
     NetworkMgr.sendData(resetData);
 
+    // Reset local measurement state
     SensorProc.reset();
     totalFingerSeconds = 0;
     lastTimerUpdate = 0;
@@ -145,11 +170,14 @@ void handleLongPress() {
     resetMessageStartTime = millis();
 }
 
+/**
+ * @brief Manages the "SYSTEM RESET SUCCESS" screen duration (1.5s).
+ */
 void handleResetScreen() {
     DisplayMgr.updateScreen(6, 0, 0, STATUS_NORMAL, 0, 0);
 
     if (millis() - resetMessageStartTime < 1500) {
-        SensorProc.update();
+        SensorProc.update(); // Keep background processing active
     } else {
         isShowingReset = false;
         sleep_counter = 0;
@@ -158,11 +186,15 @@ void handleResetScreen() {
     }
 }
 
+/**
+ * @brief Accumulates valid measurement time.
+ */
 void updateTimer() {
     unsigned long now = millis();
     if (lastTimerUpdate == 0) lastTimerUpdate = now;
     if (now - lastTimerUpdate >= 1000) {
         lastTimerUpdate += 1000;
+        // Only count time if SpO2 signal is valid (post-stabilization)
         if (SensorProc.getSPO2() > 0) {
             totalFingerSeconds++;
             if (totalFingerSeconds >= TARGET_MEASUREMENT_SECONDS) {
@@ -172,12 +204,16 @@ void updateTimer() {
     }
 }
 
+/**
+ * @brief Handles the completion of a 60s measurement session.
+ */
 void handleCompletion() {
+    // Send final summary via MQTT
     SensorData compData = {SensorProc.getBeatAvg(), SensorProc.getSPO2(), STATUS_COMPLETED, TARGET_MEASUREMENT_SECONDS};
     NetworkMgr.sendData(compData);
 
-    DisplayMgr.fillScreen(ST7735_BLACK);
-    DisplayMgr.updateScreen(7, 0, 0, STATUS_NORMAL, 0, 0); // Completion screen
+    // Show completion screen and enter deep sleep
+    DisplayMgr.updateScreen(7, 0, 0, STATUS_NORMAL, 0, 0);
     delay(3000);
     Periph.goSleep();
 }

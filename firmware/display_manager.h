@@ -6,8 +6,12 @@
 #include <SPI.h>
 #include "config.h"
 
-#define MAXWAVE 160
+#define MAXWAVE 160 // Screen width for waveform
 
+/**
+ * @class Waveform
+ * @brief Manages the buffer and rendering of the real-time PPG waveform.
+ */
 class Waveform {
 public:
     Waveform();
@@ -22,14 +26,43 @@ private:
     uint8_t wavep;
 };
 
+/**
+ * @class DisplayManager
+ * @brief Handles all UI rendering for the ST7735 display.
+ */
 class DisplayManager {
 public:
     DisplayManager();
+
+    /**
+     * @brief Initializes the display and backlight.
+     */
     void begin();
+
+    /**
+     * @brief Updates the screen content based on the message ID and current sensor data.
+     * @param msg Message ID (0: Error, 1: Place Finger, 2: Measuring, 3: Welcome, 4: Sleep, 5: WiFi, 6: Reset, 7: Done)
+     */
     void updateScreen(int msg, int beatAvg, int SPO2, DeviceStatus currentStatus, uint32_t totalFingerSeconds, uint32_t fingerOnStartTime);
+
+    /**
+     * @brief Records a raw sample into the waveform buffer.
+     */
     void recordWaveform(int waveval);
+
+    /**
+     * @brief Resets the waveform buffer.
+     */
     void clearWaveform();
+
+    /**
+     * @brief Toggles the display power and backlight.
+     */
     void enableDisplay(bool enable);
+
+    /**
+     * @brief Fills the entire screen with a specific color.
+     */
     void fillScreen(uint16_t color);
 
 private:
@@ -43,6 +76,7 @@ private:
     bool lastWarmingUpState;
     unsigned long lastWarmUpDraw;
 
+    // Sub-renderers for different screens
     void drawDeviceError();
     void drawPlaceFinger();
     void drawMeasuring(int beatAvg, int SPO2, DeviceStatus currentStatus, uint32_t totalFingerSeconds, uint32_t fingerOnStartTime);
@@ -52,6 +86,7 @@ private:
     void drawResetSuccess();
     void drawCompletion();
 
+    // UI components for Measuring screen
     void drawHeader(DeviceStatus currentStatus, uint32_t totalFingerSeconds);
     void drawData(int beatAvg, int SPO2);
 };

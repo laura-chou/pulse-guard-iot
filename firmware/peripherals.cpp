@@ -29,10 +29,12 @@ void Peripherals::updateButton() {
     unsigned long now = millis();
 
     if (lastButtonState == HIGH && currentButtonState == LOW) {
+        // Button Pressed
         buttonPressStart = now;
         longPressHandled = false;
     }
     else if (lastButtonState == LOW && currentButtonState == HIGH) {
+        // Button Released
         unsigned long pressDuration = now - buttonPressStart;
         if (!longPressHandled && pressDuration >= DEBOUNCE_TIME && pressDuration < LONG_PRESS_TIME) {
             shortPressFlag = true;
@@ -40,6 +42,7 @@ void Peripherals::updateButton() {
         buttonPressStart = 0;
     }
 
+    // Continuous check for long press
     if (currentButtonState == LOW && buttonPressStart > 0 && !longPressHandled) {
         if (now - buttonPressStart >= LONG_PRESS_TIME) {
             longPressFlag = true;
@@ -54,6 +57,7 @@ void Peripherals::updateBuzzer() {
     if (beepsToPlay > 0) {
         uint32_t timePassed = now - lastBuzzerToggleTime;
         if (isBuzzerOn) {
+            // Turning off after BEEP_ON_TIME
             if (timePassed >= BEEP_ON_TIME) {
                 noTone(BUZZER_PIN);
                 isBuzzerOn = false;
@@ -61,6 +65,7 @@ void Peripherals::updateBuzzer() {
                 beepsToPlay--;
             }
         } else {
+            // Turning on after BEEP_OFF_TIME
             if (timePassed >= BEEP_OFF_TIME && beepsToPlay > 0) {
                 tone(BUZZER_PIN, BEEP_FREQ);
                 isBuzzerOn = true;
@@ -98,17 +103,22 @@ void Peripherals::setLed(bool on) {
 }
 
 void Peripherals::goSleep() {
+    // 1. UI Feedback
     DisplayMgr.fillScreen(ST7735_BLACK);
     DisplayMgr.enableDisplay(false);
     noTone(BUZZER_PIN);
 
+    // 2. Peripheral Shutdown
     delay(10);
     SensorProc.sensorOff();
     delay(10);
 
-    pinMode(0, INPUT);
+    // 3. Configure Sleep Parameters
+    pinMode(0, INPUT); // Disable specific pins to save power
     pinMode(2, INPUT);
-    esp_sleep_enable_ext0_wakeup((gpio_num_t)BUTTON, 0);
+    esp_sleep_enable_ext0_wakeup((gpio_num_t)BUTTON, 0); // Wake up when button is pulled LOW
+
+    // 4. Enter Deep Sleep
     esp_deep_sleep_start();
 }
 
