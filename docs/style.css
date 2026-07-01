@@ -54,16 +54,12 @@ body {
     color: var(--text-main);
 }
 
-.section-title::after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 50%;
-    transform: translateX(-50%);
+.section-title-underline {
     width: 60px;
     height: 4px;
     background-color: var(--primary-green);
     border-radius: 2px;
+    margin: 0 auto;
 }
 
 .feature-box {
@@ -108,6 +104,26 @@ body {
     box-shadow: 0 10px 30px rgba(0, 229, 255, 0.1);
 }
 
+.border-top-accent {
+    border-top: 4px solid var(--primary-green) !important;
+}
+
+.bg-code-block {
+    background-color: var(--code-bg) !important;
+    border: 1px solid var(--border-color);
+}
+
+.text-accent-cyan {
+    color: var(--accent-cyan) !important;
+}
+
+.mermaid-container {
+    background-color: #0b0e14;
+    border-radius: 12px;
+    padding: 20px;
+    border: 1px solid #2d333b;
+}
+
 .img-preview {
     border-radius: 20px;
     border: 1px solid var(--border-color);
@@ -137,9 +153,10 @@ body {
 }
 
 footer {
-    padding: 80px 0 40px;
+    padding: 40px 0;
     border-top: 1px solid var(--border-color);
     color: var(--text-muted);
+    background-color: var(--bg-color);
 }
 
 .btn-portal {
@@ -155,28 +172,44 @@ footer {
 }
 
 .btn-primary-custom {
-    background-color: var(--primary-green);
-    color: #000;
-    border: none;
+    background-color: var(--primary-green) !important;
+    color: #000 !important;
+    border: none !important;
+    font-weight: 600 !important;
+    padding: 12px 24px !important;
+    border-radius: 12px !important;
+    transition: all 0.3s ease !important;
 }
 
 .btn-primary-custom:hover {
-    background-color: #00C853;
+    background-color: #00C853 !important;
     transform: translateY(-2px);
-    color: #000;
     box-shadow: 0 5px 15px rgba(0, 230, 118, 0.3);
 }
 
 .btn-outline-custom {
-    border: 1px solid var(--accent-cyan);
-    color: var(--accent-cyan);
-    background: transparent;
+    border: 1px solid var(--accent-cyan) !important;
+    color: var(--accent-cyan) !important;
+    background: transparent !important;
+    font-weight: 600 !important;
+    padding: 12px 24px !important;
+    border-radius: 12px !important;
+    transition: all 0.3s ease !important;
 }
 
 .btn-outline-custom:hover {
-    background-color: rgba(0, 229, 255, 0.1);
-    color: var(--accent-cyan);
+    background-color: rgba(0, 229, 255, 0.1) !important;
+    color: var(--accent-cyan) !important;
     transform: translateY(-2px);
+}
+
+.hw-icon {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+}
+
+.bg-dark-section {
+    background-color: #111418;
 }
 
 /* Pinout Table Styles */
