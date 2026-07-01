@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="lib/bootstrap.min.css">
     <link rel="stylesheet" href="style.css">
     <script src="lib/mermaid.min.js"></script>
+    <script src="locales.js"></script>
     <script>
         mermaid.initialize({
             startOnLoad: true,
@@ -27,21 +28,11 @@
                 <span class="fw-bold">PulseGuard IoT</span>
             </a>
             <div class="d-flex align-items-center">
-                <a href="#architecture" class="nav-link text-white me-3 d-none d-sm-block">
-                    <span class="en-hide">系統架構</span><span class="zh-hide">Architecture</span>
-                </a>
-                <a href="#features" class="nav-link text-white me-3 d-none d-sm-block">
-                    <span class="en-hide">核心技術</span><span class="zh-hide">Core Tech</span>
-                </a>
-                <a href="#hardware" class="nav-link text-white me-3 d-none d-sm-block">
-                    <span class="en-hide">硬體配置</span><span class="zh-hide">Hardware</span>
-                </a>
-                <a href="#portals" class="nav-link text-white me-3 d-none d-sm-block">
-                    <span class="en-hide">系統入口</span><span class="zh-hide">Portals</span>
-                </a>
-                <a id="langToggle" class="lang-toggle">
-                    <span class="en-hide">EN</span><span class="zh-hide">繁中</span>
-                </a>
+                <a href="#architecture" class="nav-link text-white me-3 d-none d-sm-block" data-i18n="nav.architecture"></a>
+                <a href="#features" class="nav-link text-white me-3 d-none d-sm-block" data-i18n="nav.features"></a>
+                <a href="#hardware" class="nav-link text-white me-3 d-none d-sm-block" data-i18n="nav.hardware"></a>
+                <a href="#portals" class="nav-link text-white me-3 d-none d-sm-block" data-i18n="nav.portals"></a>
+                <a id="langToggle" class="lang-toggle" data-i18n="nav.lang"></a>
             </div>
         </div>
     </nav>
@@ -49,11 +40,8 @@
     <!-- Hero Section -->
     <header class="hero-section text-center">
         <div class="container">
-            <h1 class="hero-title">PulseGuard IoT</h1>
-            <p class="hero-subtitle mb-4">
-                <span class="zh-hide">A professional-grade remote health monitoring solution integrating ESP32, Python, and Streamlit. Features dual-core real-time scheduling, EMA stream noise reduction, and automated report generation with active push notifications.</span>
-                <span class="en-hide">整合 ESP32、Python 與 Streamlit 的專業級遠端健康監控解決方案。具備雙核即時調度、EMA 串流降噪與自動化報告主動推播系統。</span>
-            </p>
+            <h1 class="hero-title" data-i18n="hero.title"></h1>
+            <p class="hero-subtitle mb-4" data-i18n="hero.subtitle"></p>
         </div>
     </header>
 
@@ -61,14 +49,11 @@
     <section id="architecture" class="py-5">
         <div class="container">
             <div class="text-center mb-5">
-                <h2 class="section-title">
-                    <span class="zh-hide">System Architecture</span>
-                    <span class="en-hide">系統整體架構</span>
-                </h2>
+                <h2 class="section-title" data-i18n="architecture.title"></h2>
             </div>
             <div class="portal-card p-4">
                 <!-- English Diagram -->
-                <div class="mermaid text-center zh-hide">
+                <div id="mermaid-en" class="mermaid text-center">
 graph TD
     subgraph Edge_Device ["Edge Device - ESP32"]
         E1["MAX30102 Sensor Sampling"]
@@ -115,7 +100,7 @@ graph TD
     style DB fill:#1a1a1a,stroke:#4DB33D,stroke-width:2px
                 </div>
                 <!-- Chinese Diagram -->
-                <div class="mermaid text-center en-hide">
+                <div id="mermaid-zh" class="mermaid text-center">
 graph TD
     subgraph Edge_Device ["邊緣裝置 - ESP32"]
         E1["MAX30102 感測器採樣"]
@@ -169,10 +154,7 @@ graph TD
     <section id="features" class="py-5">
         <div class="container">
             <div class="text-center mb-5">
-                <h2 class="section-title">
-                    <span class="zh-hide">Technical Deep Dive</span>
-                    <span class="en-hide">核心技術深度解析</span>
-                </h2>
+                <h2 class="section-title" data-i18n="features.title"></h2>
             </div>
 
             <!-- Firmware -->
@@ -180,28 +162,21 @@ graph TD
                 <div class="col">
                     <h3 class="h2 fw-bold mb-4 d-flex align-items-center">
                         <div class="feature-icon-wrapper">📟</div>
-                        <span class="zh-hide">Firmware: Dual-Core Real-time Scheduling & Power Optimization</span>
-                        <span class="en-hide">韌體端：雙核即時調度與功耗優化</span>
+                        <span data-i18n="features.firmware.title"></span>
                     </h3>
-                    <p class="text-muted">
-                        <span class="zh-hide">Based on the ESP32 and FreeRTOS real-time operating system, the firmware adopts a dual-core thread isolation architecture to ensure physiological signal capture is free from network communication and peripheral latency.</span>
-                        <span class="en-hide">基於 ESP32 與 FreeRTOS 即時作業系統，採行雙核執行緒隔離架構，確保生理訊號捕捉不受網路通訊與周邊延遲干擾：</span>
-                    </p>
+                    <p class="text-muted" data-i18n="features.firmware.subtitle"></p>
                     <ul class="text-muted list-unstyled">
                         <li class="mb-3">
-                            <strong><span class="zh-hide">Dual-Core Task Scheduling:</span><span class="en-hide">雙核任務調度：</span></strong>
-                            <span class="zh-hide">Core 1 is dedicated to high-frequency physiological signal sampling, dual filtering (DC/MA), dynamic TFT screen refresh, and button detection. Core 0 is independently responsible for Wi-Fi maintenance and TLS/SSL encrypted communication, utilizing thread-safe queues for inter-core data transmission.</span>
-                            <span class="en-hide">Core 1 專職執行高頻生理訊號採樣、雙重濾波（DC/MA）、TFT 螢幕動態刷新與按鍵偵測；Core 0 則獨立負責 Wi-Fi 連線維護與 TLS/SSL 加密通訊，並透過執行緒安全的佇列（Queue）進行雙核間的數據傳輸。</span>
+                            <strong data-i18n="features.firmware.tasks_title"></strong>
+                            <span data-i18n="features.firmware.tasks_desc"></span>
                         </li>
                         <li class="mb-3">
-                            <strong><span class="zh-hide">Intelligent Measurement & Alarm Logic:</span><span class="en-hide">智慧量測與警報邏輯：</span></strong>
-                            <span class="zh-hide">Features a built-in 60-second measurement cycle with the first 5 seconds as the signal stabilization period. SpO2 is calculated using an empirical formula based on the R/IR ratio. The system implements a "Three-Level Dynamic Alarm" (Danger/Warning/Normal) based on SpO2 and heart rate, using non-blocking time-difference control for the buzzer throughout the system to prevent traditional delay-induced sampling stalls.</span>
-                            <span class="en-hide">系統內建 60 秒量測機制，前 5 秒為信號穩定收斂期。血氧採紅光與紅外光比值之經驗公式計算。系統依據血氧與心率指標實施「三級動態警報」（危險/警告/正常），並全機採用非阻塞式時間差控制蜂鳴器，避免傳統延遲卡死採樣。</span>
+                            <strong data-i18n="features.firmware.alarm_title"></strong>
+                            <span data-i18n="features.firmware.alarm_desc"></span>
                         </li>
                         <li class="mb-3">
-                            <strong><span class="zh-hide">Power Saving & Robustness:</span><span class="en-hide">省電與防呆機制：</span></strong>
-                            <span class="zh-hide">Includes "Finger-off Detection" that resets the timer when no signal is detected. If the sensor remains idle for too long, the system automatically enters Deep Sleep to conserve power, supporting wake-up via button interrupt. The button also supports long-press reset, clearing system queues and sending a reset notification to the cloud via MQTT.</span>
-                            <span class="en-hide">具備「離手偵測」功能，當感測器無訊號時重置計時；若維持離手狀態過久，系統自動進入深層睡眠（Deep Sleep）以節省功耗，並支援按鍵中斷喚醒。此外，按鍵亦支援長按重置功能，同步清空系統佇列並對雲端 MQTT 發送重置通知。</span>
+                            <strong data-i18n="features.firmware.power_title"></strong>
+                            <span data-i18n="features.firmware.power_desc"></span>
                         </li>
                     </ul>
                 </div>
@@ -212,58 +187,44 @@ graph TD
                 <div class="col-lg-4">
                     <div class="pinout-container d-flex flex-column align-items-center justify-content-center p-4 text-center">
                         <img src="img/line-report.jpg" alt="LINE Flex Message Report" class="img-preview img-fluid rounded shadow" style="max-height: 480px; width: auto; object-fit: contain;">
-                        <small class="text-muted mt-3 d-block">
-                            <span class="zh-hide">Actual LINE Flex Message measurement report preview</span>
-                            <span class="en-hide">LINE Flex Message 量測報告實際推送畫面</span>
-                        </small>
+                        <small class="text-muted mt-3 d-block" data-i18n="features.line_report_caption"></small>
                     </div>
                 </div>
 
                 <div class="col-lg-8">
                     <h3 class="h2 fw-bold mb-4 d-flex align-items-center">
                         <div class="feature-icon-wrapper">🧠</div>
-                        <span class="zh-hide">Backend: Stream Processing & Intelligent Analysis</span>
-                        <span class="en-hide">後端：串流處理與智慧分析</span>
+                        <span data-i18n="features.backend.title"></span>
                     </h3>
-                    <p class="text-muted">
-                        <span class="zh-hide">The Python backend serves as the system brain, responsible for receiving MQTT physiological data streams, performing real-time noise reduction, measurement lifecycle management, and multi-dimensional health assessment:</span>
-                        <span class="en-hide">Python 後端作為系統大腦，負責接收 MQTT 生理數據串流，進行即時降噪、量測生命週期管理與多維度健康狀態判定：</span>
-                    </p>
+                    <p class="text-muted" data-i18n="features.backend.subtitle"></p>
                     <ul class="text-muted list-unstyled">
                         <li class="mb-3">
-                            <strong><span class="zh-hide">Data Cleaning & Source Isolation:</span><span class="en-hide">資料清洗與來源隔離：</span></strong>
-                            <span class="zh-hide">Automatically distinguishes and labels Production and Test data via MQTT topics, filtering out invalid physiological values.</span>
-                            <span class="en-hide">透過 MQTT Topic 自動區分並標記正式（Production）與測試（Test）數據，過濾不合法數值。</span>
+                            <strong data-i18n="features.backend.cleaning_title"></strong>
+                            <span data-i18n="features.backend.cleaning_desc"></span>
                         </li>
                         <li class="mb-3">
-                            <strong><span class="zh-hide">EMA Noise Reduction & Analytics:</span><span class="en-hide">時序指標運算與 EMA 降噪：</span></strong>
-                            <span class="zh-hide">Combines MA and EMA for dual smoothing, maintaining a 15-point time window to capture long-term physiological trends.</span>
-                            <span class="en-hide">結合 MA 與 EMA 進行雙重平滑，計算 15 筆時序視窗平均值以捕捉長期趨勢。</span>
+                            <strong data-i18n="features.backend.ema_title"></strong>
+                            <span data-i18n="features.backend.ema_desc"></span>
                         </li>
                         <li class="mb-3">
-                            <strong><span class="zh-hide">Dual-Track Health Evaluation:</span><span class="en-hide">雙軌制多維度健康評估：</span></strong>
-                            <span class="zh-hide">Integrates single-point thresholds and interval trends to determine health risk levels and dynamically generate medical advice.</span>
-                            <span class="en-hide">結合單點閾值與區間趨勢判定健康層級（如正常/注意/危險），動態產出客製化醫囑。</span>
+                            <strong data-i18n="features.backend.evaluation_title"></strong>
+                            <span data-i18n="features.backend.evaluation_desc"></span>
                         </li>
                         <li class="mb-3">
-                            <strong><span class="zh-hide">Automated Report & Template Injection:</span><span class="en-hide">自動化報告生成與樣板注入：</span></strong>
-                            <span class="zh-hide">Extracts valid metrics to compute full-session averages, utilizing dictionary-mapping techniques to precisely inject data into a JSON template.</span>
-                            <span class="en-hide">提取有效心率與血氧流計算全階段平均數值，並利用字典尋址技術將結果精準注入 JSON 樣板。</span>
+                            <strong data-i18n="features.backend.automated_title"></strong>
+                            <span data-i18n="features.backend.automated_desc"></span>
                         </li>
                         <li class="mb-3">
-                            <strong><span class="zh-hide">Active Push & Time Localization:</span><span class="en-hide">主動式遠端告警與時區校正：</span></strong>
-                            <span class="zh-hide">Calibrates raw UTC timestamps to local Taipei time, and actively pushes structured Flex Message reports via the LINE Messaging API upon session completion.</span>
-                            <span class="en-hide">校正 UTC 為台北時間。量測結束時透過 LINE Messaging API 將結構化報告圖卡主動推播至手機。</span>
+                            <strong data-i18n="features.backend.push_title"></strong>
+                            <span data-i18n="features.backend.push_desc"></span>
                         </li>
                         <li class="mb-3">
-                            <strong><span class="zh-hide">Intelligent DB Persistence Strategy:</span><span class="en-hide">智慧型資料庫持久化策略：</span></strong>
-                            <span class="zh-hide">Executes MongoDB data writes based on event-driven rules and timers, featuring built-in automatic disconnection fault tolerance and retry mechanisms.</span>
-                            <span class="en-hide">採事件驅動結合定時心跳策略執行 MongoDB 寫入，並具備斷線自動容錯與重試機制。</span>
+                            <strong data-i18n="features.backend.persistence_title"></strong>
+                            <span data-i18n="features.backend.persistence_desc"></span>
                         </li>
                         <li class="mb-3">
-                            <strong><span class="zh-hide">Dynamic Session Management:</span><span class="en-hide">動態生命週期（Session）管理：</span></strong>
-                            <span class="zh-hide">Dynamically generates a unique UUID upon initialization, resetting all system states and memory caches during a COMPLETED end or hardware RESET.</span>
-                            <span class="en-hide">動態生成 UUID 唯一識別碼，並於 COMPLETED 正常結束或 RESET 異常中斷時精確重置狀態與快取。</span>
+                            <strong data-i18n="features.backend.session_title"></strong>
+                            <span data-i18n="features.backend.session_desc"></span>
                         </li>
                     </ul>
                 </div>
@@ -275,38 +236,29 @@ graph TD
                 <div class="col">
                     <h3 class="h2 fw-bold mb-4 d-flex align-items-center">
                         <span class="feature-icon-wrapper">📊</span>
-                        <span class="zh-hide">Analytics: Data Visualization & Insights</span>
-                        <span class="en-hide">分析端：數據視覺化與洞察</span>
+                        <span data-i18n="features.analytics.title"></span>
                     </h3>
-                    <p class="text-muted">
-                        <span class="zh-hide">The Streamlit-based dashboard provides a powerful interface for reviewing historical trends and system performance:</span>
-                        <span class="en-hide">基於 Streamlit 的分析看板提供了強大的介面，用於回溯歷史趨勢與系統表現：</span>
-                    </p>
+                    <p class="text-muted" data-i18n="features.analytics.subtitle"></p>
                     <ul class="text-muted list-unstyled">
                         <li class="mb-3">
-                            <strong><span class="zh-hide">Multi-Environment & i18n Support:</span><span class="en-hide">多環境與雙語系切換：</span></strong>
-                            <span class="zh-hide">Supports dynamic environment switching (?env=test) and full i18n support for Traditional Chinese and English via URL parameters.</span>
-                            <span class="en-hide">支援 URL 動態參數解析，可透過 ?env=test 無縫切換資料庫來源以隔離測試數據；同步整合 i18n 模組，支援經由 ?lang= 參數動態切換介面。</span>
+                            <strong data-i18n="features.analytics.i18n_title"></strong>
+                            <span data-i18n="features.analytics.i18n_desc"></span>
                         </li>
                         <li class="mb-3">
-                            <strong><span class="zh-hide">High-Availability DB Integration:</span><span class="en-hide">高可用資料庫整合與容錯：</span></strong>
-                            <span class="zh-hide">Features built-in automatic degradation; redirects to Mock Data if MongoDB is unreachable, ensuring UI availability.</span>
-                            <span class="en-hide">透過 pymongo 連接 MongoDB 叢集。內建自動降級與容錯機制，若遇資料庫連線失敗，系統將導向「模擬測試數據（Mock Data）」，確保前端 UI 高可用性。</span>
+                            <strong data-i18n="features.analytics.db_title"></strong>
+                            <span data-i18n="features.analytics.db_desc"></span>
                         </li>
                         <li class="mb-3">
-                            <strong><span class="zh-hide">Multi-Dimensional Aggregation:</span><span class="en-hide">多維度資料預處理與聚合：</span></strong>
-                            <span class="zh-hide">Implements dual logic: daily summaries for long-term trends and hourly deduplication prioritizing critical events (DANGER > WARNING > NORMAL).</span>
-                            <span class="en-hide">設計雙重聚合邏輯，按日統計心率極值與血氧最低值走勢；並按小時去重，依嚴重程度優先級（DANGER > WARNING > NORMAL）保留關鍵事件。</span>
+                            <strong data-i18n="features.analytics.aggregation_title"></strong>
+                            <span data-i18n="features.analytics.aggregation_desc"></span>
                         </li>
                         <li class="mb-3">
-                            <strong><span class="zh-hide">Interactive Time-Series Charts:</span><span class="en-hide">時序指標監控與雙軸圖表：</span></strong>
-                            <span class="zh-hide">Leverages Plotly for multi-axis physiological trend charts, including 90% SpO2 danger baselines and health status distribution.</span>
-                            <span class="en-hide">整合 Plotly 繪製多軸生理趨勢圖，將心率區間以填充色呈現，並標記 90% 血氧危險紅線。另搭配圓餅圖直觀呈現健康狀態佔比。</span>
+                            <strong data-i18n="features.analytics.charts_title"></strong>
+                            <span data-i18n="features.analytics.charts_desc"></span>
                         </li>
                         <li class="mb-3">
-                            <strong><span class="zh-hide">Advanced Log Rendering:</span><span class="en-hide">進階異常日誌檢索與渲染：</span></strong>
-                            <span class="zh-hide">Utilizes st_aggrid with dynamic conditional rendering via JavaScript to highlight high-risk events (DANGER/WARNING).</span>
-                            <span class="en-hide">導入 st_aggrid 元件。透過注入 JavaScript 實作動態條件渲染，根據健康狀態（DANGER / WARNING）即時改變背景顏色。</span>
+                            <strong data-i18n="features.analytics.log_title"></strong>
+                            <span data-i18n="features.analytics.log_desc"></span>
                         </li>
                     </ul>
                 </div>
@@ -318,10 +270,7 @@ graph TD
     <section id="hardware" class="py-5 bg-dark-section">
         <div class="container">
             <div class="text-center mb-5">
-                <h2 class="section-title">
-                    <span class="zh-hide">Hardware Configuration</span>
-                    <span class="en-hide">硬體腳位配置</span>
-                </h2>
+                <h2 class="section-title" data-i18n="hardware.title"></h2>
             </div>
 
             <div class="row g-4 mb-5">
@@ -332,14 +281,12 @@ graph TD
                 </div>
                 <div class="col-lg-6">
                     <div class="pinout-container h-100">
-                        <h4 class="mb-4 fw-bold">
-                            <span class="zh-hide">TFT Display</span><span class="en-hide">TFT 腳位</span>
-                        </h4>
+                        <h4 class="mb-4 fw-bold" data-i18n="hardware.tft.title"></h4>
                         <table class="pinout-table">
                             <thead>
                                 <tr>
-                                    <th><span class="zh-hide">TFT Pin</span><span class="en-hide">TFT 腳位</span></th>
-                                    <th><span class="zh-hide">ESP32 Pin</span><span class="en-hide">ESP32 腳位</span></th>
+                                    <th data-i18n="hardware.tft.pin_header"></th>
+                                    <th data-i18n="hardware.tft.esp_header"></th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -361,14 +308,12 @@ graph TD
                 <!-- MAX30102 Card -->
                 <div class="col-md-4">
                     <div class="pinout-container h-100">
-                        <h4 class="mb-4 fw-bold text-center">
-                            <span class="zh-hide">MAX30102 Sensor</span><span class="en-hide">MAX30102 腳位</span>
-                        </h4>
+                        <h4 class="mb-4 fw-bold text-center" data-i18n="hardware.sensor.title"></h4>
                         <table class="pinout-table">
                             <thead>
                                 <tr>
-                                    <th><span class="zh-hide">Sensor Pin</span><span class="en-hide">MAX30102 腳位</span></th>
-                                    <th><span class="zh-hide">ESP32 Pin</span><span class="en-hide">ESP32 腳位</span></th>
+                                    <th data-i18n="hardware.sensor.pin_header"></th>
+                                    <th data-i18n="hardware.sensor.esp_header"></th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -383,18 +328,16 @@ graph TD
                 <!-- BUTTON Card -->
                 <div class="col-md-4">
                     <div class="pinout-container h-100">
-                        <h4 class="mb-4 fw-bold text-center">
-                            <span class="zh-hide">Control Button</span><span class="en-hide">BUTTON 腳位</span>
-                        </h4>
+                        <h4 class="mb-4 fw-bold text-center" data-i18n="hardware.button.title"></h4>
                         <table class="pinout-table">
                             <thead>
                                 <tr>
-                                    <th><span class="zh-hide">Button Pin</span><span class="en-hide">訊號語意</span></th>
-                                    <th><span class="zh-hide">ESP32 Pin</span><span class="en-hide">ESP32 腳位</span></th>
+                                    <th data-i18n="hardware.button.pin_header"></th>
+                                    <th data-i18n="hardware.button.esp_header"></th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr><td>OUT / SIGNAL</td><td>GPIO 15</td></tr>
+                                <tr><td data-i18n="hardware.button.signal"></td><td>GPIO 15</td></tr>
                                 <tr><td>GND</td><td>GND</td></tr>
                             </tbody>
                         </table>
@@ -403,19 +346,17 @@ graph TD
                 <!-- BUZZER Card -->
                 <div class="col-md-4">
                     <div class="pinout-container h-100">
-                        <h4 class="mb-4 fw-bold text-center">
-                            <span class="zh-hide">Buzzer</span><span class="en-hide">BUZZER 腳位</span>
-                        </h4>
+                        <h4 class="mb-4 fw-bold text-center" data-i18n="hardware.buzzer.title"></h4>
                         <table class="pinout-table">
                             <thead>
                                 <tr>
-                                    <th><span class="zh-hide">Buzzer Pin</span><span class="en-hide">BUZZER 腳位</span></th>
-                                    <th><span class="zh-hide">ESP32 Pin</span><span class="en-hide">ESP32 腳位</span></th>
+                                    <th data-i18n="hardware.buzzer.pin_header"></th>
+                                    <th data-i18n="hardware.buzzer.esp_header"></th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr><td>+ (Positive)</td><td>GPIO 19</td></tr>
-                                <tr><td>- (GND)</td><td>GND</td></tr>
+                                <tr><td data-i18n="hardware.buzzer.positive"></td><td>GPIO 19</td></tr>
+                                <tr><td data-i18n="hardware.buzzer.negative"></td><td>GND</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -428,47 +369,32 @@ graph TD
     <!-- Portals -->
     <section id="portals" class="py-5 bg-dark-section">
         <div class="container text-center">
-            <h2 class="section-title">
-                <span class="zh-hide">System Portals</span>
-                <span class="en-hide">系統入口</span>
-            </h2>
+            <h2 class="section-title" data-i18n="portals.title"></h2>
             <div class="row g-4 justify-content-center mt-2">
                 <div class="col-md-5">
                     <div class="portal-card p-5 h-100 d-flex flex-column">
-                        <h3 class="h4 fw-bold mb-3">
-                            <span class="zh-hide">Real-time Dashboard</span>
-                            <span class="en-hide">即時監控儀表板</span>
-                        </h3>
-                        <p class="text-muted mb-4 flex-grow-1">
-                            <span class="zh-hide">Experience low-latency physiological data monitoring via WebSocket and MQTT.js.</span>
-                            <span class="en-hide">透過 MQTT.js 與 WebSocket 技術，體驗秒級延遲的生理數據即時監控。</span>
-                        </p>
+                        <h3 class="h4 fw-bold mb-3" data-i18n="portals.realtime.title"></h3>
+                        <p class="text-muted mb-4 flex-grow-1" data-i18n="portals.realtime.desc"></p>
                         <div class="portal-actions">
                             <a href="https://pulse-guard-iot.vercel.app" target="_blank" class="btn btn-primary-custom btn-portal w-100 mb-3 portal-link" data-base="https://pulse-guard-iot.vercel.app/">
-                                <span class="zh-hide">Launch Production</span><span class="en-hide">啟動正式環境</span>
+                                <span data-i18n="portals.realtime.prod"></span>
                             </a>
                             <a href="https://pulse-guard-iot.vercel.app/test" target="_blank" class="btn btn-outline-custom btn-portal w-100 portal-link" data-base="https://pulse-guard-iot.vercel.app/test">
-                                <span class="zh-hide">Enter Test Environment</span><span class="en-hide">進入測試環境</span>
+                                <span data-i18n="portals.realtime.test"></span>
                             </a>
                         </div>
                     </div>
                 </div>
                 <div class="col-md-5">
                     <div class="portal-card p-5 h-100 d-flex flex-column">
-                        <h3 class="h4 fw-bold mb-3">
-                            <span class="zh-hide">Analytics Dashboard</span>
-                            <span class="en-hide">數據分析儀表板</span>
-                        </h3>
-                        <p class="text-muted mb-4 flex-grow-1">
-                            <span class="zh-hide">Deep dive into historical EMA trends and clinical KPI reports powered by Streamlit.</span>
-                            <span class="en-hide">利用 Streamlit 深入分析歷史 EMA 趨勢與臨床 KPI 健康報告。</span>
-                        </p>
+                        <h3 class="h4 fw-bold mb-3" data-i18n="portals.analytics.title"></h3>
+                        <p class="text-muted mb-4 flex-grow-1" data-i18n="portals.analytics.desc"></p>
                         <div class="portal-actions">
                             <a href="https://huggingface.co/spaces/Chou1210/pulseguard-analytics" target="_blank" class="btn btn-primary-custom btn-portal w-100 mb-3 portal-link" data-base="https://huggingface.co/spaces/Chou1210/pulseguard-analytics">
-                                <span class="zh-hide">Launch Production</span><span class="en-hide">啟動正式環境</span>
+                                <span data-i18n="portals.analytics.prod"></span>
                             </a>
                             <a href="https://huggingface.co/spaces/Chou1210/pulseguard-analytics?env=test" target="_blank" class="btn btn-outline-custom btn-portal w-100 portal-link" data-base="https://huggingface.co/spaces/Chou1210/pulseguard-analytics" data-env="test">
-                                <span class="zh-hide">Enter Test Environment</span><span class="en-hide">進入測試環境</span>
+                                <span data-i18n="portals.analytics.test"></span>
                             </a>
                         </div>
                     </div>
@@ -480,8 +406,8 @@ graph TD
     <!-- Footer -->
     <footer class="text-center">
         <div class="container">
-            <p class="mb-1 fw-bold text-white">&copy; 2026 PulseGuard AIoT Project. All rights reserved.</p>
-            <p class="small">Smart Healthcare & IoT Security Solution</p>
+            <p class="mb-1 fw-bold text-white" data-i18n="footer.copy"></p>
+            <p class="small" data-i18n="footer.subtitle"></p>
         </div>
     </footer>
 
@@ -489,11 +415,38 @@ graph TD
     <script>
         const langToggle = document.getElementById('langToggle');
         const urlParams = new URLSearchParams(window.location.search);
-        const currentLang = urlParams.get('lang') === 'zh' ? 'zh' : 'en';
+        let currentLang = urlParams.get('lang') === 'zh' ? 'zh' : 'en';
 
         function setLanguage(lang) {
+            currentLang = lang;
             document.documentElement.setAttribute('lang', lang);
+
+            // Update texts
+            const elements = document.querySelectorAll('[data-i18n]');
+            elements.forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                const value = getNestedValue(locales[lang], key);
+                if (value) {
+                    el.innerHTML = value;
+                }
+            });
+
+            // Toggle Mermaid diagrams
+            const mermaidZh = document.getElementById('mermaid-zh');
+            const mermaidEn = document.getElementById('mermaid-en');
+            if (lang === 'zh') {
+                mermaidZh.classList.remove('d-none');
+                mermaidEn.classList.add('d-none');
+            } else {
+                mermaidZh.classList.add('d-none');
+                mermaidEn.classList.remove('d-none');
+            }
+
             updatePortalLinks(lang);
+        }
+
+        function getNestedValue(obj, path) {
+            return path.split('.').reduce((acc, part) => acc && acc[part], obj);
         }
 
         function updatePortalLinks(lang) {
@@ -501,11 +454,8 @@ graph TD
             links.forEach(link => {
                 const base = link.getAttribute('data-base');
                 const env = link.getAttribute('data-env');
-                let newHref = base;
 
-                // Use URL object to handle existing query params in data-base
                 const url = new URL(base);
-
                 if (env) url.searchParams.set('env', env);
                 if (lang === 'zh') url.searchParams.set('lang', 'zh');
                 else url.searchParams.delete('lang');
@@ -518,9 +468,10 @@ graph TD
         setLanguage(currentLang);
 
         langToggle.addEventListener('click', () => {
-            const isZh = document.documentElement.getAttribute('lang') === 'zh';
-            const newLang = isZh ? 'en' : 'zh';
+            const newLang = currentLang === 'zh' ? 'en' : 'zh';
 
+            // Update URL and reload to ensure Mermaid renders correctly on the new language
+            // (Alternative: pushState + setLanguage, but the user requested robust Mermaid rendering)
             const newUrl = new URL(window.location);
             if (newLang === 'zh') {
                 newUrl.searchParams.set('lang', 'zh');
