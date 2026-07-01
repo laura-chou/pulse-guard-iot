@@ -11,7 +11,7 @@
 #include "config.h"
 #include "sensor_processor.h"
 #include "display_manager.h"
-#include "network_manager.h"
+#include "pulse_network_manager.h"
 #include "peripherals.h"
 
 // --- Global Variables & State Tracking ---

@@ -1,5 +1,5 @@
 #include "sensor_processor.h"
-#include "network_manager.h"
+#include "pulse_network_manager.h"
 
 SensorProcessor::SensorProcessor() :
     beatAvg(0),

@@ -1,4 +1,4 @@
-#include "network_manager.h"
+#include "pulse_network_manager.h"
 #include "display_manager.h"
 
 /**
@@ -8,14 +8,14 @@ void configModeCallback(WiFiManager *myWiFiManager) {
     DisplayMgr.updateScreen(5, 0, 0, STATUS_NORMAL, 0, 0);
 }
 
-NetworkManager::NetworkManager() :
+PulseNetworkManager::PulseNetworkManager() :
     mqttClient(espClient),
     bootResetSent(false) {
     memset(dynamic_mqtt_topic, 0, sizeof(dynamic_mqtt_topic));
     memset(macStr, 0, sizeof(macStr));
 }
 
-void NetworkManager::begin() {
+void PulseNetworkManager::begin() {
     // 1. WiFi Setup using WiFiManager
     WiFiManager wm;
     wm.setConnectTimeout(10);
@@ -41,24 +41,24 @@ void NetworkManager::begin() {
     }
 }
 
-void NetworkManager::sendData(const SensorData &data) {
+void PulseNetworkManager::sendData(const SensorData &data) {
     if (dataQueue != NULL) {
         xQueueSend(dataQueue, &data, 0);
     }
 }
 
-void NetworkManager::clearQueue() {
+void PulseNetworkManager::clearQueue() {
     if (dataQueue != NULL) {
         xQueueReset(dataQueue);
     }
 }
 
-void NetworkManager::networkTask(void *pvParameters) {
-    NetworkManager *instance = (NetworkManager *)pvParameters;
+void PulseNetworkManager::networkTask(void *pvParameters) {
+    PulseNetworkManager *instance = (PulseNetworkManager *)pvParameters;
     instance->runTask();
 }
 
-void NetworkManager::runTask() {
+void PulseNetworkManager::runTask() {
     espClient.setInsecure(); // Use TLS without certificate verification for simplicity
     mqttClient.setServer(MQTT_SERVER, MQTT_PORT);
 
@@ -120,4 +120,4 @@ void NetworkManager::runTask() {
     }
 }
 
-NetworkManager NetworkMgr;
+PulseNetworkManager NetworkMgr;

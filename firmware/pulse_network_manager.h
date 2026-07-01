@@ -1,5 +1,5 @@
-#ifndef NETWORK_MANAGER_H
-#define NETWORK_MANAGER_H
+#ifndef PULSE_NETWORK_MANAGER_H
+#define PULSE_NETWORK_MANAGER_H
 
 #include <WiFi.h>
 #include <WiFiClientSecure.h>
@@ -8,12 +8,12 @@
 #include "config.h"
 
 /**
- * @class NetworkManager
+ * @class PulseNetworkManager
  * @brief Manages WiFi connectivity and non-blocking MQTT communication using FreeRTOS tasks.
  */
-class NetworkManager {
+class PulseNetworkManager {
 public:
-    NetworkManager();
+    PulseNetworkManager();
 
     /**
      * @brief Initializes WiFiManager and starts the MQTT background task on Core 0.
@@ -54,6 +54,6 @@ private:
     void runTask();
 };
 
-extern NetworkManager NetworkMgr;
+extern PulseNetworkManager NetworkMgr;
 
-#endif // NETWORK_MANAGER_H
+#endif // PULSE_NETWORK_MANAGER_H
