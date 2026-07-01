@@ -124,33 +124,6 @@
                     </div>
                 </div>
             </div>
-
-            <!-- Developer Integration -->
-            <div class="portal-card mt-5 p-4 bg-code-block">
-                <h5 class="fw-bold mb-4 d-flex align-items-center">
-                    <span class="me-2">🛠️</span> <span data-i18n="dev_int_title">Developer Integration</span>
-                </h5>
-                <div class="row align-items-center">
-                    <div class="col-md-7">
-                        <p class="text-muted small" data-i18n="dev_int_desc">Developers can subscribe to the following MQTT topic for real-time JSON payloads:</p>
-                        <div class="p-3 mb-3 bg-dark rounded border">
-                            <span class="text-secondary small d-block mb-1" data-i18n="dev_int_topic">Topic:</span>
-                            <code class="text-accent-cyan">pulseguard/{env}/{device_id}/data</code>
-                        </div>
-                    </div>
-                    <div class="col-md-5">
-                        <div class="p-3 bg-dark rounded border">
-                            <span class="text-secondary small d-block mb-2" data-i18n="dev_int_payload">Payload Format:</span>
-                            <pre class="mb-0 text-white-50" style="font-size: 0.75rem;">{
-  "bpm": 72,
-  "spo2": 98,
-  "device_status": "NORMAL",
-  "duration_sec": 45
-}</pre>
-                        </div>
-                    </div>
-                </div>
-            </div>
         </div>
     </section>
 
@@ -225,9 +198,8 @@
     </footer>
 
     <script src="lib/bootstrap.bundle.min.js"></script>
-    <script type="module">
-        import { translations } from './i18n.js';
-
+    <script src="i18n.js"></script>
+    <script>
         const langToggle = document.getElementById('langToggle');
         const urlParams = new URLSearchParams(window.location.search);
         let currentLang = urlParams.get('lang') === 'zh' ? 'zh' : 'en';

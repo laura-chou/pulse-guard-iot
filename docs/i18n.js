@@ -1,4 +1,4 @@
-export const translations = {
+const translations = {
     en: {
         nav_arch: "Architecture",
         nav_quick: "Quick Start",
@@ -44,10 +44,6 @@ export const translations = {
         tech_backend_desc: "Python-based engine with EMA (Exponential Moving Average) noise filtering. Implements 'Single Source of Truth' medical logic for consistent status evaluation across all platforms.",
         tech_analytics: "Analytics: Data Insights",
         tech_analytics_desc: "Streamlit dashboard with automated health report generation. Features Plotly-powered physiological trend charts and multi-environment (prod/test) data isolation.",
-        dev_int_title: "Developer Integration",
-        dev_int_desc: "Developers can subscribe to the following MQTT topic for real-time JSON payloads:",
-        dev_int_topic: "Topic:",
-        dev_int_payload: "Payload Format:",
         hw_title: "Hardware Configuration",
         hw_esp32_title: "ESP32 DevKit V1",
         hw_esp32_desc: "Dual-core 240MHz, WiFi/BT integrated.",
@@ -109,10 +105,6 @@ export const translations = {
         tech_backend_desc: "整合 EMA 指數移動平均濾波技術，並導入「單一事實來源」診斷邏輯，確保所有端點（Web/App/LINE）的健康判定結果完全一致。",
         tech_analytics: "分析平台：數據洞察與報告",
         tech_analytics_desc: "基於 Streamlit 的數據中心，支援自動化報告產出、Plotly 互動式圖表，以及完善的正式/測試環境數據隔離。",
-        dev_int_title: "開發者整合 (MQTT)",
-        dev_int_desc: "開發者可訂閱以下 MQTT 主題以獲取即時 JSON 生理數據：",
-        dev_int_topic: "主題 (Topic):",
-        dev_int_payload: "資料格式 (JSON):",
         hw_title: "硬體腳位配置清單",
         hw_esp32_title: "ESP32 DevKit V1",
         hw_esp32_desc: "雙核心 240MHz，整合 WiFi 與藍牙通訊功能。",
