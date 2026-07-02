@@ -1,6 +1,7 @@
 const locales = {
     en: {
         nav: {
+            hero: "Home",
             architecture: "Architecture",
             features: "Core Tech",
             hardware: "Hardware",
@@ -102,11 +103,12 @@ const locales = {
             }
         },
         footer: {
-            copy: "&copy; 2026 PulseGuard AIoT. All rights reserved."
+            copy: "&copy; 2026 PulseGuard IoT. All rights reserved."
         }
     },
     zh: {
         nav: {
+            hero: "首頁",
             architecture: "系統架構",
             features: "核心技術",
             hardware: "硬體配置",

@@ -303,6 +303,7 @@ footer {
     border: 1px solid rgba(255, 255, 255, 0.25);
     border-radius: 50%;
     transition: all 0.3s ease-in-out;
+    position: relative;
 }
 
 #scrollspy-menu .nav-link.active {
@@ -311,6 +312,31 @@ footer {
     background-color: #00f0b5;
     border-color: #00f0b5;
     box-shadow: 0 0 8px rgba(0, 240, 181, 0.6), 0 0 16px rgba(0, 240, 181, 0.3);
+}
+
+#scrollspy-menu .nav-link::before {
+    content: attr(data-title);
+    position: absolute;
+    right: 30px;
+    top: 50%;
+    transform: translateY(-50%);
+    background-color: rgba(0, 240, 181, 0.9);
+    color: #000;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    white-space: nowrap;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+    pointer-events: none;
+}
+
+#scrollspy-menu .nav-link:hover::before {
+    opacity: 1;
+    visibility: visible;
+    right: 25px;
 }
 
 @media (max-width: 992px) {

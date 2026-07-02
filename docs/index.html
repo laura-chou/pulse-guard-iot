@@ -414,19 +414,19 @@ graph TD
     <nav id="scrollspy-menu">
         <ul class="nav flex-column">
             <li class="nav-item">
-                <a class="nav-link" href="#hero"></a>
+                <a class="nav-link" href="#hero" data-i18n-title="nav.hero"></a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="#architecture"></a>
+                <a class="nav-link" href="#architecture" data-i18n-title="nav.architecture"></a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="#features"></a>
+                <a class="nav-link" href="#features" data-i18n-title="nav.features"></a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="#hardware"></a>
+                <a class="nav-link" href="#hardware" data-i18n-title="nav.hardware"></a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="#portals"></a>
+                <a class="nav-link" href="#portals" data-i18n-title="nav.portals"></a>
             </li>
         </ul>
     </nav>
@@ -448,6 +448,16 @@ graph TD
                 const value = getNestedValue(locales[lang], key);
                 if (value) {
                     el.innerHTML = value;
+                }
+            });
+
+            // Update titles
+            const titleElements = document.querySelectorAll('[data-i18n-title]');
+            titleElements.forEach(el => {
+                const key = el.getAttribute('data-i18n-title');
+                const value = getNestedValue(locales[lang], key);
+                if (value) {
+                    el.setAttribute('data-title', value);
                 }
             });
 
