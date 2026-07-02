@@ -18,7 +18,7 @@
         });
     </script>
 </head>
-<body>
+<body data-bs-spy="scroll" data-bs-target="#scrollspy-menu" data-bs-offset="100">
 
     <!-- Navbar -->
     <nav class="navbar navbar-dark sticky-top">
@@ -38,7 +38,7 @@
     </nav>
 
     <!-- Hero Section -->
-    <header class="hero-section text-center">
+    <header id="hero" class="hero-section text-center">
         <div class="container">
             <h1 class="hero-title" data-i18n="hero.title"></h1>
             <p class="hero-subtitle mb-4" data-i18n="hero.subtitle"></p>
@@ -376,7 +376,7 @@ graph TD
                         <h3 class="h4 fw-bold mb-3" data-i18n="portals.realtime.title"></h3>
                         <p class="text-muted mb-4 flex-grow-1" data-i18n="portals.realtime.desc"></p>
                         <div class="portal-actions">
-                            <a href="https://pulse-guard-iot.vercel.app" target="_blank" class="btn btn-primary-custom btn-portal w-100 mb-3 portal-link" data-base="https://pulse-guard-iot.vercel.app/">
+                            <a href="https://pulse-guard-iot.vercel.app" target="_blank" class="btn btn-outline-prod btn-portal w-100 mb-3 portal-link" data-base="https://pulse-guard-iot.vercel.app/">
                                 <span data-i18n="portals.realtime.prod"></span>
                             </a>
                             <a href="https://pulse-guard-iot.vercel.app/test" target="_blank" class="btn btn-outline-custom btn-portal w-100 portal-link" data-base="https://pulse-guard-iot.vercel.app/test">
@@ -390,7 +390,7 @@ graph TD
                         <h3 class="h4 fw-bold mb-3" data-i18n="portals.analytics.title"></h3>
                         <p class="text-muted mb-4 flex-grow-1" data-i18n="portals.analytics.desc"></p>
                         <div class="portal-actions">
-                            <a href="https://huggingface.co/spaces/Chou1210/pulseguard-analytics" target="_blank" class="btn btn-primary-custom btn-portal w-100 mb-3 portal-link" data-base="https://huggingface.co/spaces/Chou1210/pulseguard-analytics">
+                            <a href="https://huggingface.co/spaces/Chou1210/pulseguard-analytics" target="_blank" class="btn btn-outline-prod btn-portal w-100 mb-3 portal-link" data-base="https://huggingface.co/spaces/Chou1210/pulseguard-analytics">
                                 <span data-i18n="portals.analytics.prod"></span>
                             </a>
                             <a href="https://huggingface.co/spaces/Chou1210/pulseguard-analytics?env=test" target="_blank" class="btn btn-outline-custom btn-portal w-100 portal-link" data-base="https://huggingface.co/spaces/Chou1210/pulseguard-analytics" data-env="test">
@@ -407,9 +407,29 @@ graph TD
     <footer class="text-center">
         <div class="container">
             <p class="mb-1 fw-bold text-white" data-i18n="footer.copy"></p>
-            <p class="small" data-i18n="footer.subtitle"></p>
         </div>
     </footer>
+
+    <!-- Scrollspy Vertical Menu -->
+    <nav id="scrollspy-menu">
+        <ul class="nav flex-column">
+            <li class="nav-item">
+                <a class="nav-link" href="#hero"></a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#architecture"></a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#features"></a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#hardware"></a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#portals"></a>
+            </li>
+        </ul>
+    </nav>
 
     <script src="lib/bootstrap.bundle.min.js"></script>
     <script>

@@ -102,8 +102,7 @@ const locales = {
             }
         },
         footer: {
-            copy: "&copy; 2026 PulseGuard AIoT Project. All rights reserved.",
-            subtitle: "Smart Healthcare & IoT Security Solution"
+            copy: "&copy; 2026 PulseGuard AIoT. All rights reserved."
         }
     },
     zh: {
@@ -209,8 +208,7 @@ const locales = {
             }
         },
         footer: {
-            copy: "&copy; 2026 PulseGuard AIoT Project. All rights reserved.",
-            subtitle: "Smart Healthcare & IoT Security Solution"
+            copy: "&copy; 2026 PulseGuard. 版權所有"
         }
     }
 };
