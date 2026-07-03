@@ -41,7 +41,7 @@ def format_duration(seconds):
     else:
         return f"({minutes} min {rem_seconds} sec)"
 
-def generate_and_send_report(session_id, duration_sec):
+def generate_and_send_report(session_id, duration_sec, device_id):
     """
     Retrieves records from MongoDB for the given session_id,
     calculates statistics, and sends a report via LINE Messaging API (Flex Message).
@@ -56,11 +56,11 @@ def generate_and_send_report(session_id, duration_sec):
         db = client[Config.MONGO_DB_NAME]
         collection = db[Config.MONGO_COL_NAME]
 
-        # 同步查詢條件：status -> analysis_status，並限定 production 來源
+        # 同步查詢條件：status -> analysis_status，並限定 prod 來源
         query = {
             "session_id": session_id,
             "analysis_status": {"$ne": "RESET"},
-            "data_source": "production"
+            "data_source": "prod"
         }
         records = list(collection.find(query).sort("timestamp", 1))
     except Exception as e:
@@ -137,16 +137,19 @@ def generate_and_send_report(session_id, duration_sec):
     remark_box_contents[1]["text"] = remark
 
     # 5. Send to LINE Messaging API
-    if not Config.LINE_CHANNEL_ACCESS_TOKEN or not Config.LINE_USER_ID:
-        logger.error("LINE credentials not set.")
+    line_token = Config.LINE_BOT_TOKENS.get(device_id)
+    line_user_id = Config.LINE_TARGET_USERS.get(device_id)
+
+    if not line_token or not line_user_id:
+        logger.error(f"LINE credentials not set for device {device_id}")
         return
 
     headers = {
         "Content-Type": "application/json",
-        "Authorization": f"Bearer {Config.LINE_CHANNEL_ACCESS_TOKEN}"
+        "Authorization": f"Bearer {line_token}"
     }
     payload = {
-        "to": Config.LINE_USER_ID,
+        "to": line_user_id,
         "messages": [
             {
                 "type": "flex",

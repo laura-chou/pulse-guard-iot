@@ -1,5 +1,6 @@
-from typing import Optional
-from pydantic import model_validator
+import json
+from typing import Optional, Dict, Any
+from pydantic import model_validator, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Config(BaseSettings):
@@ -17,15 +18,25 @@ class Config(BaseSettings):
     MONGO_DB_NAME: str
     MONGO_COL_NAME: str
 
-    # LINE Messaging API Settings (Mandatory as per request)
-    LINE_CHANNEL_ACCESS_TOKEN: str
-    LINE_USER_ID: str
+    # LINE Messaging API Settings (Dynamic Routing)
+    LINE_BOT_TOKENS: Dict[str, str]
+    LINE_TARGET_USERS: Dict[str, str]
 
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
         extra="ignore"
     )
+
+    @field_validator("LINE_BOT_TOKENS", "LINE_TARGET_USERS", mode="before")
+    @classmethod
+    def parse_json(cls, v: Any, info) -> Dict[str, str]:
+        if isinstance(v, str):
+            try:
+                return json.loads(v)
+            except json.JSONDecodeError as e:
+                raise ValueError(f"Field {info.field_name} has invalid JSON format: {e}")
+        return v
 
     @model_validator(mode="after")
     def check_mqtt_auth(self) -> "Config":

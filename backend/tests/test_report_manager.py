@@ -24,8 +24,8 @@ def test_generate_and_send_report_logic(mock_config, mock_post, mock_mongo, mock
     mock_config.MONGO_URI = "mongodb://localhost"
     mock_config.MONGO_DB_NAME = "db"
     mock_config.MONGO_COL_NAME = "col"
-    mock_config.LINE_CHANNEL_ACCESS_TOKEN = "token"
-    mock_config.LINE_USER_ID = "user"
+    mock_config.LINE_BOT_TOKENS = {"test_device": "token"}
+    mock_config.LINE_TARGET_USERS = {"test_device": "user"}
 
     mock_db = mock_mongo.return_value["db"]
     mock_col = mock_db["col"]
@@ -34,7 +34,7 @@ def test_generate_and_send_report_logic(mock_config, mock_post, mock_mongo, mock
     mock_post.return_value.status_code = 200
 
     # 執行執行緒/函式
-    generate_and_send_report("test_session", 30)
+    generate_and_send_report("test_session", 30, "test_device")
 
     # 驗證報表內容
     assert mock_post.called
@@ -56,8 +56,8 @@ def test_generate_and_send_report_interval_calculation(mock_config, mock_post, m
     mock_config.MONGO_URI = "mongodb://localhost"
     mock_config.MONGO_DB_NAME = "db"
     mock_config.MONGO_COL_NAME = "col"
-    mock_config.LINE_CHANNEL_ACCESS_TOKEN = "token"
-    mock_config.LINE_USER_ID = "user"
+    mock_config.LINE_BOT_TOKENS = {"test": "token"}
+    mock_config.LINE_TARGET_USERS = {"test": "user"}
 
     mock_db = mock_mongo.return_value["db"]
     mock_col = mock_db["col"]
@@ -68,13 +68,13 @@ def test_generate_and_send_report_interval_calculation(mock_config, mock_post, m
     last_record_time = datetime(2026, 6, 10, 8, 30, 40, tzinfo=local_tz).astimezone(timezone.utc)
 
     records = [
-        {"timestamp": start_time, "avg_bpm": 80, "spo2": 96, "analysis_status": "NORMAL", "data_source": "production", "session_id": "test"},
-        {"timestamp": last_record_time, "avg_bpm": 82, "spo2": 95, "analysis_status": "NORMAL", "data_source": "production", "session_id": "test"}
+        {"timestamp": start_time, "avg_bpm": 80, "spo2": 96, "analysis_status": "NORMAL", "data_source": "prod", "session_id": "test"},
+        {"timestamp": last_record_time, "avg_bpm": 82, "spo2": 95, "analysis_status": "NORMAL", "data_source": "prod", "session_id": "test"}
     ]
     mock_col.find.return_value.sort.return_value = records
     mock_post.return_value.status_code = 200
 
-    generate_and_send_report("test", 60)
+    generate_and_send_report("test", 60, "test")
 
     payload = mock_post.call_args[1]['json']
     template = payload['messages'][0]['contents']

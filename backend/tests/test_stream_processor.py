@@ -113,4 +113,4 @@ def test_scenario_g_completed_signal(processor, mock_db):
         processor.process_message("prod", "device1", {"device_status": "COMPLETED", "duration_sec": 120})
         assert len(state.bpm_window) == 0
         assert state.current_session_id is None
-        mock_report.assert_called_once_with(session_id, 120)
+        mock_report.assert_called_once_with(session_id, 120, "device1")

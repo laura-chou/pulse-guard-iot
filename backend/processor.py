@@ -156,7 +156,7 @@ class StreamProcessor:
 
         # 僅正式量測且有有效 Session 時才發送 LINE 報告
         if state.data_source == "prod" and duration > 0 and state.current_session_id:
-            report_manager.generate_and_send_report(state.current_session_id, duration)
+            report_manager.generate_and_send_report(state.current_session_id, duration, state.device_id)
 
         # 重置該裝置狀態，但不刪除資料 (因為已完成)
         with state.lock:
