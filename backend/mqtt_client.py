@@ -17,7 +17,7 @@ class MQTTManager:
         self._setup_client()
 
     def _setup_client(self) -> None:
-        if self.config.MQTT_USER:
+        if self.config.MQTT_USER is not None and self.config.MQTT_PASSWORD is not None:
             self.client.username_pw_set(self.config.MQTT_USER, self.config.MQTT_PASSWORD)
 
         # 預設使用 TLS，與原程式碼一致

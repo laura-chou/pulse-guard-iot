@@ -3,6 +3,8 @@ pymongo
 numpy
 dnspython
 python-dotenv
+pydantic
+pydantic-settings
 requests
 pytest
 pytest-cov

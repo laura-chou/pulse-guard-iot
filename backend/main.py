@@ -1,4 +1,5 @@
 import logging
+from pydantic import ValidationError
 from config import Config
 from database import DatabaseHandler
 from processor import StreamProcessor
@@ -10,9 +11,10 @@ logger = logging.getLogger(__name__)
 
 def main():
     # 1. 載入組態
-    config = Config()
-    if not config.validate():
-        logger.error("Missing critical configuration (MONGO_URI or MQTT_BROKER). Please check your .env file.")
+    try:
+        config = Config()
+    except ValidationError as e:
+        logger.error(f"Configuration error: {e}")
         return
 
     # 2. 初始化資料庫

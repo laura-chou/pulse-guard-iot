@@ -1,24 +1,34 @@
-import os
 from typing import Optional
-from dotenv import load_dotenv
+from pydantic import model_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
-load_dotenv()
+class Config(BaseSettings):
+    # MQTT Settings (Mandatory)
+    MQTT_BROKER: str
+    MQTT_PORT: int
+    MQTT_TOPIC_PATTERN: str
 
-class Config:
-    MQTT_BROKER: str = os.getenv("MQTT_BROKER")
-    MQTT_PORT: int = int(os.getenv("MQTT_PORT"))
-    MQTT_USER: Optional[str] = os.getenv("MQTT_USER")
-    MQTT_PASSWORD: Optional[str] = os.getenv("MQTT_PASSWORD")
-    MQTT_TOPIC_PATTERN: str = os.getenv("MQTT_TOPIC_PATTERN")
+    # MQTT Auth (Optional, but must both exist if one exists)
+    MQTT_USER: Optional[str] = None
+    MQTT_PASSWORD: Optional[str] = None
 
-    MONGO_URI: str = os.getenv("MONGO_URI")
-    MONGO_DB_NAME: str = os.getenv("MONGO_DB_NAME")
-    MONGO_COL_NAME: str = os.getenv("MONGO_COL_NAME")
+    # MongoDB Settings (Mandatory)
+    MONGO_URI: str
+    MONGO_DB_NAME: str
+    MONGO_COL_NAME: str
 
-    LINE_CHANNEL_ACCESS_TOKEN: Optional[str] = os.getenv("LINE_CHANNEL_ACCESS_TOKEN")
-    LINE_USER_ID: Optional[str] = os.getenv("LINE_USER_ID")
+    # LINE Messaging API Settings (Mandatory as per request)
+    LINE_CHANNEL_ACCESS_TOKEN: str
+    LINE_USER_ID: str
 
-    @classmethod
-    def validate(cls) -> bool:
-        """驗證必要設定是否存在"""
-        return bool(cls.MONGO_URI and cls.MQTT_BROKER)
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore"
+    )
+
+    @model_validator(mode="after")
+    def check_mqtt_auth(self) -> "Config":
+        if (self.MQTT_USER is None) != (self.MQTT_PASSWORD is None):
+            raise ValueError("Both MQTT_USER and MQTT_PASSWORD must be provided, or both must be omitted.")
+        return self
