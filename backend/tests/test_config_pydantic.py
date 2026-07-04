@@ -10,7 +10,8 @@ def test_config_missing_mandatory_fields():
 def test_config_valid_minimal(monkeypatch):
     monkeypatch.setenv("MQTT_BROKERS_CONFIG", '{"DEFAULT": {"host": "localhost", "port": 1883}}')
     monkeypatch.setenv("MQTT_TOPIC_PATTERN", "test/topic")
-    monkeypatch.setenv("MONGO_URI", "mongodb://localhost:27017")
+    monkeypatch.setenv("MONGO_DB_CONFIG", '{"DEFAULT": {"uri": "mongodb://localhost", "db_name": "db", "col_name": "col"}}')
+    monkeypatch.setenv("MONGO_URI", "mongodb://localhost:27017") # Legacy but ignored
     monkeypatch.setenv("MONGO_DB_NAME", "testdb")
     monkeypatch.setenv("MONGO_COL_NAME", "testcol")
     monkeypatch.setenv("LINE_BOT_TOKENS", '{"DEV01": "token01"}')
@@ -18,26 +19,23 @@ def test_config_valid_minimal(monkeypatch):
 
     config = Config(_env_file=None)
     assert config.MQTT_BROKERS_CONFIG["DEFAULT"]["host"] == "localhost"
+    assert config.MONGO_DB_CONFIG["DEFAULT"]["db_name"] == "db"
 
-def test_config_mqtt_brokers_config(monkeypatch):
-    monkeypatch.setenv("MQTT_BROKERS_CONFIG", '{"DEFAULT": {"host": "localhost", "port": 1883}, "HOSPITAL": {"host": "remote", "port": 8883, "user": "u", "password": "p"}}')
+def test_config_mongo_missing_default(monkeypatch):
+    monkeypatch.setenv("MQTT_BROKERS_CONFIG", '{"DEFAULT": {"host": "localhost"}}')
     monkeypatch.setenv("MQTT_TOPIC_PATTERN", "test/topic")
-    monkeypatch.setenv("MONGO_URI", "mongodb://localhost:27017")
-    monkeypatch.setenv("MONGO_DB_NAME", "testdb")
-    monkeypatch.setenv("MONGO_COL_NAME", "testcol")
-    monkeypatch.setenv("LINE_BOT_TOKENS", '{"DEV01": "token01"}')
-    monkeypatch.setenv("LINE_TARGET_USERS", '{"DEV01": "user01"}')
+    monkeypatch.setenv("MONGO_DB_CONFIG", '{"NOT_DEFAULT": {"uri": "m"}}')
+    monkeypatch.setenv("LINE_BOT_TOKENS", '{}')
+    monkeypatch.setenv("LINE_TARGET_USERS", '{}')
 
-    config = Config(_env_file=None)
-    assert config.MQTT_BROKERS_CONFIG["DEFAULT"]["host"] == "localhost"
-    assert config.MQTT_BROKERS_CONFIG["HOSPITAL"]["user"] == "u"
+    with pytest.raises(ValidationError) as excinfo:
+        Config(_env_file=None)
+    assert "MONGO_DB_CONFIG must contain a 'DEFAULT' configuration" in str(excinfo.value)
 
 def test_config_invalid_json(monkeypatch):
     monkeypatch.setenv("MQTT_BROKERS_CONFIG", '{"DEFAULT": {"host": "localhost"}}')
     monkeypatch.setenv("MQTT_TOPIC_PATTERN", "test/topic")
-    monkeypatch.setenv("MONGO_URI", "mongodb://localhost:27017")
-    monkeypatch.setenv("MONGO_DB_NAME", "testdb")
-    monkeypatch.setenv("MONGO_COL_NAME", "testcol")
+    monkeypatch.setenv("MONGO_DB_CONFIG", '{"DEFAULT": {"uri": "m"}}')
     monkeypatch.setenv("LINE_BOT_TOKENS", 'invalid-json')
     monkeypatch.setenv("LINE_TARGET_USERS", '{"DEV01": "user01"}')
 
@@ -47,6 +45,4 @@ def test_config_invalid_json(monkeypatch):
         Config(_env_file=None)
 
     error_msg = str(excinfo.value)
-    # Check if the cause contains our ValueError message if wrapped,
-    # or if the message itself is there.
     assert "LINE_BOT_TOKENS" in error_msg

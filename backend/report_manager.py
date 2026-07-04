@@ -52,9 +52,18 @@ def generate_and_send_report(session_id, duration_sec, device_id):
 
     # 1. Data Retrieval
     try:
-        client = MongoClient(Config.MONGO_URI, tz_aware=True)
-        db = client[Config.MONGO_DB_NAME]
-        collection = db[Config.MONGO_COL_NAME]
+        config = Config()
+        db_configs = config.MONGO_DB_CONFIG
+
+        # 動態選擇目標資料庫配置（降級至 DEFAULT）
+        target_config = db_configs.get(device_id)
+        if not target_config:
+            logger.info(f"[{device_id}] Reporting: No specific DB config found, falling back to DEFAULT")
+            target_config = db_configs["DEFAULT"]
+
+        client = MongoClient(target_config["uri"], tz_aware=True)
+        db = client[target_config["db_name"]]
+        collection = db[target_config["col_name"]]
 
         # 同步查詢條件：status -> analysis_status，並限定 prod 來源
         query = {
@@ -63,6 +72,7 @@ def generate_and_send_report(session_id, duration_sec, device_id):
             "data_source": "prod"
         }
         records = list(collection.find(query).sort("timestamp", 1))
+        client.close() # 短連結模式
     except Exception as e:
         logger.error(f"Failed to fetch data from MongoDB for session {session_id}: {e}")
         return
@@ -137,8 +147,8 @@ def generate_and_send_report(session_id, duration_sec, device_id):
     remark_box_contents[1]["text"] = remark
 
     # 5. Send to LINE Messaging API
-    line_token = Config.LINE_BOT_TOKENS.get(device_id)
-    line_user_id = Config.LINE_TARGET_USERS.get(device_id)
+    line_token = config.LINE_BOT_TOKENS.get(device_id)
+    line_user_id = config.LINE_TARGET_USERS.get(device_id)
 
     if not line_token or not line_user_id:
         logger.error(f"LINE credentials not set for device {device_id}")

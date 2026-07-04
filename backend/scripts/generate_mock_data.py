@@ -115,7 +115,7 @@ def generate_session_data(start_time):
             "ema_bpm": round(ema_bpm, 2),
             "delta_bpm": round(delta_bpm, 2),
             "spo2": round(xt_spo2, 2),
-            "data_source": "prod"
+            "data_source": "test"
         }
         samples.append(doc)
 
@@ -144,9 +144,9 @@ def main():
         return
 
     # 僅清理自己產生的測試數據
-    logger.info(f"Cleaning up existing 'prod' data for {DEVICE_ID}...")
+    logger.info(f"Cleaning up existing 'test' data for {DEVICE_ID}...")
     result = collection.delete_many({
-        "data_source": "prod",
+        "data_source": "test",
         "device_id": DEVICE_ID
     })
     logger.info(f"Deleted {result.deleted_count} documents.")

@@ -5,12 +5,8 @@ from main import main
 def test_main_success():
     # 使用 patch 模擬所有依賴，但不使用 pytest.fixture 以免 main.Config 被提前載入
     with patch('main.Config') as mock_config, \
-         patch('main.DatabaseHandler') as mock_db_handler, \
          patch('main.StreamProcessor') as mock_processor, \
          patch('main.MQTTManager') as mock_mqtt_manager:
-
-        # 設定 Mock
-        mock_db_handler.return_value.connect.return_value = True
 
         # 執行 main
         with patch('main.logger') as mock_logger:
@@ -18,9 +14,8 @@ def test_main_success():
 
             # 驗證流程
             mock_config.assert_called_once()
-            mock_db_handler.return_value.connect.assert_called_once()
             mock_mqtt_manager.return_value.run.assert_called_once()
-            mock_db_handler.return_value.close.assert_called_once()
+            mock_processor.return_value.close_all_dbs.assert_called_once()
 
 def test_main_config_error():
     from pydantic import ValidationError
@@ -33,13 +28,3 @@ def test_main_config_error():
         main()
         mock_logger.error.assert_called()
         assert "Configuration error" in mock_logger.error.call_args[0][0]
-
-def test_main_db_error():
-    with patch('main.Config'), \
-         patch('main.DatabaseHandler') as mock_db_handler, \
-         patch('main.logger') as mock_logger:
-
-        mock_db_handler.return_value.connect.return_value = False
-
-        main()
-        mock_logger.error.assert_called_with("Failed to connect to database. Exiting.")

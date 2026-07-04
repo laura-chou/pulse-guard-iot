@@ -17,30 +17,22 @@ def main():
         logger.error(f"Configuration error: {e}")
         return
 
-    # 2. 初始化資料庫
-    db_handler = DatabaseHandler(
-        uri=config.MONGO_URI,
-        db_name=config.MONGO_DB_NAME,
-        col_name=config.MONGO_COL_NAME
-    )
-    if not db_handler.connect():
-        logger.error("Failed to connect to database. Exiting.")
-        return
+    # 2. 初始化處理器（注入資料庫配置）
+    processor = StreamProcessor(db_configs=config.MONGO_DB_CONFIG)
 
-    # 3. 初始化處理器
-    processor = StreamProcessor(db_handler=db_handler)
-
-    # 4. 初始化 MQTT 管理器
+    # 3. 初始化 MQTT 管理器
     mqtt_manager = MQTTManager(config=config, processor=processor)
 
-    # 5. 啟動主迴圈
+    # 4. 啟動主迴圈
     logger.info("PulseGuard Stream Processor started successfully.")
     try:
         mqtt_manager.run()
     except KeyboardInterrupt:
         logger.info("PulseGuard Stream Processor shutting down...")
     finally:
-        db_handler.close()
+        # 優雅關閉所有資料庫連線
+        processor.close_all_dbs()
+        logger.info("Resources cleaned up. Goodbye.")
 
 if __name__ == "__main__":
     main()

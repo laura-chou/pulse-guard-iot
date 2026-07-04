@@ -45,10 +45,47 @@ class DeviceState:
             self.last_write_time = 0
 
 class StreamProcessor:
-    def __init__(self, db_handler: DatabaseHandler):
-        self.db_handler = db_handler
+    def __init__(self, db_configs: Dict[str, Dict[str, Any]]):
+        self.db_configs = db_configs
+        self.db_handlers: Dict[str, DatabaseHandler] = {}
+        self.db_lock = threading.Lock()
         self.device_states: Dict[Tuple[str, str], DeviceState] = {}
         self.device_states_lock: threading.Lock = threading.Lock()
+
+    def _get_db_handler(self, device_id: str) -> Optional[DatabaseHandler]:
+        """延遲載入連線池：根據 device_id 獲取資料庫處理器"""
+        with self.db_lock:
+            # 1. 檢查是否已存在
+            if device_id in self.db_handlers:
+                return self.db_handlers[device_id]
+
+            # 2. 決定使用的配置（降級至 DEFAULT）
+            target_config = self.db_configs.get(device_id)
+            if not target_config:
+                logger.info(f"[{device_id}] No specific DB config found, falling back to DEFAULT")
+                if "DEFAULT" in self.db_handlers:
+                    return self.db_handlers["DEFAULT"]
+                target_config = self.db_configs["DEFAULT"]
+                actual_key = "DEFAULT"
+            else:
+                actual_key = device_id
+
+            # 3. 初始化連線
+            try:
+                handler = DatabaseHandler(
+                    uri=target_config["uri"],
+                    db_name=target_config["db_name"],
+                    col_name=target_config["col_name"]
+                )
+                if handler.connect():
+                    self.db_handlers[actual_key] = handler
+                    return handler
+                else:
+                    logger.error(f"Failed to connect to MongoDB for {actual_key}")
+                    return None
+            except Exception as e:
+                logger.error(f"Error initializing DatabaseHandler for {device_id}: {e}")
+                return None
 
     def get_device_state(self, data_source: str, device_id: str) -> DeviceState:
         key = (data_source, device_id)
@@ -73,7 +110,8 @@ class StreamProcessor:
             # 2. 處理系統重置 (RESET)
             if device_status == "RESET":
                 logger.info(f"[{device_id}] System reset (source: {data_source}). Deleting current session data.")
-                state.reset_and_delete(self.db_handler)
+                db_handler = self._get_db_handler(device_id)
+                state.reset_and_delete(db_handler)
                 return
 
             raw_bpm = payload.get("bpm")
@@ -129,6 +167,10 @@ class StreamProcessor:
 
                 # 8. 執行資料庫寫入
                 if should_write:
+                    db_handler = self._get_db_handler(device_id)
+                    if not db_handler:
+                        return
+
                     record = {
                         "timestamp": datetime.fromtimestamp(current_time, tz=timezone.utc),
                         "analysis_status": analysis_status,
@@ -142,7 +184,7 @@ class StreamProcessor:
                         "spo2": xt_spo2
                     }
 
-                    if self.db_handler.insert_one(record):
+                    if db_handler.insert_one(record):
                         state.last_write_time = current_time
                         state.last_analysis_status = analysis_status
                         state.first_write_done = True
@@ -180,4 +222,16 @@ class StreamProcessor:
 
         for state in to_cleanup:
             logger.info(f"[{state.device_id}] Session timeout detected ({timeout_sec}s). Cleaning up...")
-            state.reset_and_delete(self.db_handler)
+            db_handler = self._get_db_handler(state.device_id)
+            state.reset_and_delete(db_handler)
+
+    def close_all_dbs(self) -> None:
+        """優雅關閉機制：關閉所有已開啟的 MongoDB 連線"""
+        with self.db_lock:
+            for device_id, handler in self.db_handlers.items():
+                try:
+                    handler.close()
+                    logger.info(f"Closed database connection for {device_id}")
+                except Exception as e:
+                    logger.error(f"Error closing database for {device_id}: {e}")
+            self.db_handlers.clear()
