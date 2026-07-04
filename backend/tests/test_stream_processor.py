@@ -10,14 +10,13 @@ from processor import StreamProcessor
 # Mock 環境變數，確保測試環境不依賴實際的 .env 檔案
 @pytest.fixture(autouse=True)
 def mock_env(monkeypatch):
-    monkeypatch.setenv("MQTT_BROKER", "localhost")
-    monkeypatch.setenv("MQTT_PORT", "1883")
-    monkeypatch.setenv("MQTT_USER", "user")
-    monkeypatch.setenv("MQTT_PASSWORD", "pass")
+    monkeypatch.setenv("MQTT_BROKERS_CONFIG", '{"DEFAULT": {"host": "localhost", "port": 1883}}')
     monkeypatch.setenv("MQTT_TOPIC_PATTERN", "pulseguard/+/+/data")
     monkeypatch.setenv("MONGO_URI", "mongodb://localhost:27017")
     monkeypatch.setenv("MONGO_DB_NAME", "test_db")
     monkeypatch.setenv("MONGO_COL_NAME", "test_col")
+    monkeypatch.setenv("LINE_BOT_TOKENS", "{}")
+    monkeypatch.setenv("LINE_TARGET_USERS", "{}")
 
 @pytest.fixture
 def mock_db():

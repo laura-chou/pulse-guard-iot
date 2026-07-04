@@ -1,43 +1,45 @@
-import pytest
+import logging
 from unittest.mock import MagicMock, patch
-from pydantic import ValidationError
 from main import main
 
-@patch('main.Config')
-@patch('main.DatabaseHandler')
-@patch('main.StreamProcessor')
-@patch('main.MQTTManager')
-def test_main_success(mock_mqtt_manager, mock_processor, mock_db_handler, mock_config):
-    # 設定 Mock
-    mock_db_handler.return_value.connect.return_value = True
+def test_main_success():
+    # 使用 patch 模擬所有依賴，但不使用 pytest.fixture 以免 main.Config 被提前載入
+    with patch('main.Config') as mock_config, \
+         patch('main.DatabaseHandler') as mock_db_handler, \
+         patch('main.StreamProcessor') as mock_processor, \
+         patch('main.MQTTManager') as mock_mqtt_manager:
 
-    # 執行 main
-    with patch('main.logger') as mock_logger:
-        main()
+        # 設定 Mock
+        mock_db_handler.return_value.connect.return_value = True
 
-        # 驗證流程
-        mock_config.assert_called_once()
-        mock_db_handler.return_value.connect.assert_called_once()
-        mock_mqtt_manager.return_value.start_timeout_monitor.assert_called_once()
-        mock_mqtt_manager.return_value.run.assert_called_once()
-        mock_db_handler.return_value.close.assert_called_once()
+        # 執行 main
+        with patch('main.logger') as mock_logger:
+            main()
 
-@patch('main.Config')
-def test_main_config_fail(mock_config):
+            # 驗證流程
+            mock_config.assert_called_once()
+            mock_db_handler.return_value.connect.assert_called_once()
+            mock_mqtt_manager.return_value.run.assert_called_once()
+            mock_db_handler.return_value.close.assert_called_once()
+
+def test_main_config_error():
+    from pydantic import ValidationError
+    from pydantic_core import InitErrorDetails
+
     # 模擬 Pydantic 驗證失敗
-    mock_config.side_effect = ValidationError.from_exception_data(title="Config", line_errors=[])
+    with patch('main.Config', side_effect=ValidationError.from_exception_data(title='Config', line_errors=[InitErrorDetails(type='missing', loc=('MQTT_TOPIC_PATTERN',), input=None)])), \
+         patch('main.logger') as mock_logger:
 
-    with patch('main.logger') as mock_logger:
         main()
-        # 驗證 logger.error 被呼叫且包含 Configuration error
-        call_args = mock_logger.error.call_args[0][0]
-        assert "Configuration error" in call_args
+        mock_logger.error.assert_called()
+        assert "Configuration error" in mock_logger.error.call_args[0][0]
 
-@patch('main.Config')
-@patch('main.DatabaseHandler')
-def test_main_db_fail(mock_db_handler, mock_config):
-    mock_db_handler.return_value.connect.return_value = False
+def test_main_db_error():
+    with patch('main.Config'), \
+         patch('main.DatabaseHandler') as mock_db_handler, \
+         patch('main.logger') as mock_logger:
 
-    with patch('main.logger') as mock_logger:
+        mock_db_handler.return_value.connect.return_value = False
+
         main()
         mock_logger.error.assert_called_with("Failed to connect to database. Exiting.")

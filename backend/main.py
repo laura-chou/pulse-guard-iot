@@ -33,10 +33,7 @@ def main():
     # 4. 初始化 MQTT 管理器
     mqtt_manager = MQTTManager(config=config, processor=processor)
 
-    # 5. 啟動背景監測
-    mqtt_manager.start_timeout_monitor()
-
-    # 6. 啟動主迴圈
+    # 5. 啟動主迴圈
     logger.info("PulseGuard Stream Processor started successfully.")
     try:
         mqtt_manager.run()
