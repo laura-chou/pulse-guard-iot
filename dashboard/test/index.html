@@ -6,7 +6,7 @@
     <title>MQTT Testing Tool - PulseGuard</title>
     <link rel="icon" type="image/png" href="../icon.png">
     <link rel="stylesheet" href="../styles.css">
-    <script src="../lib/mqttws31.min.js" type="text/javascript"></script>
+    <script src="../lib/mqtt.min.js"></script>
     <style>
         .test-container {
             max-width: 1200px;
@@ -99,6 +99,14 @@
                             <span data-lang="en">MANUAL SEND</span>
                             <span data-lang="zh">手動發送</span>
                         </h2>
+                    </div>
+
+                    <div class="form-group">
+                        <label>
+                            <span data-lang="en">Device ID</span>
+                            <span data-lang="zh">裝置 ID</span>
+                        </label>
+                        <input type="text" id="device-id" value="MOCK_DEVICE_001" required>
                     </div>
 
                     <div class="form-group">

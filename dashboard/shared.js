@@ -70,3 +70,36 @@ export async function fetchMQTTConfig() {
         throw err;
     }
 }
+
+/**
+ * Constructs an MQTT topic string
+ * @param {string} env - 'prod' or 'test'
+ * @param {string} deviceId - The device ID
+ */
+export function constructTopic(env, deviceId) {
+    return `pulseguard/${env}/${deviceId}/data`;
+}
+
+/**
+ * Constructs the MQTT Broker WebSocket URL
+ * @param {Object} config - MQTT configuration object
+ */
+export function getMQTTBrokerUrl(config) {
+    const { MQTT_HOST, MQTT_PORT } = config;
+    return `wss://${MQTT_HOST}:${MQTT_PORT}/mqtt`;
+}
+
+/**
+ * Constructs the MQTT connection options
+ * @param {Object} config - MQTT configuration object
+ * @param {string} clientIdPrefix - Prefix for the client ID
+ */
+export function getMQTTOptions(config, clientIdPrefix) {
+    return {
+        clean: true,
+        connectTimeout: 4000,
+        clientId: clientIdPrefix + Math.random().toString(16).substr(2, 8),
+        username: config.MQTT_USERNAME,
+        password: config.MQTT_PASSWORD,
+    };
+}

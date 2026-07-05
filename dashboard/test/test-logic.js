@@ -1,10 +1,14 @@
-import { initLang, calculateStatus, getCSSVar, fetchMQTTConfig } from '../shared.js';
+import {
+    initLang, calculateStatus, getCSSVar, fetchMQTTConfig,
+    constructTopic, getMQTTBrokerUrl, getMQTTOptions
+} from '../shared.js';
 
 let mqttClient;
 let connected = false;
 let autoSendInterval = null;
 let scenarioInterval = null;
-let mqttTopic = "";
+
+const DEFAULT_DEVICE_ID = "MOCK_DEVICE_001";
 
 // Init language
 const currentLang = initLang();
@@ -12,6 +16,20 @@ const isZh = currentLang === 'zh';
 
 // UI Elements
 const connStatus = document.getElementById('connection-status');
+const deviceIdInput = document.getElementById('device-id');
+
+// Prevent empty device ID
+if (deviceIdInput) {
+    deviceIdInput.addEventListener('blur', () => {
+        if (!deviceIdInput.value.trim()) {
+            deviceIdInput.value = DEFAULT_DEVICE_ID;
+        }
+    });
+}
+
+function getActiveDeviceId() {
+    return deviceIdInput?.value.trim() || DEFAULT_DEVICE_ID;
+}
 
 // Localize selects
 document.querySelectorAll('select option').forEach(opt => {
@@ -39,52 +57,35 @@ async function autoConnect() {
     try {
         const config = await fetchMQTTConfig();
 
-        const host = config.MQTT_HOST;
-        if (!host || typeof host !== 'string') {
-            throw new Error("Missing MQTT host configuration");
-        }
-        const port = parseInt(config.MQTT_PORT);
-        const user = config.MQTT_USERNAME;
-        const pass = config.MQTT_PASSWORD;
+        const brokerUrl = getMQTTBrokerUrl(config);
+        const options = getMQTTOptions(config, 'tester_');
 
-        // Construct topic by replacing the environment wildcard with 'test'
-        // and keeping whatever device_id is in the pattern.
-        const parts = config.MQTT_TOPIC_PATTERN.split('/');
-        parts[1] = 'test'; // Force test environment for tester
-        mqttTopic = parts.join('/');
+        mqttClient = mqtt.connect(brokerUrl, options);
 
-        mqttClient = new Paho.MQTT.Client(host, port, "/mqtt", "tester_" + Math.random().toString(16).substr(2, 8));
+        mqttClient.on('connect', () => {
+            connected = true;
+            connStatus.textContent = isZh ? '🟢 已連線' : '🟢 Connected';
+            connStatus.style.borderColor = neonGreen;
+            connStatus.style.color = neonGreen;
+            log(`<span style="color:${neonGreen}">Secure MQTT Connected</span>`);
+        });
 
-        const options = {
-            onSuccess: () => {
-                connected = true;
-                connStatus.textContent = isZh ? '🟢 已連線' : '🟢 Connected';
-                connStatus.style.borderColor = neonGreen;
-                connStatus.style.color = neonGreen;
-                log(`<span style="color:${neonGreen}">Secure MQTT Connected</span>`);
-            },
-            onFailure: (err) => {
-                connStatus.textContent = isZh ? '🔴 連線錯誤' : '🔴 Connection Error';
-                connStatus.style.borderColor = neonRed;
-                connStatus.style.color = neonRed;
-                log(`<span style="color:${neonRed}">Connection failed: ${err.errorMessage}</span>`);
-            },
-            useSSL: true
-        };
+        mqttClient.on('error', (err) => {
+            connStatus.textContent = isZh ? '🔴 連線錯誤' : '🔴 Connection Error';
+            connStatus.style.borderColor = neonRed;
+            connStatus.style.color = neonRed;
+            log(`<span style="color:${neonRed}">Connection failed: ${err.message}</span>`);
+        });
 
-        if (user) options.userName = user;
-        if (pass) options.password = pass;
-
-        mqttClient.onConnectionLost = (err) => {
+        mqttClient.on('close', () => {
             connected = false;
             connStatus.textContent = isZh ? '🔴 連線中斷' : '🔴 Connection Lost';
             connStatus.style.borderColor = neonRed;
             connStatus.style.color = neonRed;
-            log(`<span style="color:${neonRed}">Connection lost: ${err.errorMessage}</span>`);
-        };
+            log(`<span style="color:${neonRed}">Connection lost</span>`);
+        });
 
         log(`Attempting secure MQTT initialization...`);
-        mqttClient.connect(options);
 
     } catch (err) {
         log(`<span style="color:${neonRed}">Auth Error: ${err.message}</span>`);
@@ -102,10 +103,10 @@ function publish(bpm, spo2, statusOverride = null) {
         spo2: parseInt(spo2),
         device_status: status
     });
-    const message = new Paho.MQTT.Message(payload);
-    message.destinationName = mqttTopic;
-    mqttClient.send(message);
-    log(`Published: ${payload}`);
+
+    const topic = constructTopic('test', getActiveDeviceId());
+    mqttClient.publish(topic, payload);
+    log(`Published to ${topic}: ${payload}`);
 }
 
 window.publishManual = function() {
@@ -120,10 +121,9 @@ window.publishReset = function() {
         return;
     }
     const payload = JSON.stringify({ device_status: "RESET" });
-    const message = new Paho.MQTT.Message(payload);
-    message.destinationName = mqttTopic;
-    mqttClient.send(message);
-    log(`<span style="color:${neonYellow}">Published Reset: ${payload}</span>`);
+    const topic = constructTopic('test', getActiveDeviceId());
+    mqttClient.publish(topic, payload);
+    log(`<span style="color:${neonYellow}">Published Reset to ${topic}: ${payload}</span>`);
 }
 
 window.publishCompleted = function() {
@@ -145,10 +145,9 @@ window.publishCompleted = function() {
     }
 
     const payload = JSON.stringify({ device_status: "COMPLETED", duration_sec: duration });
-    const message = new Paho.MQTT.Message(payload);
-    message.destinationName = mqttTopic;
-    mqttClient.send(message);
-    log(`<span style="color:${neonBlue}">Published Completed: ${payload}</span>`);
+    const topic = constructTopic('test', getActiveDeviceId());
+    mqttClient.publish(topic, payload);
+    log(`<span style="color:${neonBlue}">Published Completed to ${topic}: ${payload}</span>`);
 }
 
 // Preset logic

@@ -1,4 +1,7 @@
-import { getCSSVar, initLang, getTranslatedStatus, fetchMQTTConfig } from './shared.js';
+import {
+    getCSSVar, initLang, getTranslatedStatus, fetchMQTTConfig,
+    getMQTTBrokerUrl, getMQTTOptions
+} from './shared.js';
 import { renderHeader, renderDashboardBody } from './components.js';
 
 // Global Chart variables
@@ -231,20 +234,13 @@ export async function initDashboard(config) {
     // 5. Initialize MQTT
     try {
         const mqttConfig = await fetchMQTTConfig();
-        const { MQTT_HOST, MQTT_PORT, MQTT_TOPIC_PATTERN, MQTT_USERNAME, MQTT_PASSWORD } = mqttConfig;
+        const { MQTT_TOPIC_PATTERN } = mqttConfig;
 
-        if (!MQTT_HOST || !MQTT_TOPIC_PATTERN) throw new Error("Missing MQTT configuration");
+        if (!MQTT_TOPIC_PATTERN) throw new Error("Missing MQTT topic pattern");
 
         const targetDeviceId = MQTT_TOPIC_PATTERN.split('/')[2];
-        const brokerUrl = `wss://${MQTT_HOST}:${MQTT_PORT}/mqtt`;
-
-        const options = {
-            clean: true,
-            connectTimeout: 4000,
-            clientId: clientIdPrefix + Math.random().toString(16).substr(2, 8),
-            username: MQTT_USERNAME,
-            password: MQTT_PASSWORD,
-        };
+        const brokerUrl = getMQTTBrokerUrl(mqttConfig);
+        const options = getMQTTOptions(mqttConfig, clientIdPrefix);
 
         const client = mqtt.connect(brokerUrl, options);
 
