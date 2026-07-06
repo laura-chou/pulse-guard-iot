@@ -66,27 +66,16 @@
         #manual-spo2 {
             width: 90%;
         }
-        /* Multilingual rules are inherited from styles.css */
     </style>
 </head>
 <body class="lang-en">
     <div class="test-container">
         <header>
             <div class="header-main">
-                <h1>
-                    <span data-lang="en">MQTT Testing Tool</span>
-                    <span data-lang="zh">MQTT 測試工具</span>
-                </h1>
-                <p class="refresh-warning">
-                    <span data-lang="en">PulseGuard System Integration & Defense Test Suite</span>
-                    <span data-lang="zh">PulseGuard 系統整合與防禦測試套件</span>
-                </p>
+                <h1 data-i18n="test.title">MQTT Testing Tool</h1>
             </div>
             <div class="header-status">
-                <div id="connection-status" class="status-indicator">
-                    <span data-lang="en">Connecting...</span>
-                    <span data-lang="zh">連線中...</span>
-                </div>
+                <div id="connection-status" class="status-indicator" data-i18n="ui.conn_connecting">Connecting...</div>
             </div>
         </header>
 
@@ -95,32 +84,23 @@
                 <!-- Manual Section -->
                 <div class="card">
                     <div class="card-header">
-                        <h2>
-                            <span data-lang="en">MANUAL SEND</span>
-                            <span data-lang="zh">手動發送</span>
-                        </h2>
+                        <h2 data-i18n="test.manual_send">MANUAL SEND</h2>
                     </div>
 
                     <div class="form-group">
-                        <label>
-                            <span data-lang="en">Device ID</span>
-                            <span data-lang="zh">裝置 ID</span>
-                        </label>
+                        <label data-i18n="test.device_id">Device ID</label>
                         <input type="text" id="device-id" value="MOCK_DEVICE_001" required>
                     </div>
 
                     <div class="form-group">
-                        <label>
-                            <span data-lang="en">Quick Presets</span>
-                            <span data-lang="zh">快速預設</span>
-                        </label>
+                        <label data-i18n="test.quick_presets">Quick Presets</label>
                         <select id="presetSelect">
-                            <option value="" data-en="-- Select a preset... --" data-zh="-- 請選擇預設值... --">-- Select a preset... --</option>
-                            <option value="normal" data-en="Normal (70 BPM, 98% SpO₂)" data-zh="正常 (70 BPM, 98% SpO₂)">Normal (70 BPM, 98% SpO₂)</option>
-                            <option value="low_spo2" data-en="Low SpO₂ (75 BPM, 92% SpO₂)" data-zh="低血氧 (75 BPM, 92% SpO₂)">Low SpO₂ (75 BPM, 92% SpO₂)</option>
-                            <option value="high_bpm" data-en="High BPM (110 BPM, 97% SpO₂)" data-zh="高心率 (110 BPM, 97% SpO₂)">High BPM (110 BPM, 97% SpO₂)</option>
-                            <option value="severe_low_spo2" data-en="Severe Low SpO₂ (80 BPM, 85% SpO₂)" data-zh="嚴重低血氧 (80 BPM, 85% SpO₂)">Severe Low SpO₂ (80 BPM, 85% SpO₂)</option>
-                            <option value="acute_tachycardia" data-en="Acute Tachycardia (140 BPM, 96% SpO₂)" data-zh="急性心動過速 (140 BPM, 96% SpO₂)">Acute Tachycardia (140 BPM, 96% SpO₂)</option>
+                            <option value="" data-i18n="test.preset_placeholder">-- Select a preset... --</option>
+                            <option value="normal" data-i18n="test.preset_normal">Normal (70 BPM, 98% SpO₂)</option>
+                            <option value="low_spo2" data-i18n="test.preset_low_spo2">Low SpO₂ (75 BPM, 92% SpO₂)</option>
+                            <option value="high_bpm" data-i18n="test.preset_high_bpm">High BPM (110 BPM, 97% SpO₂)</option>
+                            <option value="severe_low_spo2" data-i18n="test.preset_severe_low_spo2">Severe Low SpO₂ (80 BPM, 85% SpO₂)</option>
+                            <option value="acute_tachycardia" data-i18n="test.preset_acute_tachycardia">Acute Tachycardia (140 BPM, 96% SpO₂)</option>
                         </select>
                     </div>
 
@@ -136,74 +116,47 @@
                     </div>
 
                     <div class="btn-group">
-                        <button class="primary" id="sendManualBtn" style="flex: 1;">
-                            <span data-lang="en">Send Single</span>
-                            <span data-lang="zh">單次發送</span>
-                        </button>
-                        <button id="autoSendBtn" class="warning" style="flex: 1;">
-                            <span data-lang="en">Start Auto (1s)</span>
-                            <span data-lang="zh">啟動自動發送</span>
-                        </button>
+                        <button class="primary" id="sendManualBtn" style="flex: 1;" data-i18n="test.send_single">Send Single</button>
+                        <button id="autoSendBtn" class="warning" style="flex: 1;" data-i18n="test.start_auto">Start Auto (1s)</button>
                     </div>
                     <div style="display: grid; grid-template-columns: 1fr; gap: 1rem;">
                         <div class="form-group">
-                            <label>
-                                <span data-lang="en">Duration (sec)</span>
-                                <span data-lang="zh">測量秒數</span>
-                            </label>
+                            <label data-i18n="test.duration">Duration (sec)</label>
                             <input type="number" id="manual-duration" value="30">
                         </div>
                     </div>
 
                     <div class="btn-group">
-                        <button id="sendCompletedBtn" class="primary" style="flex: 1;">
-                            <span data-lang="en">Send Completed</span>
-                            <span data-lang="zh">發送完成狀態</span>
-                        </button>
-                        <button id="sendResetBtn" class="danger" style="flex: 1;">
-                            <span data-lang="en">Send Reset</span>
-                            <span data-lang="zh">發送重置狀態</span>
-                        </button>
+                        <button id="sendCompletedBtn" class="primary" style="flex: 1;" data-i18n="test.send_completed">Send Completed</button>
+                        <button id="sendResetBtn" class="danger" style="flex: 1;" data-i18n="test.send_reset">Send Reset</button>
                     </div>
                 </div>
 
                 <!-- Scenarios Section -->
                 <div class="card">
                     <div class="card-header">
-                        <h2>
-                            <span data-lang="en">TEST SCENARIOS</span>
-                            <span data-lang="zh">測試場景</span>
-                        </h2>
+                        <h2 data-i18n="test.scenarios">TEST SCENARIOS</h2>
                     </div>
 
                     <div class="form-group">
-                        <label>
-                            <span data-lang="en">Select Scenario</span>
-                            <span data-lang="zh">選擇場景</span>
-                        </label>
+                        <label data-i18n="test.select_scenario_label">Select Scenario</label>
                         <select id="scenarioSelect">
-                            <option value="" data-en="-- Select a scenario... --" data-zh="-- 請選擇場景... --">-- Select a scenario... --</option>
-                            <option value="A" data-en="Scenario A: First Valid Write Test" data-zh="場景 A: 首次有效寫入測試">Scenario A: First Valid Write Test</option>
-                            <option value="B1" data-en="Scenario B1: Invalid Value Filtering" data-zh="場景 B1: 無效數值過濾測試">Scenario B1: Invalid Value Filtering</option>
-                            <option value="B2" data-en="Scenario B2: Hardware OFF-CHIP Detachment" data-zh="場景 B2: 硬體 OFF-CHIP 脫離測試">Scenario B2: Hardware OFF-CHIP Detachment</option>
-                            <option value="C" data-en="Scenario C: SpO2 Drop Zero-Latency Write" data-zh="場景 C: 血氧下降零延遲寫入">Scenario C: SpO2 Drop Zero-Latency Write</option>
-                            <option value="D" data-en="Scenario D: Acute BPM Surge (ΔBPM)" data-zh="場景 D: 急性心率突增 (ΔBPM)">Scenario D: Acute BPM Surge (ΔBPM)</option>
-                            <option value="E" data-en="Scenario E: Timer Interception Test" data-zh="場景 E: 定時器截斷測試">Scenario E: Timer Interception Test</option>
-                            <option value="F" data-en="Scenario F: 5s Stabilization Warm-up" data-zh="場景 F: 5秒穩定預熱測試">Scenario F: 5s Stabilization Warm-up</option>
-                            <option value="G" data-en="Scenario G: Session Timeout & Deletion" data-zh="場景 G: Session 逾時自動刪除測試">Scenario G: Session Timeout & Deletion</option>
+                            <option value="" data-i18n="test.scenario_placeholder">-- Select a scenario... --</option>
+                            <option value="A" data-i18n="test.scenario_a">Scenario A: First Valid Write Test</option>
+                            <option value="B" data-i18n="test.scenario_b">Scenario B: Anomaly Filtering</option>
+                            <option value="C" data-i18n="test.scenario_c">Scenario C: SpO2 Drop Zero-Latency Write</option>
+                            <option value="D" data-i18n="test.scenario_d">Scenario D: Acute BPM Surge (ΔBPM)</option>
+                            <option value="E" data-i18n="test.scenario_e">Scenario E: Timer Interception Test</option>
+                            <option value="F" data-i18n="test.scenario_f">Scenario F: 5s Stabilization Warm-up</option>
                         </select>
                     </div>
 
-                    <div id="scenarioDescription" style="width: 300px; font-size: 0.8rem; color: var(--text-secondary); line-height: 1.4; min-height: 4em; margin-bottom: 1rem;">
-                        <div data-lang="en" id="desc-en">Please select a scenario to see details.</div>
-                        <div data-lang="zh" id="desc-zh">請選擇場景以查看詳情。</div>
+                    <div id="scenarioDescription" style="font-size: 0.8rem; color: var(--text-secondary); line-height: 1.4; min-height: 4em; margin-bottom: 1rem;">
+                        <div id="desc-text" data-i18n="test.select_scenario_help">Please select a scenario to see details.</div>
                     </div>
 
                     <div class="btn-group">
-                        <button class="primary" id="executeScenarioBtn" style="width: 100%; justify-content: center;">
-                            <span data-lang="en">Execute Scenario</span>
-                            <span data-lang="zh">執行場景</span>
-                        </button>
+                        <button class="primary" id="executeScenarioBtn" style="width: 100%; justify-content: center;" data-i18n="test.execute_scenario">Execute Scenario</button>
                     </div>
                 </div>
             </div>
@@ -211,21 +164,12 @@
             <!-- Log Section -->
             <div class="log-container">
                     <div class="log-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
-                        <h2 style="margin: 0; font-size: 1.3rem; color: var(--text-secondary); text-transform: uppercase;">
-                        <span data-lang="en">MESSAGE LOG</span>
-                        <span data-lang="zh">訊息日誌</span>
-                    </h2>
+                        <h2 style="margin: 0; font-size: 1.3rem; color: var(--text-secondary); text-transform: uppercase;" data-i18n="test.message_log">MESSAGE LOG</h2>
                         <div style="display: flex; gap: 0.5rem;">
                             <a href="monitor.html" target="_blank" id="monitorLink">
-                                <button class="primary" style="font-size: 0.9rem; padding: 0.5rem 0.8rem;">
-                                    <span data-lang="en">Open Monitor</span>
-                                    <span data-lang="zh">開啟監控頁面</span>
-                                </button>
+                                <button class="primary" style="font-size: 0.9rem; padding: 0.5rem 0.8rem;" data-i18n="test.open_monitor">Open Monitor</button>
                             </a>
-                            <button id="clearLogBtn" style="font-size: 0.9rem; padding: 0.5rem 0.8rem;">
-                                <span data-lang="en">Clear Log</span>
-                                <span data-lang="zh">清除日誌</span>
-                            </button>
+                            <button id="clearLogBtn" style="font-size: 0.9rem; padding: 0.5rem 0.8rem;" data-i18n="test.clear_log">Clear Log</button>
                         </div>
                 </div>
                 <div id="log" class="log-area"></div>

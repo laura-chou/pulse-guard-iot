@@ -1,7 +1,7 @@
 import {
-    getCSSVar, initLang, getTranslatedStatus, fetchMQTTConfig,
-    getMQTTBrokerUrl, getMQTTOptions
+    getCSSVar, fetchMQTTConfig, getMQTTBrokerUrl, getMQTTOptions, constructTopic
 } from './shared.js';
+import { initLang, translate, getTranslatedStatus } from './i18n.js';
 import { renderHeader, renderDashboardBody } from './components.js';
 
 // Global Chart variables
@@ -157,7 +157,7 @@ export function resetDashboard() {
     const bpmEl = document.getElementById('bpm');
     const spo2El = document.getElementById('spo2');
     const statusEl = document.getElementById('status');
-    const lastUpdateEl = document.getElementById('last-update');
+    const statusMessageEl = document.getElementById('status-message');
 
     if (bpmEl) bpmEl.textContent = '--';
     if (spo2El) spo2El.textContent = '--';
@@ -169,7 +169,7 @@ export function resetDashboard() {
         `;
     }
 
-    if (lastUpdateEl) lastUpdateEl.textContent = '';
+    if (statusMessageEl) statusMessageEl.textContent = '';
     updateStatusColor('DEFAULT');
 
     [bpmChart, spo2Chart].forEach(chart => {
@@ -191,25 +191,41 @@ window.resetDashboard = resetDashboard;
  * @param {Object} config - { env, clientIdPrefix, uiConfig }
  */
 export async function initDashboard(config) {
-    const { env, clientIdPrefix, uiConfig } = config;
+    const { clientIdPrefix, uiConfig } = config;
 
     // 1. Render UI
     renderHeader(uiConfig);
     renderDashboardBody();
 
-    // 2. Initialize Language
+    // 2. Initialize Language & Params
     const lang = initLang();
-    const isZh = lang === 'zh';
+    const params = new URLSearchParams(window.location.search);
+
+    // Environment strictly from config
+    const currentEnv = config.env || 'prod';
+
+    // Device ID Logic: 'test' defaults to MOCK, 'prod' requires URL param 'did'
+    let targetDeviceId = (currentEnv === 'test') ? 'MOCK_DEVICE_001' : params.get('did');
 
     // 3. UI Elements
     const connStatus = document.getElementById('connection-status');
-    const lastUpdateEl = document.getElementById('last-update');
+    const statusMessageEl = document.getElementById('status-message');
     const bpmEl = document.getElementById('bpm');
     const spo2El = document.getElementById('spo2');
     const statusEl = document.getElementById('status');
 
-    // 4. Initialize Charts
     const colorRed = getCSSVar('--neon-red');
+
+    // Abort if prod and no Device ID specified
+    if (currentEnv === 'prod' && !targetDeviceId) {
+        if (statusMessageEl) {
+            statusMessageEl.textContent = translate('error.no_device', lang);
+            statusMessageEl.style.color = colorRed;
+        }
+        return;
+    }
+
+    // 4. Initialize Charts
     const colorBlue = getCSSVar('--neon-blue');
     const colorGreen = getCSSVar('--neon-green');
     const colorYellow = getCSSVar('--neon-yellow');
@@ -228,34 +244,30 @@ export async function initDashboard(config) {
         { min: 95, max: 100, color: `${colorGreen}3b` }
     ];
 
-    bpmChart = createChart('bpmChart', isZh ? '心率趨勢' : 'Heart Rate Trend', colorRed, `${colorRed}1a`, 40, 180, bpmZones, 'BPM');
-    spo2Chart = createChart('spo2Chart', isZh ? '血氧趨勢' : 'SpO₂ Trend', colorBlue, `${colorBlue}1a`, 80, 100, spo2Zones, '%');
+    bpmChart = createChart('bpmChart', translate('chart.hr_trend', lang), colorRed, `${colorRed}1a`, 40, 180, bpmZones, 'BPM');
+    spo2Chart = createChart('spo2Chart', translate('chart.spo2_trend', lang), colorBlue, `${colorBlue}1a`, 80, 100, spo2Zones, '%');
 
     // 5. Initialize MQTT
     try {
         const mqttConfig = await fetchMQTTConfig();
-        const { MQTT_TOPIC_PATTERN } = mqttConfig;
-
-        if (!MQTT_TOPIC_PATTERN) throw new Error("Missing MQTT topic pattern");
-
-        const targetDeviceId = MQTT_TOPIC_PATTERN.split('/')[2];
         const brokerUrl = getMQTTBrokerUrl(mqttConfig);
         const options = getMQTTOptions(mqttConfig, clientIdPrefix);
+        const subscriptionTopic = constructTopic(currentEnv, targetDeviceId);
 
         const client = mqtt.connect(brokerUrl, options);
 
         client.on('connect', () => {
             if (connStatus) {
-                connStatus.textContent = isZh ? '🟢 已連線' : '🟢 Connected';
+                connStatus.textContent = translate('ui.conn_connected', lang);
                 connStatus.style.borderColor = colorGreen;
                 connStatus.style.color = colorGreen;
             }
-            client.subscribe(MQTT_TOPIC_PATTERN);
+            client.subscribe(subscriptionTopic);
         });
 
         client.on('error', (err) => {
             if (connStatus) {
-                connStatus.textContent = isZh ? '🔴 連線錯誤' : '🔴 Connection Error';
+                connStatus.textContent = translate('ui.conn_error', lang);
                 connStatus.style.borderColor = colorRed;
                 connStatus.style.color = colorRed;
             }
@@ -267,11 +279,8 @@ export async function initDashboard(config) {
                 const topicParts = receivedTopic.split('/');
                 if (topicParts.length !== 4 || topicParts[0] !== 'pulseguard' || topicParts[3] !== 'data') return;
 
-                // Environment Filtering
-                if (topicParts[1] !== env) return;
-
-                // Device Filtering
-                if (targetDeviceId !== '+' && topicParts[2] !== targetDeviceId) return;
+                // Strict Environment & Device Filtering
+                if (topicParts[1] !== currentEnv || topicParts[2] !== targetDeviceId) return;
 
                 const data = JSON.parse(message.toString());
 
@@ -292,12 +301,12 @@ export async function initDashboard(config) {
                 if (data.bpm !== undefined && bpmEl) bpmEl.textContent = data.bpm;
                 if (data.spo2 !== undefined && spo2El) spo2El.textContent = data.spo2;
                 if (deviceStatus !== undefined && statusEl) {
-                    statusEl.textContent = getTranslatedStatus(deviceStatus, isZh ? 'zh' : 'en');
+                    statusEl.textContent = getTranslatedStatus(deviceStatus, lang);
                     updateStatusColor(deviceStatus);
                 }
 
-                if (lastUpdateEl) {
-                    lastUpdateEl.textContent = `${isZh ? '最後更新' : 'Last Update'}: ${fullTime}`;
+                if (statusMessageEl) {
+                    statusMessageEl.textContent = `${translate('ui.last_update', lang)}: ${fullTime}`;
                 }
 
                 // Update Charts
@@ -312,7 +321,7 @@ export async function initDashboard(config) {
     } catch (error) {
         console.error('Initialization Error:', error);
         if (connStatus) {
-            connStatus.textContent = isZh ? '⚠️ 設定錯誤' : '⚠️ Config Error';
+            connStatus.textContent = translate('error.config', lang);
             connStatus.style.borderColor = colorRed;
             connStatus.style.color = colorRed;
         }

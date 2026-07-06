@@ -28,7 +28,7 @@ export function renderHeader(config) {
                     <span data-lang="en">Connecting...</span>
                     <span data-lang="zh">連線中...</span>
                 </div>
-                <div id="last-update" class="last-update"></div>
+                <div id="status-message" class="status-message"></div>
             </div>
         </header>
     `;

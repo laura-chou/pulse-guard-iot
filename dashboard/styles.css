@@ -69,7 +69,7 @@ h1 {
     border: 1px solid var(--text-secondary);
 }
 
-.last-update {
+.status-message {
     font-size: 0.75rem;
     color: var(--text-secondary);
     padding-right: 0.5rem;

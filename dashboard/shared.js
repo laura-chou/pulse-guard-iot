@@ -6,18 +6,6 @@ export const getCSSVar = (name) => {
     return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 };
 
-// Multilingual Logic
-export function initLang() {
-    const params = new URLSearchParams(window.location.search);
-    const lang = params.get('lang') || 'en';
-    if (lang === 'zh') {
-        document.body.className = 'lang-zh';
-    } else {
-        document.body.className = 'lang-en';
-    }
-    return lang;
-}
-
 // Clinical Status Calculation Logic
 export function calculateStatus(bpm, spo2) {
     /**
@@ -47,22 +35,10 @@ export function calculateStatus(bpm, spo2) {
     return 'WARNING';
 }
 
-// Translation Helper
-export function getTranslatedStatus(status, lang) {
-    if (lang !== 'zh') return status;
-    const translations = {
-        'NORMAL': '正常',
-        'WARNING': '警告',
-        'DANGER': '危險',
-        'WAITING': '待機中'
-    };
-    return translations[status] || status;
-}
-
 // MQTT Configuration Loader
 export async function fetchMQTTConfig() {
     try {
-        const response = await fetch('/api/mqtt-auth');
+        const response = await fetch('/api/mqtt-auth.php');
         if (!response.ok) throw new Error('Failed to fetch MQTT config');
         return await response.json();
     } catch (err) {
