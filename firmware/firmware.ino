@@ -637,8 +637,8 @@ void loop()  {
             float iAC = pulseIR.avgAC();
             float iDC = pulseIR.avgDC();
 
-            if (rDC > 0 && iDC > 0 && iAC > 0) {
-                float rRatio = (iAC / iDC) / (rAC / rDC);
+            if (rDC > 0 && iDC > 0 && iAC > 0 && rAC > 0) {
+                float rRatio = (rAC / rDC) / (iAC / iDC);
                 float calculatedSpO2 = -45.060 * (rRatio * rRatio) + 30.354 * rRatio + 94.845;
                 if (calculatedSpO2 > 100.0) calculatedSpO2 = 100.0;
                 
