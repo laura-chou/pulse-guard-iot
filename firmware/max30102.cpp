@@ -78,9 +78,8 @@ uint16_t MAX30102::check(void) {
     while (bytesLeftToRead > 0) {
         sense.head++; //Advance the head of the storage struct
         sense.head %= STORAGE_SIZE; //Wrap condition
+        sense.red[sense.head] = readFIFOSample();
         sense.IR[sense.head] = readFIFOSample(); 
-        //Burst read three more bytes - IR  
-		    sense.red[sense.head] = readFIFOSample();
         bytesLeftToRead -= 6;
     }
     Wire.endTransmission();

@@ -104,7 +104,7 @@ void SensorProcessor::calculateHealth(uint32_t irValue, uint32_t redValue) {
 
     // R = (AC_red / DC_red) / (AC_ir / DC_ir)
     if (rDC > 0 && iDC > 0 && iAC > 0) {
-        float rRatio = (iAC / iDC) / (rAC / rDC);
+        float rRatio = (rAC / rDC) / (iAC / iDC);
         // Empirically derived formula for SpO2
         float calculatedSpO2 = -45.060 * (rRatio * rRatio) + 30.354 * rRatio + 94.845;
         if (calculatedSpO2 > 100.0) calculatedSpO2 = 100.0;
