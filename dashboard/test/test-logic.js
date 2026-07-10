@@ -280,16 +280,16 @@ window.executeScenario = function() {
             }, 2000);
             break;
         case 'F':
-            log(`<span style="color:${neonYellow}">Finger placed. Assert: No ghost records for next 5 seconds...</span>`);
+            log(`<span style="color:${neonYellow}">Finger placed. Assert: No ghost records for next 10 seconds...</span>`);
             setTimeout(() => {
-                log(`<span style="color:${neonGreen}">Warm-up complete. Starting data stream at T=5s.</span>`);
+                log(`<span style="color:${neonGreen}">Warm-up complete. Starting data stream at T=10s.</span>`);
                 let countF = 0;
                 scenarioInterval = setInterval(() => {
                     countF++;
                     publish(72, 98);
                     if (countF >= 5) stopScenarios();
                 }, 1000);
-            }, 5000);
+            }, 10000);
             break;
     }
 }

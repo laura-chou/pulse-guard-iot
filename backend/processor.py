@@ -32,10 +32,21 @@ class DeviceState:
             if self.current_session_id and db_handler:
                 try:
                     deleted_count = db_handler.delete_many({"session_id": self.current_session_id})
-                    logger.info(f"[{self.device_id}] Deleted {deleted_count} records for session {self.current_session_id} due to RESET/Timeout")
+                    logger.info(f"[{self.device_id}] Deleted {deleted_count} records for session {self.current_session_id} due to RESET")
                 except Exception as e:
                     logger.error(f"[{self.device_id}] Failed to delete records for session {self.current_session_id}: {e}")
 
+            self.bpm_window.clear()
+            self.spo2_window.clear()
+            self.last_ema_bpm = None
+            self.last_analysis_status = None
+            self.current_session_id = None
+            self.first_write_done = False
+            self.last_write_time = 0
+
+    def reset_state_only(self):
+        """僅重置狀態，但不從資料庫刪除當前 Session 的任何數據"""
+        with self.lock:
             self.bpm_window.clear()
             self.spo2_window.clear()
             self.last_ema_bpm = None
@@ -200,6 +211,24 @@ class StreamProcessor:
         if state.data_source == "prod" and duration > 0 and state.current_session_id:
             report_manager.generate_and_send_report(state.current_session_id, duration, state.device_id)
 
+        # 在 Time-series Collection 中，直接插入一筆特定的 COMPLETED 事件紀錄代表量測順利結束
+        if state.current_session_id:
+            db_handler = self._get_db_handler(state.device_id)
+            if db_handler:
+                try:
+                    record = {
+                        "timestamp": datetime.fromtimestamp(time.time(), tz=timezone.utc),
+                        "analysis_status": "COMPLETED",
+                        "session_id": state.current_session_id,
+                        "data_source": state.data_source,
+                        "device_id": state.device_id,
+                        "duration_sec": duration
+                    }
+                    db_handler.insert_one(record)
+                    logger.info(f"[{state.device_id}] Inserted COMPLETED event record for session {state.current_session_id}")
+                except Exception as e:
+                    logger.error(f"[{state.device_id}] Failed to insert COMPLETED event for session {state.current_session_id}: {e}")
+
         # 重置該裝置狀態，但不刪除資料 (因為已完成)
         with state.lock:
             state.bpm_window.clear()
@@ -210,7 +239,7 @@ class StreamProcessor:
             state.first_write_done = False
             state.current_session_id = None
 
-    def check_timeouts(self, timeout_sec: float = 10.0) -> None:
+    def check_timeouts(self, timeout_sec: float = 30.0) -> None:
         """檢查逾時裝置並清理"""
         now = time.time()
         to_cleanup: List[DeviceState] = []
@@ -221,9 +250,24 @@ class StreamProcessor:
                     to_cleanup.append(state)
 
         for state in to_cleanup:
-            logger.info(f"[{state.device_id}] Session timeout detected ({timeout_sec}s). Cleaning up...")
-            db_handler = self._get_db_handler(state.device_id)
-            state.reset_and_delete(db_handler)
+            logger.info(f"[{state.device_id}] Session timeout detected ({timeout_sec}s). Soft-ending session...")
+            if state.current_session_id:
+                db_handler = self._get_db_handler(state.device_id)
+                if db_handler:
+                    try:
+                        record = {
+                            "timestamp": datetime.fromtimestamp(time.time(), tz=timezone.utc),
+                            "analysis_status": "TIMEOUT",
+                            "session_id": state.current_session_id,
+                            "data_source": state.data_source,
+                            "device_id": state.device_id
+                        }
+                        db_handler.insert_one(record)
+                        logger.info(f"[{state.device_id}] Inserted TIMEOUT event record for session {state.current_session_id}")
+                    except Exception as e:
+                        logger.error(f"[{state.device_id}] Failed to insert TIMEOUT event on timeout for session {state.current_session_id}: {e}")
+
+            state.reset_state_only()
 
     def close_all_dbs(self) -> None:
         """優雅關閉機制：關閉所有已開啟的 MongoDB 連線"""

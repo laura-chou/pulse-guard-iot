@@ -65,6 +65,7 @@ def test_fetch_data_logic(mock_mongo_client):
     naive_now = datetime(2026, 6, 9, 0, 0, 0)
     mock_cursor = [{'timestamp': naive_now, 'analysis_status': 'NORMAL', 'avg_bpm': 70, 'spo2': 98}]
     mock_col.find.return_value.sort.return_value = mock_cursor
+    mock_col.distinct.return_value = ["session-123"]
 
     # 測試正式環境
     with patch('core.database.MongoClient', return_value=mock_mongo_client.return_value):
@@ -72,6 +73,7 @@ def test_fetch_data_logic(mock_mongo_client):
 
     args, _ = mock_col.find.call_args
     assert args[0]['data_source'] == "prod"
+    assert args[0]['session_id'] == {"$in": ["session-123"]}
     assert err is False
 
     assert df['timestamp'].dt.tz == pytz.timezone('Asia/Taipei')

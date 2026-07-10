@@ -82,7 +82,7 @@ class MQTTManager:
         try:
             while True:
                 try:
-                    self.processor.check_timeouts(timeout_sec=10.0)
+                    self.processor.check_timeouts(timeout_sec=30.0)
                 except Exception as e:
                     logger.error(f"Error during timeout check: {e}")
                 time.sleep(1)

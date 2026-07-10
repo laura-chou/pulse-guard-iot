@@ -33,7 +33,19 @@ def fetch_data(start_date, end_date, env="prod", device_id="MOCK_DEVICE_001"):
     db = client[db_name]
     collection = db[col_name]
 
-    # 執行查詢並按時間排序
+    # 1. 找出時間範圍內，所有包含 COMPLETED 標記的 session_id（時間序列唯讀集合之事件標記模式）
+    completed_sessions_query = {
+        "timestamp": {"$gte": start_dt, "$lte": end_dt},
+        "analysis_status": "COMPLETED",
+        "data_source": env,
+        "device_id": device_id
+    }
+    completed_sessions = collection.distinct("session_id", completed_sessions_query)
+
+    if not completed_sessions:
+        return pd.DataFrame(), False
+
+    # 2. 執行查詢並按時間排序，僅查詢已完成的 session 數據，且排除 COMPLETED/TIMEOUT 這些事件紀錄本身
     projection = {
         "timestamp": 1,
         "analysis_status": 1,
@@ -47,9 +59,10 @@ def fetch_data(start_date, end_date, env="prod", device_id="MOCK_DEVICE_001"):
     }
     query = {
         "timestamp": {"$gte": start_dt, "$lte": end_dt},
-        "analysis_status": {"$nin": ["RESET", "ABORTED"]},
+        "analysis_status": {"$nin": ["RESET", "ABORTED", "COMPLETED", "TIMEOUT"]},
         "data_source": env,
-        "device_id": device_id
+        "device_id": device_id,
+        "session_id": {"$in": completed_sessions}
     }
     cursor = collection.find(query, projection).sort("timestamp", 1)
 

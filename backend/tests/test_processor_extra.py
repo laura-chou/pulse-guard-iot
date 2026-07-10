@@ -76,7 +76,7 @@ def test_check_timeouts(mock_db_class, processor):
     """測試逾時清理邏輯"""
     mock_db = mock_db_class.return_value
     mock_db.connect.return_value = True
-    mock_db.delete_many.return_value = 1
+    mock_db.insert_one.return_value = True
 
     # 建立一個有 Session 的裝置
     state = processor.get_device_state("test", "DEV_TIMEOUT")
@@ -86,4 +86,9 @@ def test_check_timeouts(mock_db_class, processor):
     processor.check_timeouts(timeout_sec=10)
 
     assert state.current_session_id is None
-    mock_db.delete_many.assert_called_with({"session_id": "session-timeout"})
+    # 逾時應該改為插入一筆 TIMEOUT 事件紀錄
+    mock_db.insert_one.assert_called_once()
+    inserted_record = mock_db.insert_one.call_args[0][0]
+    assert inserted_record["analysis_status"] == "TIMEOUT"
+    assert inserted_record["session_id"] == "session-timeout"
+    assert mock_db.delete_many.called is False

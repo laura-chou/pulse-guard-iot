@@ -51,6 +51,29 @@ def test_scenario_a_first_valid_write(mock_db_class, processor):
     assert state.current_session_id is not None
 
 @patch('processor.DatabaseHandler')
+def test_completed_event_insert(mock_db_class, processor):
+    mock_db = mock_db_class.return_value
+    mock_db.connect.return_value = True
+    mock_db.insert_one.return_value = True
+
+    # 1. 觸發標準寫入以建立 session_id
+    processor.process_message("prod", "device1", {"bpm": 72, "spo2": 98})
+    state = processor.get_device_state("prod", "device1")
+    session_id = state.current_session_id
+    assert session_id is not None
+
+    # 2. 觸發 COMPLETED 結束
+    processor.process_message("prod", "device1", {"device_status": "COMPLETED", "duration_sec": 60})
+
+    # 驗證是否插入了 COMPLETED 事件紀錄
+    inserted_records = [call[0][0] for call in mock_db.insert_one.call_args_list]
+    completed_event = next((r for r in inserted_records if r.get("analysis_status") == "COMPLETED"), None)
+    assert completed_event is not None
+    assert completed_event["session_id"] == session_id
+    assert completed_event["duration_sec"] == 60
+    assert state.current_session_id is None
+
+@patch('processor.DatabaseHandler')
 def test_lazy_db_connection(mock_db_class, processor):
     mock_db = mock_db_class.return_value
     mock_db.connect.return_value = True

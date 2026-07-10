@@ -7,7 +7,8 @@ from collections import deque
 import numpy as np
 from pymongo import MongoClient
 from dotenv import load_dotenv
-from backend.utils.status_utils import get_status_and_codes, EMA_ALPHA
+from utils.status_utils import get_status_and_codes, EMA_ALPHA
+from config import Config
 
 # Setup logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -35,10 +36,6 @@ load_dotenv()
     本腳本會清除指定測試裝置的既有測試資料，
     僅限開發與測試環境使用。
 """
-
-MONGO_URI = os.getenv("MONGO_URI")
-MONGO_DB_NAME = os.getenv("MONGO_DB_NAME")
-MONGO_COL_NAME = os.getenv("MONGO_COL_NAME")
 
 DEVICE_ID = "MOCK_DEVICE_001"
 
@@ -119,6 +116,17 @@ def generate_session_data(start_time):
         }
         samples.append(doc)
 
+    # 4. 加上 COMPLETED 事件標記紀錄（代表此 Session 順利完成，以便 Analytics 正確查詢）
+    completed_doc = {
+        "timestamp": start_time + timedelta(seconds=30 * 2),
+        "session_id": session_id,
+        "device_id": DEVICE_ID,
+        "analysis_status": "COMPLETED",
+        "data_source": "test",
+        "duration_sec": 60
+    }
+    samples.append(completed_doc)
+
     return samples
 
 def get_random_time_in_window(day, start_hour, end_hour):
@@ -128,17 +136,27 @@ def get_random_time_in_window(day, start_hour, end_hour):
     return datetime.combine(day, dt_time(random_hour, random_minute, random_second)).replace(tzinfo=timezone.utc)
 
 def main():
-    if not all([MONGO_URI, MONGO_DB_NAME, MONGO_COL_NAME]):
-        logger.error("Missing MongoDB environment variables.")
+    try:
+        config = Config()
+        default_db = config.MONGO_DB_CONFIG.get("DEFAULT", {})
+        mongo_uri = default_db.get("uri")
+        mongo_db_name = default_db.get("db_name")
+        mongo_col_name = default_db.get("col_name")
+    except Exception as e:
+        logger.error(f"Failed to load system config via Pydantic: {e}")
+        return
+
+    if not all([mongo_uri, mongo_db_name, mongo_col_name]):
+        logger.error("Missing MongoDB database configurations.")
         return
 
     start_range, end_range = get_target_date_range()
     logger.info(f"Target Range: {start_range} to {end_range}")
 
     try:
-        client = MongoClient(MONGO_URI)
-        db = client[MONGO_DB_NAME]
-        collection = db[MONGO_COL_NAME]
+        client = MongoClient(mongo_uri)
+        db = client[mongo_db_name]
+        collection = db[mongo_col_name]
     except Exception as e:
         logger.error(f"Failed to connect to MongoDB: {e}")
         return

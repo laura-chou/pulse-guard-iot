@@ -52,8 +52,9 @@ void SensorProcessor::processSamples() {
         latestIRSignal = pulseIR.ma_filter(pulseIR.dc_filter(irValue));
         int16_t redSignal = pulseRed.ma_filter(pulseRed.dc_filter(redValue));
 
-        // Detect heartbeat on IR channel
+        // Detect heartbeat on IR channel and track Red channel AC values
         bool beatIR = pulseIR.isBeat(latestIRSignal);
+        bool beatRed = pulseRed.isBeat(redSignal); // Track Red AC amplitudes to prevent SpO2 being stuck at 94%
         if (beatIR) _beatDetected = true;
 
         if (beatIR) {

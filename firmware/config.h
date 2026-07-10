@@ -31,7 +31,7 @@ const char* const ENV_PROD = "prod";               // Environment prefix for MQT
 const unsigned long LONG_PRESS_TIME = 2000;        // 2 seconds for system reset
 const unsigned long DEBOUNCE_TIME = 50;            // 50ms button debounce
 const uint32_t TARGET_MEASUREMENT_SECONDS = 60;    // Target measurement duration
-const uint32_t STABILIZATION_MS = 5000;            // 5 seconds warm-up for sensor stabilization
+const uint32_t STABILIZATION_MS = 10000;           // 10 seconds warm-up for sensor stabilization
 
 const int BEEP_ON_TIME = 50;                       // Buzzer on duration
 const int BEEP_OFF_TIME = 50;                      // Buzzer off duration between beeps
