@@ -9,7 +9,7 @@ def build_combined_physiological_chart(df_daily, t):
     fig = make_subplots(
         rows=2, cols=1,
         shared_xaxes=False,       # 解耦，使兩個 Row 各自擁有獨立 X 軸與時間標記
-        vertical_spacing=0.15,     # 增加間距至 15% 防止心率 X 軸與血氧標題重疊
+        vertical_spacing=0.20,     # 增加間距至 20% 使血氧趨勢更往下一點，避免重疊與擁擠
         subplot_titles=(t['bpm_trend_title'], t['spo2_trend_title'])
     )
 
@@ -66,7 +66,7 @@ def build_combined_physiological_chart(df_daily, t):
     fig.update_layout(
         height=700,
         hovermode="x unified",
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+        showlegend=False          # 隱藏圖例 (移除右上角的標籤)
     )
     # 心率趨勢圖（Row 1）Y軸刻度下限設定為 50
     fig.update_yaxes(title_text=t['col_avg_bpm'], range=[50, None], row=1, col=1)
