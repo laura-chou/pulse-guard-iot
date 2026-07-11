@@ -81,10 +81,7 @@ def main():
     # --- 數據抓取與處理 ---
     fetched_df, connection_error = fetch_data(start_date, end_date, env=env_mode, device_id=device_id)
 
-    if not fetched_df.empty:
-        raw_df = fetched_df[fetched_df['analysis_status'] != "OFF-CHIP"].copy()
-    else:
-        raw_df = fetched_df
+    raw_df = fetched_df
 
     if raw_df.empty:
         if connection_error:

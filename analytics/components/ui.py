@@ -25,12 +25,41 @@ def build_combined_physiological_chart(df_daily, t):
         name=t['bpm_range']
     ), row=1, col=1)
 
+    # 用 customdata 把 bpm_max 與 bpm_min 綁定到平均心率的圖軌上
+    custom_data_bpm = pd.DataFrame({
+        'bpm_max': df_daily['bpm_max'],
+        'bpm_min': df_daily['bpm_min']
+    })
+
+    # 英文或中文字串模板
+    # %{x}
+    # %{fullData.name}: %{y:.1f}
+    # 🔺 最高: %{customdata[0]:.1f}
+    # 🔻 最低: %{customdata[1]:.1f}
+    max_label = "最高" if 'col_avg_bpm' in t and t['col_avg_bpm'] == "平均心率" or any("最高" in str(v) for v in t.values()) else "Max"
+    min_label = "最低" if 'col_avg_bpm' in t and t['col_avg_bpm'] == "平均心率" or any("最低" in str(v) for v in t.values()) else "Min"
+
+    # 為了高精度配合多語系或特定格式顯示
+    # 我們可以直接使用中文字 🔺 最高 與 🔻 最低
+    # 這裡依照需求說明要求，Hoever template 為：
+    # %{x}
+    # %{fullData.name}: %{y:.1f}
+    # 🔺 最高: %{customdata[0]:.1f}
+    # 🔻 最低: %{customdata[1]:.1f}
+    bpm_hovertemplate = (
+        "%{x}<br>"
+        "%{fullData.name}: %{y:.1f}<br>"
+        "🔺 最高: %{customdata[0]:.1f}<br>"
+        "🔻 最低: %{customdata[1]:.1f}<extra></extra>"
+    )
+
     fig.add_trace(go.Scatter(
         x=df_daily['date'],
         y=df_daily['bpm_mean'],
         name=t['avg_bpm_trace'],
         line=dict(color='#00d4ff', width=2),
-        hovertemplate=f"{t['tt_avg_bpm']}: %{{y:.1f}}<extra></extra>"
+        customdata=custom_data_bpm,
+        hovertemplate=bpm_hovertemplate
     ), row=1, col=1)
 
     # --- Row 2: SpO₂ ---
