@@ -30,7 +30,7 @@ def build_combined_physiological_chart(df_daily, t):
         y=df_daily['bpm_mean'],
         name=t['avg_bpm_trace'],
         line=dict(color='#00d4ff', width=2),
-        hovertemplate=f"{t['tt_date']}: %{{x}}<br>{t['tt_avg_bpm']}: %{{y:.1f}}<extra></extra>"
+        hovertemplate=f"{t['tt_avg_bpm']}: %{{y:.1f}}<extra></extra>"
     ), row=1, col=1)
 
     # --- Row 2: SpO₂ ---
@@ -39,11 +39,15 @@ def build_combined_physiological_chart(df_daily, t):
         y=df_daily['spo2_min'],
         name=t['min_spo2_trace'],
         line=dict(color='lime', width=2),
-        hovertemplate=f"{t['tt_date']}: %{{x}}<br>{t['tt_min_spo2']}: %{{y:.1f}}<extra></extra>"
+        hovertemplate=f"{t['tt_min_spo2']}: %{{y:.1f}}<extra></extra>"
     ), row=2, col=1)
 
     danger_label = f"{t['status_map']['DANGER']} (90%)"
     fig.add_hline(y=90, line_dash="dash", line_color="red", annotation_text=danger_label, row=2, col=1)
+
+    # --- Row 1: Heart Rate Threshold Lines ---
+    fig.add_hline(y=140, line_dash="dash", line_color="red", annotation_text=f"{t['status_map']['DANGER']} (140)", row=1, col=1)
+    fig.add_hline(y=50, line_dash="dash", line_color="red", annotation_text=f"{t['status_map']['DANGER']} (50)", row=1, col=1)
 
     fig.update_layout(
         height=700,
@@ -52,6 +56,7 @@ def build_combined_physiological_chart(df_daily, t):
     )
     fig.update_yaxes(title_text=t['col_avg_bpm'], row=1, col=1)
     fig.update_yaxes(title_text=t['col_spo2'], row=2, col=1)
+    fig.update_xaxes(hoverformat="%Y-%m-%d")
     fig.update_xaxes(title_text=t['col_time'], row=2, col=1)
 
     return fig
