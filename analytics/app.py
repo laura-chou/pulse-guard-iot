@@ -81,19 +81,16 @@ def main():
     # --- 數據抓取與處理 ---
     fetched_df, connection_error = fetch_data(start_date, end_date, env=env_mode, device_id=device_id)
 
-    if not fetched_df.empty:
-        raw_df = fetched_df[fetched_df['analysis_status'] != "OFF-CHIP"].copy()
-    else:
-        raw_df = fetched_df
+    raw_df = fetched_df
 
     if raw_df.empty:
         if connection_error:
-            st.error("無法連線至資料庫，顯示模擬數據供參考。" if lang == 'zh' else "Database connection failed, showing mock data for reference.")
+            st.error(t['db_connection_error_mock'])
         else:
-            st.warning("所選範圍內查無數據。" if lang == 'zh' else "No data found for the selected range.")
+            st.warning(t['no_data_found'])
             return
 
-        st.info("展示功能範例數據：" if lang == 'zh' else "Displaying feature sample data:")
+        st.info(t['sample_data_info'])
         m_col1, m_col2, m_col3 = st.columns(3)
         m_col1.metric(t['kpi_total'], 120)
         m_col2.metric(t['kpi_danger'], 5, delta_color="inverse")
@@ -128,45 +125,101 @@ def main():
 
         with tab1:
             if not df_daily.empty:
-                st.plotly_chart(build_combined_physiological_chart(df_daily, t), use_container_width=True, config={'displayModeBar': 'hover'})
+                # Tab 1 專屬的「圖表閱讀指南」(已自 i18n 載入)
+                guide_title = t['tab1_guide_title']
+                with st.expander(guide_title):
+                    st.markdown(t['tab1_guide_content'])
+                st.plotly_chart(build_combined_physiological_chart(df_daily, t), width='stretch', config={'displayModeBar': 'hover'})
             else:
-                st.info("所選篩選條件下無有效生理數據可供繪製趨勢圖。" if lang == 'zh' else "No valid physiological data available for trends under current filters.")
+                st.info(t['no_trend_data'])
 
         with tab2:
-            col_s1, col_s2 = st.columns(2)
-            with col_s1:
-                st.subheader(t['status_dist_title'])
-                status_counts = df_hourly['analysis_status'].value_counts().reset_index()
-                status_counts.columns = ['analysis_status', 'count']
-                status_counts['label'] = status_counts['analysis_status'].map(t['status_map'])
-                color_map = {"NORMAL": "green", "WARNING": "orange", "DANGER": "crimson"}
-                fig_pie = px.pie(status_counts, values='count', names='label',
-                                color='analysis_status', color_discrete_map=color_map,
-                                labels={'label': t['tt_status'], 'count': t['tt_count']})
-                fig_pie.update_traces(hovertemplate=f"%{{label}}<br>{t['tt_count']}: %{{value}}<br>{t['tt_percent']}: %{{percent:.1%}}<extra></extra>")
-                st.plotly_chart(fig_pie, use_container_width=True, config={'displayModeBar': 'hover'})
+            # 篩選資料：過濾出 df_hourly 中 analysis_status != "NORMAL" 的資料
+            abnormal_df = df_hourly[df_hourly['analysis_status'] != "NORMAL"].copy()
+            if abnormal_df.empty:
+                st.info(t['no_abnormal_events'])
+            else:
+                # 異常事件類別統計 (原 異常成因排行榜) - 改成上下排列顯示第一部分
+                st.subheader(t['root_cause_title'])
 
-            with col_s2:
-                st.subheader(t['weekly_stats_title'])
-                abnormal_df = df_hourly[df_hourly['analysis_status'].isin(["WARNING", "DANGER"])].copy()
-                if not abnormal_df.empty:
-                    abnormal_df['week'] = abnormal_df['timestamp'].dt.strftime(t['week_format'])
-                    weekly_stats = abnormal_df.groupby(['week', 'analysis_status']).size().reset_index(name='count')
-                    weekly_stats['status_label'] = weekly_stats['analysis_status'].map(t['status_map'])
-                    bar_color_map = {"WARNING": "orange", "DANGER": "crimson"}
-                    translated_color_map = {t['status_map'][k]: v for k, v in bar_color_map.items()}
-                    fig_bar = px.bar(weekly_stats, x='week', y='count', color='status_label',
-                                    color_discrete_map=translated_color_map,
-                                    category_orders={"status_label": [t['status_map']['DANGER'], t['status_map']['WARNING']]},
-                                    labels={'week': t['tt_week'], 'status_label': t['tt_status'], 'count': t['tt_count']})
-                    fig_bar.update_traces(hovertemplate=f"{t['tt_week']}: %{{x}}<br>{t['tt_status']}: %{{fullData.name}}<br>{t['tt_count']}: %{{y}}<extra></extra>")
-                    fig_bar.update_layout(xaxis_title="", yaxis_title=t['event_count'], legend_title_text="", yaxis=dict(tickmode='linear', tick0=0, dtick=1))
-                    st.plotly_chart(fig_bar, use_container_width=True, config={'displayModeBar': 'hover'})
+                # 透過 translate_reason_codes 將 reason_codes 轉為具體的語言描述
+                abnormal_df['description'] = abnormal_df['reason_codes'].apply(
+                    lambda codes: translate_reason_codes(codes, t)
+                )
+
+                # 過濾空描述 (如果有任何的話)
+                cause_df = abnormal_df[abnormal_df['description'] != ""].copy()
+
+                if cause_df.empty:
+                    st.info(t['no_abnormal_events'])
                 else:
-                    st.info("查無異常數據可供週統計分析。" if lang == 'zh' else "No abnormal data for weekly analysis.")
+                    # 計算各個 description 的發生次數，排序讓次數最多的排在最上方
+                    cause_counts = cause_df['description'].value_counts().reset_index()
+                    cause_counts.columns = ['description', 'count']
+                    cause_counts = cause_counts.sort_values(by='count', ascending=False)
+
+                    fig_cause = px.bar(
+                        cause_counts,
+                        x='count',
+                        y='description',
+                        orientation='h',
+                        labels={'count': t['tt_count'], 'description': t['tt_reason']}
+                    )
+                    # 異常成因排行榜 Hover 提示框移除異常原因 (僅保留 count 次數)
+                    fig_cause.update_traces(
+                        hovertemplate=f"{t['tt_count']}: %{{x}}<extra></extra>",
+                        marker_color='crimson'
+                    )
+                    fig_cause.update_layout(
+                        xaxis_title=t['tt_count'],
+                        yaxis_title="",
+                        yaxis=dict(autorange="reversed")  # 強制讓第一名(最多次數)在最上方
+                    )
+                    st.plotly_chart(fig_cause, width='stretch', config={'displayModeBar': 'hover'})
+
+                st.markdown("---")  # 上下分界線
+
+                # 24小時異常時段統計 (原 24小時發作時段熱區) - 上下排列顯示第二部分
+                st.subheader(t['hourly_dist_title'])
+
+                # 提取 timestamp 欄位的小時 (0-23)
+                abnormal_df['hour_num'] = abnormal_df['timestamp'].dt.hour
+
+                # 生成一個涵蓋 0 到 23 的完整 DataFrame
+                all_hours_df = pd.DataFrame({'hour_num': range(24)})
+
+                # 計算發生的異常次數並 merge 進去 (補 0)
+                hour_counts = abnormal_df['hour_num'].value_counts().reset_index()
+                hour_counts.columns = ['hour_num', 'count']
+
+                merged_hours = pd.merge(all_hours_df, hour_counts, on='hour_num', how='left').fillna(0)
+                merged_hours['count'] = merged_hours['count'].astype(int)
+
+                # 格式化為 "00:00", "01:00"
+                merged_hours['hour_label'] = merged_hours['hour_num'].apply(lambda x: f"{x:02d}:00")
+
+                # 改為 X軸顯示次數，Y軸顯示小時 (橫向長條圖)
+                fig_hour = px.bar(
+                    merged_hours,
+                    x='count',
+                    y='hour_label',
+                    orientation='h',
+                    labels={'hour_label': t['tt_hour'], 'count': t['tt_count']}
+                )
+                # Hover提示框加回小時 (同時顯示小時與 count 次數)
+                fig_hour.update_traces(
+                    hovertemplate=f"{t['tt_hour']}: %{{y}}<br>{t['tt_count']}: %{{x}}<extra></extra>",
+                    marker_color='orange'
+                )
+                fig_hour.update_layout(
+                    xaxis_title=t['tt_count'],
+                    yaxis_title="",
+                    yaxis=dict(autorange="reversed")  # 00:00 在最上方，23:00 在最下方
+                )
+                st.plotly_chart(fig_hour, width='stretch', config={'displayModeBar': 'hover'})
 
         with tab3:
-            st.subheader(t['tab_logs'])
+            # 2. 移除 Tab 3 冗餘的次標題 (刪除 st.subheader(t['tab_logs']))
             with st.expander(t['expander_title']):
                 e_col1, e_col2 = st.columns(2)
                 with e_col1:
@@ -203,7 +256,7 @@ def main():
                 csv = df.to_csv(index=False).encode('utf-8-sig')
                 st.download_button(label=t['download_csv'], data=csv, file_name=f"pulseguard_analytics_{datetime.now().strftime('%Y%m%d')}.csv", mime='text/csv')
             else:
-                st.success("此期間無任何異常事件。" if lang == 'zh' else "No abnormal events recorded.")
+                st.success(t['no_abnormal_events'])
 
     load_custom_css()
 

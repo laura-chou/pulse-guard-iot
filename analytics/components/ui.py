@@ -5,11 +5,11 @@ from plotly.subplots import make_subplots
 from st_aggrid import AgGrid, GridOptionsBuilder, JsCode, GridUpdateMode, DataReturnMode
 
 def build_combined_physiological_chart(df_daily, t):
-    """建立合併的生理趨勢圖 (心率與血氧共用 X 軸)"""
+    """建立合併的生理趨勢圖 (心率與血氧獨立 X 軸)"""
     fig = make_subplots(
         rows=2, cols=1,
-        shared_xaxes=True,
-        vertical_spacing=0.05,
+        shared_xaxes=False,       # 解耦，使兩個 Row 各自擁有獨立 X 軸與時間標記
+        vertical_spacing=0.20,     # 增加間距至 20% 使血氧趨勢更往下一點，避免重疊與擁擠
         subplot_titles=(t['bpm_trend_title'], t['spo2_trend_title'])
     )
 
@@ -25,12 +25,26 @@ def build_combined_physiological_chart(df_daily, t):
         name=t['bpm_range']
     ), row=1, col=1)
 
+    # 用 customdata 把 bpm_max 與 bpm_min 綁定到平均心率的圖軌上
+    custom_data_bpm = pd.DataFrame({
+        'bpm_max': df_daily['bpm_max'],
+        'bpm_min': df_daily['bpm_min']
+    })
+
+    # 移除最前方的 %{x} 避免與 hovermode="x unified" 的日期標籤重複
+    bpm_hovertemplate = (
+        "%{fullData.name}: %{y:.1f}<br>"
+        "🔺 最高: %{customdata[0]:.1f}<br>"
+        "🔻 最低: %{customdata[1]:.1f}<extra></extra>"
+    )
+
     fig.add_trace(go.Scatter(
         x=df_daily['date'],
         y=df_daily['bpm_mean'],
         name=t['avg_bpm_trace'],
         line=dict(color='#00d4ff', width=2),
-        hovertemplate=f"{t['tt_date']}: %{{x}}<br>{t['tt_avg_bpm']}: %{{y:.1f}}<extra></extra>"
+        customdata=custom_data_bpm,
+        hovertemplate=bpm_hovertemplate
     ), row=1, col=1)
 
     # --- Row 2: SpO₂ ---
@@ -39,20 +53,32 @@ def build_combined_physiological_chart(df_daily, t):
         y=df_daily['spo2_min'],
         name=t['min_spo2_trace'],
         line=dict(color='lime', width=2),
-        hovertemplate=f"{t['tt_date']}: %{{x}}<br>{t['tt_min_spo2']}: %{{y:.1f}}<extra></extra>"
+        hovertemplate=f"{t['tt_min_spo2']}: %{{y:.1f}}<extra></extra>"
     ), row=2, col=1)
 
     danger_label = f"{t['status_map']['DANGER']} (90%)"
     fig.add_hline(y=90, line_dash="dash", line_color="red", annotation_text=danger_label, row=2, col=1)
 
+    # --- Row 1: Heart Rate Threshold Lines ---
+    fig.add_hline(y=140, line_dash="dash", line_color="red", annotation_text=f"{t['status_map']['DANGER']} (140)", row=1, col=1)
+    fig.add_hline(y=50, line_dash="dash", line_color="red", annotation_text=f"{t['status_map']['DANGER']} (50)", row=1, col=1)
+
     fig.update_layout(
         height=700,
         hovermode="x unified",
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+        showlegend=False          # 隱藏圖例 (移除右上角的標籤)
     )
-    fig.update_yaxes(title_text=t['col_avg_bpm'], row=1, col=1)
+    # 心率趨勢圖（Row 1）Y軸刻度下限設定為 50
+    fig.update_yaxes(title_text=t['col_avg_bpm'], range=[50, None], row=1, col=1)
     fig.update_yaxes(title_text=t['col_spo2'], row=2, col=1)
-    fig.update_xaxes(title_text=t['col_time'], row=2, col=1)
+
+    # 統一 X 軸時間刻度格式為 MM-DD 且各自獨立顯示標題與標籤
+    fig.update_xaxes(
+        tickformat="%m-%d",
+        showticklabels=True,
+        title_text=t['col_time'],
+        hoverformat="%Y-%m-%d"
+    )
 
     return fig
 

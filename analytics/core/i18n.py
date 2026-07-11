@@ -17,7 +17,7 @@ def get_translations(lang_code):
             'kpi_danger': 'Danger Events',
             'kpi_warning': 'Warning Events',
             'tab_trends': '📈 Physiological Trends',
-            'tab_stats': '📊 Status Statistics',
+            'tab_stats': '📊 Anomaly Count Statistics',
             'tab_logs': '📋 Abnormal Logs & Export',
             'bpm_trend_title': 'Heart Rate Trend (Daily Range & Avg)',
             'spo2_trend_title': 'Oxygen Saturation Trend (Daily Min SpO₂)',
@@ -55,6 +55,24 @@ def get_translations(lang_code):
             'help_ema_bpm': "**EMA HR (Exponential Moving Average)**: Utilizes a \"Cascaded Filter Architecture,\" processing the 15-second moving average through a second layer of EMA time-series computation. Featuring dual-denoising capabilities, it maximally suppresses false alarms caused by single-point noise spikes.",
             'help_spo2': "**SpO2 (%)**: Utilizes real-time data for ultra-fast analysis, ensuring early detection of acute hypoxia events; however, data is susceptible to interference from finger movement.",
             'missing_did': "Missing device ID. Unable to load production environment data.",
+            # --- Tab 1 & Hardcoded strings in app.py translations ---
+            'tab1_guide_title': '📊 Trend Chart Reading Guide',
+            'tab1_guide_content': """
+- **Light Blue Area**: Represents the daily fluctuation range of heart rate (from maximum to minimum).
+- **Dark Blue Solid Line**: Represents the daily average heart rate.
+- **Bright Green Solid Line**: Represents the daily "minimum" blood oxygen record (used to monitor extreme hypoxia).
+- **Red Dashed Line**: The system's default danger threshold warning line (Heart Rate 140/50, SpO₂ 90%).
+""",
+            'db_connection_error_mock': "Database connection failed, showing mock data for reference.",
+            'no_data_found': "No data found for the selected range.",
+            'sample_data_info': "Displaying feature sample data:",
+            'no_trend_data': "No valid physiological data available for trends under current filters.",
+            'no_weekly_abnormal_data': "No abnormal data for weekly analysis.",
+            'no_abnormal_events': "No abnormal events recorded.",
+            'root_cause_title': 'Anomaly Classification Statistics',
+            'hourly_dist_title': 'Hourly Anomaly Distribution',
+            'tt_reason': 'Reason',
+            'tt_hour': 'Hour',
             'diag': {
                 'crit_low_spo2': "Critically Low SpO₂",
                 'low_spo2': "Low SpO₂",
@@ -80,7 +98,7 @@ def get_translations(lang_code):
             'kpi_danger': '危險次數',
             'kpi_warning': '警告次數',
             'tab_trends': '📈 生理趨勢圖',
-            'tab_stats': '📊 狀態統計',
+            'tab_stats': '📊 異常次數統計',
             'tab_logs': '📋 異常日誌與匯出',
             'bpm_trend_title': '心率趨勢（日範圍與平均）',
             'spo2_trend_title': '血氧趨勢（每日最低 SpO₂）',
@@ -118,6 +136,24 @@ def get_translations(lang_code):
             'help_ema_bpm': " **EMA 心率 (指數移動平均)**：採用「二階串聯濾波架構」，將 15 秒平均值再次進行指數加權（EMA）時序運算，具備雙重去噪能力，可極致壓制單點雜訊引起的誤報。",
             'help_spo2': "**血氧飽和度 (%)**：採用即時數據進行極速分析，確保能第一時間捕捉急性缺氧事件，唯數據較易受手指晃動影響。",
             'missing_did': "缺少裝置編號，無法載入正式環境資料。",
+            # --- Tab 1 & App.py 寫死字串翻譯 ---
+            'tab1_guide_title': '📊 趨勢圖閱讀指南',
+            'tab1_guide_content': """
+- **淺藍色區塊**：代表當日心率最高到最低的波動範圍。
+- **深藍色實線**：代表當日的平均心率。
+- **亮綠色實線**：代表當日「最低」的血氧紀錄（用於關注極端缺氧狀況）。
+- **紅色虛線**：系統預設的危險警示線（心率 140/50，血氧 90%）。
+""",
+            'db_connection_error_mock': "無法連線至資料庫，顯示模擬數據供參考。",
+            'no_data_found': "所選範圍內查無數據。",
+            'sample_data_info': "展示功能範例數據：",
+            'no_trend_data': "所選篩選條件下無有效生理數據可供繪製趨勢圖。",
+            'no_weekly_abnormal_data': "查無異常數據可供週統計分析。",
+            'no_abnormal_events': "此期間無任何異常事件。",
+            'root_cause_title': '異常事件類別統計',
+            'hourly_dist_title': '24小時異常時段統計',
+            'tt_reason': '異常原因',
+            'tt_hour': '小時',
             'diag': {
                 'crit_low_spo2': "血氧極低",
                 'low_spo2': "血氧偏低",
