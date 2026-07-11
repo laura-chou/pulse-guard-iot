@@ -5,11 +5,11 @@ from plotly.subplots import make_subplots
 from st_aggrid import AgGrid, GridOptionsBuilder, JsCode, GridUpdateMode, DataReturnMode
 
 def build_combined_physiological_chart(df_daily, t):
-    """建立合併的生理趨勢圖 (心率與血氧共用 X 軸)"""
+    """建立合併的生理趨勢圖 (心率與血氧獨立 X 軸)"""
     fig = make_subplots(
         rows=2, cols=1,
-        shared_xaxes=True,
-        vertical_spacing=0.05,
+        shared_xaxes=False,       # 解耦，使兩個 Row 各自擁有獨立 X 軸與時間標記
+        vertical_spacing=0.15,     # 增加間距至 15% 防止心率 X 軸與血氧標題重疊
         subplot_titles=(t['bpm_trend_title'], t['spo2_trend_title'])
     )
 
@@ -31,23 +31,8 @@ def build_combined_physiological_chart(df_daily, t):
         'bpm_min': df_daily['bpm_min']
     })
 
-    # 英文或中文字串模板
-    # %{x}
-    # %{fullData.name}: %{y:.1f}
-    # 🔺 最高: %{customdata[0]:.1f}
-    # 🔻 最低: %{customdata[1]:.1f}
-    max_label = "最高" if 'col_avg_bpm' in t and t['col_avg_bpm'] == "平均心率" or any("最高" in str(v) for v in t.values()) else "Max"
-    min_label = "最低" if 'col_avg_bpm' in t and t['col_avg_bpm'] == "平均心率" or any("最低" in str(v) for v in t.values()) else "Min"
-
-    # 為了高精度配合多語系或特定格式顯示
-    # 我們可以直接使用中文字 🔺 最高 與 🔻 最低
-    # 這裡依照需求說明要求，Hoever template 為：
-    # %{x}
-    # %{fullData.name}: %{y:.1f}
-    # 🔺 最高: %{customdata[0]:.1f}
-    # 🔻 最低: %{customdata[1]:.1f}
+    # 移除最前方的 %{x} 避免與 hovermode="x unified" 的日期標籤重複
     bpm_hovertemplate = (
-        "%{x}<br>"
         "%{fullData.name}: %{y:.1f}<br>"
         "🔺 最高: %{customdata[0]:.1f}<br>"
         "🔻 最低: %{customdata[1]:.1f}<extra></extra>"
@@ -83,10 +68,17 @@ def build_combined_physiological_chart(df_daily, t):
         hovermode="x unified",
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
     )
-    fig.update_yaxes(title_text=t['col_avg_bpm'], row=1, col=1)
+    # 心率趨勢圖（Row 1）Y軸刻度下限設定為 50
+    fig.update_yaxes(title_text=t['col_avg_bpm'], range=[50, None], row=1, col=1)
     fig.update_yaxes(title_text=t['col_spo2'], row=2, col=1)
-    fig.update_xaxes(hoverformat="%Y-%m-%d")
-    fig.update_xaxes(title_text=t['col_time'], row=2, col=1)
+
+    # 統一 X 軸時間刻度格式為 MM-DD 且各自獨立顯示標題與標籤
+    fig.update_xaxes(
+        tickformat="%m-%d",
+        showticklabels=True,
+        title_text=t['col_time'],
+        hoverformat="%Y-%m-%d"
+    )
 
     return fig
 
