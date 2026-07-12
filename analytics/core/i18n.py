@@ -21,12 +21,9 @@ def get_translations(lang_code):
             'tab_logs': '📋 Abnormal Logs & Export',
             'bpm_trend_title': 'Heart Rate Trend (Daily Range & Avg)',
             'spo2_trend_title': 'Oxygen Saturation Trend (Daily Min SpO₂)',
-            'status_dist_title': 'Overall Health Status Distribution',
-            'weekly_stats_title': 'Weekly Abnormal Event Trends',
             'bpm_range': 'BPM Range',
             'avg_bpm_trace': 'Avg BPM',
             'min_spo2_trace': 'Min SpO₂',
-            'event_count': 'Event Count',
             'tt_week': 'Week',
             'tt_status': 'Status',
             'tt_count': 'Event Count',
@@ -34,8 +31,7 @@ def get_translations(lang_code):
             'tt_avg_bpm': 'Avg BPM',
             'tt_min_spo2': 'Min SpO₂',
             'tt_percent': 'Percent',
-            'download_csv': 'Download Filtered Data as CSV',
-            'week_format': '%G-W%V',
+            'download_csv': 'Download Data as CSV',
             'status_map': {"NORMAL": "NORMAL", "WARNING": "WARNING", "DANGER": "DANGER"},
             'col_no': '#',
             'col_time': 'Timestamp',
@@ -55,7 +51,6 @@ def get_translations(lang_code):
             'help_ema_bpm': "**EMA HR (Exponential Moving Average)**: Utilizes a \"Cascaded Filter Architecture,\" processing the 15-second moving average through a second layer of EMA time-series computation. Featuring dual-denoising capabilities, it maximally suppresses false alarms caused by single-point noise spikes.",
             'help_spo2': "**SpO2 (%)**: Utilizes real-time data for ultra-fast analysis, ensuring early detection of acute hypoxia events; however, data is susceptible to interference from finger movement.",
             'missing_did': "Missing device ID. Unable to load production environment data.",
-            # --- Tab 1 & Hardcoded strings in app.py translations ---
             'tab1_guide_title': '📊 Trend Chart Reading Guide',
             'tab1_guide_content': """
 - **Light Blue Area**: Represents the daily fluctuation range of heart rate (from maximum to minimum).
@@ -102,12 +97,9 @@ def get_translations(lang_code):
             'tab_logs': '📋 異常日誌與匯出',
             'bpm_trend_title': '心率趨勢（日範圍與平均）',
             'spo2_trend_title': '血氧趨勢（每日最低 SpO₂）',
-            'status_dist_title': '整體健康狀態佔比',
-            'weekly_stats_title': '每週異常事件趨勢',
             'bpm_range': '心率範圍',
             'avg_bpm_trace': '平均心率',
             'min_spo2_trace': '最低血氧',
-            'event_count': '事件次數',
             'tt_week': '週別',
             'tt_status': '警示級別',
             'tt_count': '事件次數',
@@ -115,8 +107,7 @@ def get_translations(lang_code):
             'tt_avg_bpm': '平均心率',
             'tt_min_spo2': '最低血氧',
             'tt_percent': '比例',
-            'download_csv': '下載篩選後的資料為 CSV',
-            'week_format': '%G-週%V',
+            'download_csv': '下載資料為 CSV',
             'status_map': {"NORMAL": "正常", "WARNING": "警告", "DANGER": "危險"},
             'col_no': '序號',
             'col_time': '時間戳記',
@@ -136,7 +127,6 @@ def get_translations(lang_code):
             'help_ema_bpm': " **EMA 心率 (指數移動平均)**：採用「二階串聯濾波架構」，將 15 秒平均值再次進行指數加權（EMA）時序運算，具備雙重去噪能力，可極致壓制單點雜訊引起的誤報。",
             'help_spo2': "**血氧飽和度 (%)**：採用即時數據進行極速分析，確保能第一時間捕捉急性缺氧事件，唯數據較易受手指晃動影響。",
             'missing_did': "缺少裝置編號，無法載入正式環境資料。",
-            # --- Tab 1 & App.py 寫死字串翻譯 ---
             'tab1_guide_title': '📊 趨勢圖閱讀指南',
             'tab1_guide_content': """
 - **淺藍色區塊**：代表當日心率最高到最低的波動範圍。

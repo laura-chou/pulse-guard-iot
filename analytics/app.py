@@ -125,7 +125,6 @@ def main():
 
         with tab1:
             if not df_daily.empty:
-                # Tab 1 專屬的「圖表閱讀指南」(已自 i18n 載入)
                 guide_title = t['tab1_guide_title']
                 with st.expander(guide_title):
                     st.markdown(t['tab1_guide_content'])
@@ -147,7 +146,7 @@ def main():
                     lambda codes: translate_reason_codes(codes, t)
                 )
 
-                # 過濾空描述 (如果有任何的話)
+                # 過濾空描述
                 cause_df = abnormal_df[abnormal_df['description'] != ""].copy()
 
                 if cause_df.empty:
@@ -165,7 +164,7 @@ def main():
                         orientation='h',
                         labels={'count': t['tt_count'], 'description': t['tt_reason']}
                     )
-                    # 異常成因排行榜 Hover 提示框移除異常原因 (僅保留 count 次數)
+                    # 異常成因排行榜 Hover 提示框移除異常原因
                     fig_cause.update_traces(
                         hovertemplate=f"{t['tt_count']}: %{{x}}<extra></extra>",
                         marker_color='crimson'
@@ -173,13 +172,13 @@ def main():
                     fig_cause.update_layout(
                         xaxis_title=t['tt_count'],
                         yaxis_title="",
-                        yaxis=dict(autorange="reversed")  # 強制讓第一名(最多次數)在最上方
+                        yaxis=dict(autorange="reversed")  # 強制讓最多次數的在最上方
                     )
                     st.plotly_chart(fig_cause, width='stretch', config={'displayModeBar': 'hover'})
 
-                st.markdown("---")  # 上下分界線
+                st.markdown("---")
 
-                # 24小時異常時段統計 (原 24小時發作時段熱區) - 上下排列顯示第二部分
+                # 24小時異常時段統計
                 st.subheader(t['hourly_dist_title'])
 
                 # 提取 timestamp 欄位的小時 (0-23)
@@ -198,7 +197,7 @@ def main():
                 # 格式化為 "00:00", "01:00"
                 merged_hours['hour_label'] = merged_hours['hour_num'].apply(lambda x: f"{x:02d}:00")
 
-                # 改為 X軸顯示次數，Y軸顯示小時 (橫向長條圖)
+                # 改為 X軸顯示次數，Y軸顯示小時
                 fig_hour = px.bar(
                     merged_hours,
                     x='count',
@@ -206,7 +205,7 @@ def main():
                     orientation='h',
                     labels={'hour_label': t['tt_hour'], 'count': t['tt_count']}
                 )
-                # Hover提示框加回小時 (同時顯示小時與 count 次數)
+                # Hover提示框
                 fig_hour.update_traces(
                     hovertemplate=f"{t['tt_hour']}: %{{y}}<br>{t['tt_count']}: %{{x}}<extra></extra>",
                     marker_color='orange'
@@ -219,7 +218,6 @@ def main():
                 st.plotly_chart(fig_hour, width='stretch', config={'displayModeBar': 'hover'})
 
         with tab3:
-            # 2. 移除 Tab 3 冗餘的次標題 (刪除 st.subheader(t['tab_logs']))
             with st.expander(t['expander_title']):
                 e_col1, e_col2 = st.columns(2)
                 with e_col1:
@@ -233,7 +231,6 @@ def main():
 
             log_df = df_hourly[df_hourly['analysis_status'] != "NORMAL"].copy()
             if not log_df.empty:
-                # 增加 Description 欄位 (由 reason_codes 翻譯而來)
                 log_df['description'] = log_df['reason_codes'].apply(lambda codes: translate_reason_codes(codes, t))
 
                 display_df = log_df[['timestamp', 'analysis_status', 'description', 'avg_bpm', 'ema_bpm', 'spo2']].copy()

@@ -31,7 +31,6 @@ def build_combined_physiological_chart(df_daily, t):
         'bpm_min': df_daily['bpm_min']
     })
 
-    # 移除最前方的 %{x} 避免與 hovermode="x unified" 的日期標籤重複
     bpm_hovertemplate = (
         "%{fullData.name}: %{y:.1f}<br>"
         "🔺 最高: %{customdata[0]:.1f}<br>"
@@ -47,7 +46,7 @@ def build_combined_physiological_chart(df_daily, t):
         hovertemplate=bpm_hovertemplate
     ), row=1, col=1)
 
-    # --- Row 2: SpO₂ ---
+    # --- Row 2: 血氧 ---
     fig.add_trace(go.Scatter(
         x=df_daily['date'],
         y=df_daily['spo2_min'],
@@ -59,14 +58,14 @@ def build_combined_physiological_chart(df_daily, t):
     danger_label = f"{t['status_map']['DANGER']} (90%)"
     fig.add_hline(y=90, line_dash="dash", line_color="red", annotation_text=danger_label, row=2, col=1)
 
-    # --- Row 1: Heart Rate Threshold Lines ---
+    # --- Row 1: 心率臨界線 ---
     fig.add_hline(y=140, line_dash="dash", line_color="red", annotation_text=f"{t['status_map']['DANGER']} (140)", row=1, col=1)
     fig.add_hline(y=50, line_dash="dash", line_color="red", annotation_text=f"{t['status_map']['DANGER']} (50)", row=1, col=1)
 
     fig.update_layout(
         height=700,
         hovermode="x unified",
-        showlegend=False          # 隱藏圖例 (移除右上角的標籤)
+        showlegend=False          # 隱藏右上角標籤
     )
     # 心率趨勢圖（Row 1）Y軸刻度下限設定為 50
     fig.update_yaxes(title_text=t['col_avg_bpm'], range=[50, None], row=1, col=1)
@@ -126,7 +125,7 @@ def render_aggrid(df, t, status_col_key):
         flex=0
     )
 
-    # 異常原因 (Description) 欄位：靠左對齊，允許較大寬度
+    # 異常原因 (Description) 欄位
     if t['col_desc'] in df.columns:
         gb.configure_column(
             t['col_desc'],
