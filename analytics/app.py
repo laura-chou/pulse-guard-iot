@@ -125,6 +125,23 @@ def main():
 
         with tab1:
             if not df_daily.empty:
+                # 1. 新增 Tab 1 專屬的「圖表閱讀指南」
+                guide_title = t.get('tab1_guide_title', '📊 趨勢圖閱讀指南' if lang == 'zh' else '📊 Trend Chart Reading Guide')
+                with st.expander(guide_title):
+                    if lang == 'zh':
+                        st.markdown("""
+- **淺藍色區塊**：代表當日心率最高到最低的波動範圍。
+- **深藍色實線**：代表當日的平均心率。
+- **亮綠色實線**：代表當日「最低」的血氧紀錄（用於關注極端缺氧狀況）。
+- **紅色虛線**：系統預設的危險警示線（心率 140/50，血氧 90%）。
+                        """)
+                    else:
+                        st.markdown("""
+- **Light Blue Area**: Represents the daily fluctuation range of heart rate (from maximum to minimum).
+- **Dark Blue Solid Line**: Represents the daily average heart rate.
+- **Bright Green Solid Line**: Represents the daily "minimum" blood oxygen record (used to monitor extreme hypoxia).
+- **Red Dashed Line**: The system's default danger threshold warning line (Heart Rate 140/50, SpO₂ 90%).
+                        """)
                 st.plotly_chart(build_combined_physiological_chart(df_daily, t), use_container_width=True, config={'displayModeBar': 'hover'})
             else:
                 st.info("所選篩選條件下無有效生理數據可供繪製趨勢圖。" if lang == 'zh' else "No valid physiological data available for trends under current filters.")
@@ -163,7 +180,7 @@ def main():
                     st.info("查無異常數據可供週統計分析。" if lang == 'zh' else "No abnormal data for weekly analysis.")
 
         with tab3:
-            st.subheader(t['tab_logs'])
+            # 2. 移除 Tab 3 冗餘的次標題 (刪除 st.subheader(t['tab_logs']))
             with st.expander(t['expander_title']):
                 e_col1, e_col2 = st.columns(2)
                 with e_col1:
