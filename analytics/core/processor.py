@@ -1,5 +1,5 @@
 import pandas as pd
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from core.config import local_tz
 
 def calculate_kpis(df):
@@ -36,8 +36,10 @@ def get_hourly_deduplicated(df):
     idx = df_hourly.groupby('hour')['priority'].idxmax()
     return df_hourly.loc[idx].drop(columns=['priority', 'hour'])
 
-def get_default_range():
-    """計算過去三個月的範圍 (90天前到今天)"""
+def get_default_range(env="prod"):
+    """計算過去三個月的範圍 (90天前到今天)；若為測試環境，則預設為 2026/04/02~2026/07/01"""
+    if env == "test":
+        return date(2026, 4, 2), date(2026, 7, 1)
     today = datetime.now(local_tz).date()
     start_date = today - timedelta(days=90)
     return start_date, today
@@ -53,6 +55,6 @@ def translate_reason_codes(reason_codes, t):
     # 從 t['diag'] 字典中取出對應的翻譯
     reasons = [t['diag'].get(code, code) for code in reason_codes]
 
-    # 透過 t['tt_week'] == "週別" 判斷是否為中文語系
-    separator = "、" if t['tt_week'] == "週別" else ", "
+    # 透過 t.get('tt_min_spo2') == "最低血氧" 判斷是否為中文語系
+    separator = "、" if t.get('tt_min_spo2') == "最低血氧" else ", "
     return separator.join(reasons)

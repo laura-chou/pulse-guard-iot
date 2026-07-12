@@ -53,9 +53,9 @@ const locales = {
                 db_title: "High-Availability DB Integration:",
                 db_desc: "Features built-in automatic degradation; redirects to Mock Data if MongoDB is unreachable, ensuring UI availability.",
                 aggregation_title: "Multi-Dimensional Aggregation:",
-                aggregation_desc: "Implements dual logic: daily summaries for long-term trends and hourly deduplication prioritizing critical events (DANGER > WARNING > NORMAL).",
+                aggregation_desc: "Implements dual logic: daily summaries (capturing heart rate range, average, and minimum SpO2) for long-term trends, and hourly deduplication prioritizing critical events (DANGER > WARNING > NORMAL).",
                 charts_title: "Interactive Time-Series Charts:",
-                charts_desc: "Leverages Plotly for multi-axis physiological trend charts, including 90% SpO2 danger baselines and health status distribution.",
+                charts_desc: "Leverages Plotly for multi-axis physiological trend charts, including 90% SpO2 danger baselines. Also features vertical layout charts for Anomaly Classification Statistics and Hourly Anomaly Distribution to analyze risk factors.",
                 log_title: "Advanced Log Rendering:",
                 log_desc: "Utilizes st_aggrid with dynamic conditional rendering via JavaScript to highlight high-risk events (DANGER/WARNING)."
             },
@@ -160,9 +160,9 @@ const locales = {
                 db_title: "高可用資料庫整合與容錯：",
                 db_desc: "透過 pymongo 連接 MongoDB 叢集。內建自動降級與容錯機制，若遇資料庫連線失敗，系統將導向「模擬測試數據（Mock Data）」，確保前端 UI 高可用性。",
                 aggregation_title: "多維度資料預處理與聚合：",
-                aggregation_desc: "設計雙重聚合邏輯，按日統計心率極值與血氧最低值走勢；並按小時去重，依嚴重程度優先級（DANGER > WARNING > NORMAL）保留關鍵事件。",
+                aggregation_desc: "設計雙重聚合邏輯：按日統計心率波動範圍、平均值與血氧最低值走勢，用以呈現長期生理趨勢；並按小時去重，依嚴重程度優先級（DANGER > WARNING > NORMAL）保留關鍵事件。",
                 charts_title: "時序指標監控與雙軸圖表：",
-                charts_desc: "整合 Plotly 繪製多軸生理趨勢圖，將心率區間以填充色呈現，並標記 90% 血氧危險紅線。另搭配圓餅圖直觀呈現健康狀態佔比。",
+                charts_desc: "整合 Plotly 繪製多軸生理趨勢圖，將心率區間以填充色呈現，並標記 90% 血氧危險紅線；另提供「異常事件類別統計」與「24小時異常時段統計」橫向條狀圖，直觀分析健康風險。",
                 log_title: "進階異常日誌檢索與渲染：",
                 log_desc: "導入 st_aggrid 元件。透過注入 JavaScript 實作動態條件渲染，根據健康狀態（DANGER / WARNING）即時改變背景顏色。"
             },

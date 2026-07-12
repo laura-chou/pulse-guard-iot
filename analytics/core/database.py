@@ -6,12 +6,6 @@ import pytz
 import os
 from core.config import local_tz
 
-@st.cache_resource
-def init_connection():
-    """初始化 MongoDB 連線"""
-    mongo_uri = os.getenv("MONGO_URI")
-    return MongoClient(mongo_uri)
-
 @st.cache_data(ttl=600)
 def fetch_data(start_date, end_date, env="prod", device_id="MOCK_DEVICE_001"):
     """從 MongoDB 讀取數據並進行預處理，返回 (DataFrame, 是否發生錯誤)"""

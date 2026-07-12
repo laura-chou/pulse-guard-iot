@@ -88,14 +88,19 @@ def render_aggrid(df, t, status_col_key):
     gb = GridOptionsBuilder.from_dataframe(df)
 
     gb.configure_default_column(
-        suppressMenu=True,
+        suppressHeaderMenuButton=True,
         suppressHeaderFilterButton=True,
         filter=False,
         headerClass='ag-center-aligned-header',
         cellStyle={'textAlign': 'center'},
-        flex=1,
         resizable=True
     )
+
+    if t['col_time'] in df.columns:
+        gb.configure_column(
+            t['col_time'],
+            width=180
+        )
 
     numeric_cols = [t['col_avg_bpm'], t['col_ema_bpm'], t['col_spo2']]
     for col in numeric_cols:
@@ -103,7 +108,8 @@ def render_aggrid(df, t, status_col_key):
             gb.configure_column(
                 col,
                 headerClass='ag-right-aligned-header',
-                cellStyle={'textAlign': 'right'}
+                cellStyle={'textAlign': 'right'},
+                width=120
             )
 
     cellsytle_jscode = JsCode(f"""
@@ -121,8 +127,7 @@ def render_aggrid(df, t, status_col_key):
     gb.configure_column(
         status_col_key,
         cellStyle=cellsytle_jscode,
-        maxWidth=100,
-        flex=0
+        width=100
     )
 
     # 異常原因 (Description) 欄位
@@ -131,18 +136,25 @@ def render_aggrid(df, t, status_col_key):
             t['col_desc'],
             cellStyle={'textAlign': 'left'},
             minWidth=200,
-            flex=2
+            width=250
         )
     if t['col_no'] in df.columns:
         gb.configure_column(
             t['col_no'],
-            flex=0,
-            width=50,
-            maxWidth=60,
+            width=60,
             cellStyle={'textAlign': 'center'}
         )
 
     gridOptions = gb.build()
+
+    gridOptions['getRowId'] = JsCode("""
+    function(params) {
+        if (params && params.data) {
+            return params.data['No.'] || params.data['編號'] || params.data['timestamp'] || (params.node && params.node.id);
+        }
+        return params && params.node ? params.node.id : Math.random().toString();
+    }
+    """)
 
     custom_css = {
         ".ag-header-cell-label": {
@@ -155,7 +167,7 @@ def render_aggrid(df, t, status_col_key):
         gridOptions=gridOptions,
         data_return_mode=DataReturnMode.FILTERED_AND_SORTED,
         update_mode=GridUpdateMode.MODEL_CHANGED,
-        fit_columns_on_grid_load=True,
+        fit_columns_on_grid_load=False,
         allow_unsafe_jscode=True,
         theme='streamlit',
         height=400,

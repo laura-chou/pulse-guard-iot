@@ -7,7 +7,7 @@ def test_get_mock_data():
     t = {
         'status_map': {'NORMAL': '正常', 'DANGER': '危險', 'WARNING': '警告'},
         'diag': {'low_spo2': '血氧低'},
-        'tt_week': '週別',
+        'tt_min_spo2': '最低血氧',
         'col_no': '編號',
         'col_time': '時間',
         'col_status': '狀態',

@@ -55,7 +55,7 @@ def main():
     if env_mode == "test":
         st.warning(t['test_mode_warning'])
 
-    default_start, default_end = get_default_range()
+    default_start, default_end = get_default_range(env=env_mode)
     date_range = st.sidebar.date_input(
         t['date_range'],
         value=(default_start, default_end),

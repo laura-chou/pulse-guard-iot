@@ -4,14 +4,14 @@ from core.processor import translate_reason_codes, get_daily_summary, get_hourly
 
 def test_translate_reason_codes():
     t_zh = {
-        'tt_week': '週別',
+        'tt_min_spo2': '最低血氧',
         'diag': {
             'low_spo2': '血氧偏低',
             'high_hr': '心率過高'
         }
     }
     t_en = {
-        'tt_week': 'Week',
+        'tt_min_spo2': 'Min SpO₂',
         'diag': {
             'low_spo2': 'Low SpO2',
             'high_hr': 'High Heart Rate'

@@ -124,8 +124,3 @@ def test_get_hourly_deduplicated(sample_df):
     assert may1_10am_row.iloc[0]['analysis_status'] == 'WARNING'
     assert len(dedup) == 4
 
-def test_init_connection(mock_mongo_client):
-    """驗證連線初始化是否正確讀取環境變數"""
-    with patch.dict('os.environ', {'MONGO_URI': 'mongodb://test'}):
-        database.init_connection.__wrapped__()
-        mock_mongo_client.assert_called_with('mongodb://test')
