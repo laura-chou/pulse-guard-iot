@@ -145,14 +145,16 @@ def render_aggrid(df, t, status_col_key):
             cellStyle={'textAlign': 'center'}
         )
 
+    df['_row_id'] = [f"row_{i}" for i in range(len(df))]
+
     gridOptions = gb.build()
 
     gridOptions['getRowId'] = JsCode("""
     function(params) {
-        if (params && params.data) {
-            return params.data['No.'] || params.data['編號'] || params.data['timestamp'] || (params.node && params.node.id);
+        if (params && params.data && params.data._row_id) {
+            return String(params.data._row_id);
         }
-        return params && params.node ? params.node.id : Math.random().toString();
+        return "fallback_" + Math.random().toString(36).substring(2, 9);
     }
     """)
 
