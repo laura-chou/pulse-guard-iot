@@ -26,8 +26,8 @@ static const uint8_t ssd1306_configuration[] PROGMEM = {
 #endif
   0xD3, 0x00,   // Set Display Offset
   0x40,         // Set Display Start line
-  0xA1,         // Set Segment re-map, mirror, A0/A1
-  0xC8,         // Set COM Output Scan Direction, flip, C0/C8
+  0xA0,         // Set Segment re-map (Rotated 180 degrees)
+  0xC0,         // Set COM Output Scan Direction (Rotated 180 degrees)
 #ifdef SCREEN_128X32
   0xDA, 0x02,   // Set COM Pins hardware configuration, Sequential
 #else // SCREEN_128X64 / SCREEN_64X32
@@ -211,6 +211,29 @@ void SSD1306::drawNibbles(uint8_t y, uint8_t nibbles[COLUMNS/2]){
         } else {
             pageBuf[i*2]  |= (nibbles[i] & 0x0F)<<4;
             pageBuf[i*2+1] |= nibbles[i] & 0xF0;
+        }
+    }
+}
+
+void SSD1306::drawLine(uint8_t x1, uint8_t y1, uint8_t x2, uint8_t y2) {
+    int dx = abs(x2 - x1);
+    int sx = x1 < x2 ? 1 : -1;
+    int dy = -abs(y2 - y1);
+    int sy = y1 < y2 ? 1 : -1;
+    int err = dx + dy;
+    int e2;
+
+    while (true) {
+        drawPixel(x1, y1);
+        if (x1 == x2 && y1 == y2) break;
+        e2 = 2 * err;
+        if (e2 >= dy) {
+            err += dy;
+            x1 += sx;
+        }
+        if (e2 <= dx) {
+            err += dx;
+            y1 += sy;
         }
     }
 }

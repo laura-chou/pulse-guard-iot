@@ -39,19 +39,39 @@ void handleResetScreen();
  */
 void setup() {
     Serial.begin(115200);
+    delay(100);
+    Serial.println("[DEBUG] --- PulseGuard IoT System Booting ---");
+
+    // Initialize I2C bus FIRST so that OLED and MAX30102 can initialize correctly on GPIO 21, 22
+    Serial.println("[DEBUG] Initializing I2C SDA=21, SCL=22...");
+    Wire.begin(21, 22);
+
+#if (DISPLAY_TYPE == OLED_SSD1306)
+    // Initialize Wire1 for MAX30102 on GPIO pins 18 (SDA) and 4 (SCL) to avoid I2C bus congestion
+    Serial.println("[DEBUG] Initializing Wire1 SDA=18, SCL=4 for MAX30102...");
+    Wire1.begin(MAX30102_SDA, MAX30102_SCL);
+#endif
 
     // Initialize modules
+    Serial.println("[DEBUG] Initializing peripherals (LED, Button, Buzzer, 7-Segment)...");
     Periph.begin();
+
+    Serial.println("[DEBUG] Initializing display...");
     DisplayMgr.begin();
+    Serial.println("[DEBUG] Drawing Welcome screen...");
     DisplayMgr.updateScreen(3, 0, 0, STATUS_NORMAL, 0, 0); // Show Welcome screen
 
+    Serial.println("[DEBUG] Initializing Network Manager (WiFi Setup)...");
     NetworkMgr.begin(); // Setup WiFi and MQTT Task
 
-    Wire.begin(21, 22);
+    Serial.println("[DEBUG] Initializing Sensor Processor...");
     if (!SensorProc.begin()) {
+        Serial.println("[DEBUG] ERROR: Sensor processor (MAX30102) initialization failed! Halting.");
         DisplayMgr.updateScreen(0, 0, 0, STATUS_NORMAL, 0, 0); // Show Device Error screen
         while (1); // Halt on I2C error
     }
+    Serial.println("[DEBUG] Sensor processor successfully initialized.");
+    Serial.println("[DEBUG] --- Boot up finished successfully ---");
 }
 
 /**
@@ -89,8 +109,12 @@ void loop() {
 
     if (!SensorProc.isFingerDetected()) {
         // --- CASE A: Finger Removed ---
-        totalFingerSeconds = 0;
-        lastTimerUpdate = 0;
+        // During the finger-removed period (including "Place Finger" and "Power Off" countdown within 20s), do not reset time!
+        if (sleep_counter > 50) {
+#if (DISPLAY_TYPE == OLED_SSD1306)
+            Periph.enableSegmentDisplay(false); // Turn off 7-segment display after 10 seconds (but do not clear the seconds)
+#endif
+        }
 
         // Switch between "Place Finger" and "Power Off" countdown
         int current_msg = (sleep_counter <= 50 ? 1 : 4);
@@ -101,6 +125,9 @@ void loop() {
             lastSleepCounterTime = now;
             ++sleep_counter;
             if (sleep_counter > 100) {
+                // Only reset the cumulative seconds and timing reference when the device is actually entering deep sleep
+                totalFingerSeconds = 0;
+                lastTimerUpdate = 0;
                 Periph.goSleep(); // 20s idle -> deep sleep
                 sleep_counter = 0;
             }
@@ -109,6 +136,11 @@ void loop() {
         // --- CASE B: Finger Detected (Measuring) ---
         sleep_counter = 0;
         updateTimer();
+
+#if (DISPLAY_TYPE == OLED_SSD1306)
+        Periph.enableSegmentDisplay(true);
+        Periph.setSegmentTime(totalFingerSeconds);
+#endif
 
         // Heartbeat Visual/Audio Feedback
         if (SensorProc.wasBeatDetected()) {
@@ -168,6 +200,10 @@ void handleLongPress() {
     
     isShowingReset = true;
     resetMessageStartTime = millis();
+
+#if (DISPLAY_TYPE == OLED_SSD1306)
+    Periph.enableSegmentDisplay(false);
+#endif
 }
 
 /**
@@ -214,6 +250,11 @@ void handleCompletion() {
 
     // Show completion screen and enter deep sleep
     DisplayMgr.updateScreen(7, 0, 0, STATUS_NORMAL, 0, 0);
+
+#if (DISPLAY_TYPE == OLED_SSD1306)
+    Periph.enableSegmentDisplay(false);
+#endif
+
     delay(3000);
     Periph.goSleep();
 }

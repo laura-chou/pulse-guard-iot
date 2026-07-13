@@ -1,4 +1,7 @@
 #include "display_manager.h"
+#include <WiFi.h>
+
+#if (DISPLAY_TYPE == TFT_ST7735)
 
 // Bitmap resources for icons
 static const uint8_t heart_bits[] PROGMEM = { 0x00, 0x00, 0x38, 0x38, 0x7c, 0x7c, 0xfe, 0xfe, 0xfe, 0xff, 0xfe, 0xff, 0xfc, 0x7f, 0xf8, 0x3f, 0xf0, 0x1f, 0xe0, 0x0f, 0xc0, 0x07, 0x80, 0x03, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
@@ -9,7 +12,6 @@ Waveform::Waveform() : wavep(0) {
 }
 
 void Waveform::record(int waveval) {
-    // Normalization and storage in circular buffer
     waveval = waveval / 8; waveval += 128;
     waveval = waveval < 0 ? 0 : (waveval > 255 ? 255 : waveval);
     waveform[wavep] = (uint8_t)waveval;
@@ -17,7 +19,6 @@ void Waveform::record(int waveval) {
 }
 
 void Waveform::scale() {
-    // Find min/max for auto-scaling
     uint8_t maxw = 0; uint8_t minw = 255;
     for (int i = 0; i < MAXWAVE; i++) {
         maxw = waveform[i] > maxw ? waveform[i] : maxw;
@@ -26,7 +27,6 @@ void Waveform::scale() {
     uint8_t range = maxw - minw; if (range == 0) range = 1;
     uint8_t index = wavep;
     for (int i = 0; i < MAXWAVE; i++) {
-        // Map samples to display height (16 to 70 Y-axis)
         disp_wave[i] = 70 - ((uint16_t)(waveform[index] - minw) * 50) / range;
         index = (index + 1) % MAXWAVE;
     }
@@ -80,7 +80,6 @@ void DisplayManager::clearWaveform() {
 }
 
 void DisplayManager::updateScreen(int msg, int beatAvg, int SPO2, DeviceStatus currentStatus, uint32_t totalFingerSeconds, uint32_t fingerOnStartTime) {
-    // If the message mode changed, clear screen and draw static layouts
     if (msg != last_msg) {
         tft.fillScreen(ST7735_BLACK);
         last_msg = msg;
@@ -150,7 +149,6 @@ void DisplayManager::drawMeasuring(int beatAvg, int SPO2, DeviceStatus currentSt
     bool isWarmingUp = (fingerOnStartTime == 0 || (millis() - fingerOnStartTime < STABILIZATION_MS));
 
     if (isWarmingUp) {
-        // Show "Stabilizing" message instead of waveform during warm-up
         if (!lastWarmingUpState || last_printed_status == -1 || (millis() - lastWarmUpDraw > 500)) {
             tft.fillRect(0, 16, MAXWAVE, 59, ST7735_BLACK);
             tft.drawFastHLine(0, 45, MAXWAVE, ST7735_GREEN);
@@ -161,7 +159,6 @@ void DisplayManager::drawMeasuring(int beatAvg, int SPO2, DeviceStatus currentSt
             lastWarmUpDraw = millis();
         }
     } else {
-        // Show PPG waveform once stabilized
         if (lastWarmingUpState || last_printed_status == -1) {
             tft.fillRect(0, 16, MAXWAVE, 59, ST7735_BLACK);
         }
@@ -175,7 +172,6 @@ void DisplayManager::drawMeasuring(int beatAvg, int SPO2, DeviceStatus currentSt
 }
 
 void DisplayManager::drawHeader(DeviceStatus currentStatus, uint32_t totalFingerSeconds) {
-    // Only update if state changed to avoid flicker
     if ((int)currentStatus != last_printed_status || (int)totalFingerSeconds != last_printed_seconds) {
         tft.setTextSize(1);
         if ((int)currentStatus != last_printed_status) {
@@ -204,7 +200,6 @@ void DisplayManager::drawHeader(DeviceStatus currentStatus, uint32_t totalFinger
 }
 
 void DisplayManager::drawData(int beatAvg, int SPO2) {
-    // Redraw BPM only if value changed
     if (beatAvg != last_printed_bpm) {
         last_printed_bpm = beatAvg;
         tft.fillRect(5, 82, 70, 24, ST7735_BLACK);
@@ -218,7 +213,6 @@ void DisplayManager::drawData(int beatAvg, int SPO2) {
         }
     }
 
-    // Redraw SpO2 only if value changed
     if (SPO2 != last_printed_spo2) {
         last_printed_spo2 = SPO2;
         tft.fillRect(85, 82, 70, 24, ST7735_BLACK);
@@ -258,13 +252,13 @@ void DisplayManager::drawWelcome() {
 }
 
 void DisplayManager::drawPowerOff(int sleep_counter) {
+    int secondsLeft = (100 - sleep_counter) / 5;
     int16_t x1, y1; uint16_t w, h;
     tft.setTextSize(2); tft.setTextColor(ST7735_RED, ST7735_BLACK);
     const char* po = "POWER OFF";
     tft.getTextBounds(po, 0, 0, &x1, &y1, &w, &h);
     tft.setCursor((160 - w) / 2, 40); tft.print(po);
 
-    int secondsLeft = (100 - sleep_counter) / 5;
     tft.fillRect(0, 75, 160, 32, ST7735_BLACK);
     tft.setTextSize(4); tft.setTextColor(ST7735_YELLOW, ST7735_BLACK);
     char secStr[4]; sprintf(secStr, "%d", secondsLeft);
@@ -289,9 +283,9 @@ void DisplayManager::drawWiFiSetup() {
     tft.setCursor((160 - w) / 2, 75); tft.print(AP_NAME);
 
     tft.setTextColor(ST7735_CYAN, ST7735_BLACK);
-    const char* l2 = "IP: 192.168.4.1";
-    tft.getTextBounds(l2, 0, 0, &x1, &y1, &w, &h);
-    tft.setCursor((160 - w) / 2, 100); tft.print(l2);
+    String ipStr = "IP: " + WiFi.softAPIP().toString();
+    tft.getTextBounds(ipStr.c_str(), 0, 0, &x1, &y1, &w, &h);
+    tft.setCursor((160 - w) / 2, 100); tft.print(ipStr.c_str());
 }
 
 void DisplayManager::drawResetSuccess() {
@@ -316,3 +310,5 @@ void DisplayManager::drawCompletion() {
 }
 
 DisplayManager DisplayMgr;
+
+#endif

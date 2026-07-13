@@ -5,6 +5,7 @@
 * j.n.magee 15-10-2019
 */
 #include <arduino.h>
+#include <Wire.h>
 
 #define MAX30105_ADDRESS 0x57 
 
@@ -38,7 +39,7 @@ class MAX30102{
  public: 
     MAX30102(void);
   
-    boolean begin(uint8_t i2caddr = MAX30105_ADDRESS);  
+    boolean begin(TwoWire &wirePort = Wire, uint8_t i2caddr = MAX30105_ADDRESS);
     
     // Setup the IC with 
     // powerLevel = 0x1F,  sampleAverage = 4,  Mode = Red and IR,  
@@ -60,6 +61,7 @@ class MAX30102{
  
  private:
     uint8_t _i2caddr;
+    TwoWire *_i2cPort;
     struct {
       uint32_t red[STORAGE_SIZE];
       uint32_t IR[STORAGE_SIZE];

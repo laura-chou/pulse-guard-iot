@@ -2,6 +2,34 @@
 #include "sensor_processor.h"
 #include "display_manager.h"
 
+#if (DISPLAY_TYPE == OLED_SSD1306)
+// Common Cathode segment mapping for numbers 0-9
+// DP, G, F, E, D, C, B, A order (with DP as MSB, A as LSB)
+static const uint8_t segment_map[] = {
+    0x3F, // 0
+    0x06, // 1
+    0x5B, // 2
+    0x4F, // 3
+    0x66, // 4
+    0x6D, // 5
+    0x7D, // 6
+    0x07, // 7
+    0x7F, // 8
+    0x6F  // 9
+};
+
+static const uint8_t segmentPins[] = { SEG_A, SEG_B, SEG_C, SEG_D, SEG_E, SEG_F, SEG_G, SEG_DP };
+static const uint8_t digitPins[] = { DIG_2, DIG_3, DIG_4 };
+
+// FreeRTOS task function for multiplexing the 7-segment display
+static void segmentMuxTask(void *pvParameters) {
+    while (true) {
+        Periph.refreshSegments();
+        vTaskDelay(pdMS_TO_TICKS(3)); // Refresh each digit every 3ms
+    }
+}
+#endif
+
 Peripherals::Peripherals() :
     lastButtonState(HIGH),
     buttonPressStart(0),
@@ -10,13 +38,43 @@ Peripherals::Peripherals() :
     longPressHandled(false),
     beepsToPlay(0),
     isBuzzerOn(false),
-    lastBuzzerToggleTime(0) {}
+    lastBuzzerToggleTime(0)
+#if (DISPLAY_TYPE == OLED_SSD1306)
+    , segmentDisplayEnabled(false)
+#endif
+{
+#if (DISPLAY_TYPE == OLED_SSD1306)
+    memset(segmentDigits, 0, sizeof(segmentDigits));
+#endif
+}
 
 void Peripherals::begin() {
     pinMode(LED, OUTPUT);
     pinMode(BUTTON, INPUT_PULLUP);
     pinMode(BUZZER_PIN, OUTPUT);
     noTone(BUZZER_PIN);
+
+#if (DISPLAY_TYPE == OLED_SSD1306)
+    // Initialize segment and digit pins as OUTPUT
+    for (int i = 0; i < 8; i++) {
+        pinMode(segmentPins[i], OUTPUT);
+        digitalWrite(segmentPins[i], LOW); // Turn off all segments
+    }
+    for (int i = 0; i < 3; i++) {
+        pinMode(digitPins[i], OUTPUT);
+        digitalWrite(digitPins[i], HIGH); // Turn off all digits (Common Cathode: HIGH is OFF)
+    }
+
+    // Create background task for multiplexing
+    xTaskCreate(
+        segmentMuxTask,
+        "SegmentMux",
+        1024,
+        NULL,
+        1,
+        NULL
+    );
+#endif
 }
 
 void Peripherals::update() {
@@ -103,8 +161,19 @@ void Peripherals::setLed(bool on) {
 }
 
 void Peripherals::goSleep() {
-    // 1. UI Feedback
-    DisplayMgr.fillScreen(ST7735_BLACK);
+    // 1. UI Feedback & segment shutdown
+#if (DISPLAY_TYPE == OLED_SSD1306)
+    enableSegmentDisplay(false);
+    // Set segment and digit pins to INPUT to minimize current leakage during deep sleep
+    for (int i = 0; i < 8; i++) {
+        pinMode(segmentPins[i], INPUT);
+    }
+    for (int i = 0; i < 3; i++) {
+        pinMode(digitPins[i], INPUT);
+    }
+#endif
+
+    DisplayMgr.fillScreen(0); // Pass 0 (Black) so it is independent of specific TFT/OLED color macros
     DisplayMgr.enableDisplay(false);
     noTone(BUZZER_PIN);
 
@@ -121,5 +190,60 @@ void Peripherals::goSleep() {
     // 4. Enter Deep Sleep
     esp_deep_sleep_start();
 }
+
+#if (DISPLAY_TYPE == OLED_SSD1306)
+void Peripherals::setSegmentTime(uint32_t totalSeconds) {
+    uint32_t mins = totalSeconds / 60;
+    uint32_t secs = totalSeconds % 60;
+
+    // Display formatted as M.SS (Minute.Seconds) using 3 active digits
+    segmentDigits[0] = segment_map[mins % 10];         // Digit 2
+    segmentDigits[1] = segment_map[(secs / 10) % 10];  // Digit 3
+    segmentDigits[2] = segment_map[secs % 10];         // Digit 4
+
+    // Enable the central decimal point on Digit 2 (first active digit in 3-digit config)
+    segmentDigits[0] |= 0x80;
+}
+
+void Peripherals::enableSegmentDisplay(bool enable) {
+    segmentDisplayEnabled = enable;
+    if (!enable) {
+        memset(segmentDigits, 0, sizeof(segmentDigits));
+        // Force all digits off immediately
+        for (int i = 0; i < 3; i++) {
+            digitalWrite(digitPins[i], HIGH);
+        }
+    }
+}
+
+void Peripherals::refreshSegments() {
+    if (!segmentDisplayEnabled) {
+        // Ensure digits are off
+        for (int i = 0; i < 3; i++) {
+            digitalWrite(digitPins[i], HIGH);
+        }
+        return;
+    }
+
+    static int currentDigit = 0;
+
+    // Turn off previous digit (all digits HIGH) to prevent ghosting
+    for (int i = 0; i < 3; i++) {
+        digitalWrite(digitPins[i], HIGH);
+    }
+
+    // Set segment pins for the current digit
+    uint8_t segments = segmentDigits[currentDigit];
+    for (int i = 0; i < 8; i++) {
+        digitalWrite(segmentPins[i], (segments & (1 << i)) ? HIGH : LOW);
+    }
+
+    // Turn on current digit (LOW for active digit)
+    digitalWrite(digitPins[currentDigit], LOW);
+
+    // Move to the next digit
+    currentDigit = (currentDigit + 1) % 3;
+}
+#endif
 
 Peripherals Periph;
