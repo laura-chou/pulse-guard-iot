@@ -92,6 +92,10 @@ void loop() {
         totalFingerSeconds = 0;
         lastTimerUpdate = 0;
 
+#if (DISPLAY_TYPE == OLED_SSD1306)
+        Periph.enableSegmentDisplay(false);
+#endif
+
         // Switch between "Place Finger" and "Power Off" countdown
         int current_msg = (sleep_counter <= 50 ? 1 : 4);
         DisplayMgr.updateScreen(current_msg, 0, 0, STATUS_NORMAL, sleep_counter, 0);
@@ -109,6 +113,11 @@ void loop() {
         // --- CASE B: Finger Detected (Measuring) ---
         sleep_counter = 0;
         updateTimer();
+
+#if (DISPLAY_TYPE == OLED_SSD1306)
+        Periph.enableSegmentDisplay(true);
+        Periph.setSegmentTime(totalFingerSeconds);
+#endif
 
         // Heartbeat Visual/Audio Feedback
         if (SensorProc.wasBeatDetected()) {
@@ -168,6 +177,10 @@ void handleLongPress() {
     
     isShowingReset = true;
     resetMessageStartTime = millis();
+
+#if (DISPLAY_TYPE == OLED_SSD1306)
+    Periph.enableSegmentDisplay(false);
+#endif
 }
 
 /**
@@ -214,6 +227,11 @@ void handleCompletion() {
 
     // Show completion screen and enter deep sleep
     DisplayMgr.updateScreen(7, 0, 0, STATUS_NORMAL, 0, 0);
+
+#if (DISPLAY_TYPE == OLED_SSD1306)
+    Periph.enableSegmentDisplay(false);
+#endif
+
     delay(3000);
     Periph.goSleep();
 }

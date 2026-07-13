@@ -8,11 +8,36 @@
  * @brief Global configuration, pin definitions, and shared data structures.
  */
 
+// --- Display Mode Settings ---
+enum DisplayType {
+    TFT_ST7735,
+    OLED_SSD1306
+};
+#define DISPLAY_TYPE TFT_ST7735
+
 // --- TFT Display Pins ---
 #define TFT_BLK    4
 #define TFT_DC    16
 #define TFT_RST   17
 #define TFT_CS     5
+
+// --- 4-Digit 7-Segment Display Pins (共陰極 Common Cathode) ---
+// 段碼接腳 (A~G, DP) - 輸出 HIGH 點亮
+#define SEG_A     12
+#define SEG_B     13
+#define SEG_C     14
+#define SEG_D     25
+#define SEG_E     26
+#define SEG_F     27
+#define SEG_G     32
+#define SEG_DP    33 // 冒號/小數點
+
+// 位碼選擇接腳 (Digit 1~4) - 輸出 LOW 啟用該位數 (Common Cathode)
+// 當處於 OLED_SSD1306 模式時，此四個接腳與 TFT 複用以節省 ESP32 腳位
+#define DIG_1     4
+#define DIG_2     16
+#define DIG_3     17
+#define DIG_4     5
 
 // --- Peripheral Pins ---
 #define LED LED_BUILTIN
