@@ -10,7 +10,7 @@ def get_translations(lang_code):
             'date_range': 'Date Range',
             'status_filter': 'Status Filter',
             'test_mode_warning': 'Currently in Test Mode. Viewing simulated test data.',
-            'expander_title': '🔍 View Status Criteria & Technical Descriptions',
+            'expander_title': 'ℹ️ View Status Criteria & Technical Descriptions',
             'expander_left_title': '🩺 Health Status Criteria',
             'expander_right_title': '⚙️ Technical Algorithm Descriptions',
             'kpi_total': 'Total Samples',
@@ -46,7 +46,7 @@ def get_translations(lang_code):
             'help_ema_bpm': "**EMA HR (Exponential Moving Average)**: Utilizes a \"Cascaded Filter Architecture,\" processing the 15-second moving average through a second layer of EMA time-series computation. Featuring dual-denoising capabilities, it maximally suppresses false alarms caused by single-point noise spikes.",
             'help_spo2': "**SpO2 (%)**: Utilizes real-time data for ultra-fast analysis, ensuring early detection of acute hypoxia events; however, data is susceptible to interference from finger movement.",
             'missing_did': "Missing device ID. Unable to load production environment data.",
-            'tab1_guide_title': '📊 Trend Chart Reading Guide',
+            'tab1_guide_title': 'ℹ️ Trend Chart Reading Guide',
             'tab1_guide_content': """
 - **Light Blue Area**: Represents the daily fluctuation range of heart rate (from maximum to minimum).
 - **Dark Blue Solid Line**: Represents the daily average heart rate.
@@ -80,7 +80,7 @@ def get_translations(lang_code):
             'date_range': '日期範圍',
             'status_filter': '狀態過濾',
             'test_mode_warning': '目前處於測試模式，檢視的數據為模擬測試資料。',
-            'expander_title': '🔍 檢視狀態判定標準與技術說明',
+            'expander_title': 'ℹ️ 檢視狀態判定標準與技術說明',
             'expander_left_title': '🩺 狀態判定標準',
             'expander_right_title': '⚙️ 核心演算法說明',
             'kpi_total': '總樣本數',
@@ -116,7 +116,7 @@ def get_translations(lang_code):
             'help_ema_bpm': " **EMA 心率 (指數移動平均)**：採用「二階串聯濾波架構」，將 15 秒平均值再次進行指數加權（EMA）時序運算，具備雙重去噪能力，可極致壓制單點雜訊引起的誤報。",
             'help_spo2': "**血氧飽和度 (%)**：採用即時數據進行極速分析，確保能第一時間捕捉急性缺氧事件，唯數據較易受手指晃動影響。",
             'missing_did': "缺少裝置編號，無法載入正式環境資料。",
-            'tab1_guide_title': '📊 趨勢圖閱讀指南',
+            'tab1_guide_title': 'ℹ️ 趨勢圖閱讀指南',
             'tab1_guide_content': """
 - **淺藍色區塊**：代表當日心率最高到最低的波動範圍。
 - **深藍色實線**：代表當日的平均心率。
