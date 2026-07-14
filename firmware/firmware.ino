@@ -40,6 +40,9 @@ void handleResetScreen();
 void setup() {
     Serial.begin(115200);
 
+    // Start I2C first so display and sensor initialization use the correct bus configuration
+    Wire.begin(21, 22);
+
     // Initialize modules
     Periph.begin();
     DisplayMgr.begin();
@@ -47,7 +50,6 @@ void setup() {
 
     NetworkMgr.begin(); // Setup WiFi and MQTT Task
 
-    Wire.begin(21, 22);
     if (!SensorProc.begin()) {
         DisplayMgr.updateScreen(0, 0, 0, STATUS_NORMAL, 0, 0); // Show Device Error screen
         while (1); // Halt on I2C error

@@ -13,9 +13,9 @@
   #define SSD1306_I2C_ADDR 0x3C
 #endif
 
-#define SCREEN_128X32
+#define SCREEN_128X64
 #define COLUMNS 0x0080
-#define PAGES 0x04
+#define PAGES 0x08
 
 class SSD1306 {
 

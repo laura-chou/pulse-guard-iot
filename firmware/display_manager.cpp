@@ -30,8 +30,8 @@ void Waveform::scale() {
         // Map samples to display height (16 to 70 Y-axis)
         disp_wave[i] = 70 - ((uint16_t)(waveform[index] - minw) * 50) / range;
 #else
-        // Map samples to OLED display height (for y in 2 to 30)
-        disp_wave[i] = 30 - ((uint16_t)(waveform[index] - minw) * 28) / range;
+        // Map samples to OLED display height (for y in 34 to 62 on a 128x64 display)
+        disp_wave[i] = 62 - ((uint16_t)(waveform[index] - minw) * 28) / range;
 #endif
         index = (index + 1) % MAXWAVE;
     }
@@ -183,10 +183,10 @@ void DisplayManager::drawDeviceError() {
     tft.getTextBounds(msg2, 0, 0, &x1, &y1, &w, &h);
     tft.setCursor((160 - w) / 2, 75); tft.print(msg2);
 #else
-    // "DEVICE ERROR" length: 12 chars -> 12 * 6 = 72 pixels. Centered at x = 28.
-    oled.drawStr(28, 4, "DEVICE ERROR", 1);
-    // "Check I2C Wire!" length: 15 chars -> 15 * 6 = 90 pixels. Centered at x = 19.
-    oled.drawStr(19, 18, "Check I2C Wire!", 1);
+    // "DEVICE ERROR" length: 12 chars -> 12 * 6 = 72 pixels. Centered at x = 28, y = 16.
+    oled.drawStr(28, 16, "DEVICE ERROR", 1);
+    // "Check I2C Wire!" length: 15 chars -> 15 * 6 = 90 pixels. Centered at x = 19, y = 36.
+    oled.drawStr(19, 36, "Check I2C Wire!", 1);
 #endif
 }
 
@@ -208,10 +208,10 @@ void DisplayManager::drawPlaceFinger() {
     tft.getTextBounds(mode, 0, 0, &x1, &y1, &w, &h);
     tft.setCursor((160 - w) / 2, 113); tft.print(mode);
 #else
-    // "PLACE FINGER" length: 12 chars -> 12 * 6 = 72 pixels. Centered at x = 28.
-    oled.drawStr(28, 4, "PLACE FINGER", 1);
-    // "IR Filter: Avg" length: 14 chars -> 14 * 6 = 84 pixels. Centered at x = 22.
-    oled.drawStr(22, 18, "IR Filter: Avg", 1);
+    // "PLACE FINGER" length: 12 chars -> 12 * 6 = 72 pixels. Centered at x = 28, y = 16.
+    oled.drawStr(28, 16, "PLACE FINGER", 1);
+    // "IR Filter: Avg" length: 14 chars -> 14 * 6 = 84 pixels. Centered at x = 22, y = 36.
+    oled.drawStr(22, 36, "IR Filter: Avg", 1);
 #endif
 }
 
@@ -245,7 +245,7 @@ void DisplayManager::drawMeasuring(int beatAvg, int SPO2, DeviceStatus currentSt
 #else // OLED_SSD1306
     if (isWarmingUp) {
         // Draw "Stabilizing..." centered in OLED screen
-        oled.drawStr(22, 12, "Stabilizing...", 1);
+        oled.drawStr(22, 42, "Stabilizing...", 1);
     } else {
         // Draw real-time PPG waveform once stabilized in columns 42 to 85.
         wave.scale();
@@ -253,23 +253,23 @@ void DisplayManager::drawMeasuring(int beatAvg, int SPO2, DeviceStatus currentSt
     }
 
     // Draw Heart Rate (BPM) on the left (x=2)
-    oled.drawStr(2, 2, "HR", 1);
+    oled.drawStr(2, 4, "HR", 1);
     if (beatAvg > 0) {
         char bpmStr[8];
         sprintf(bpmStr, "%d", beatAvg);
-        oled.drawStr(2, 12, bpmStr, 2);
+        oled.drawStr(2, 16, bpmStr, 2);
     } else {
-        oled.drawStr(2, 12, "---", 2);
+        oled.drawStr(2, 16, "---", 2);
     }
 
     // Draw SpO2 on the right (x=88)
-    oled.drawStr(88, 2, "O2", 1);
+    oled.drawStr(88, 4, "O2", 1);
     if (SPO2 > 0) {
         char spo2Str[8];
         sprintf(spo2Str, "%d", SPO2);
-        oled.drawStr(88, 12, spo2Str, 2);
+        oled.drawStr(88, 16, spo2Str, 2);
     } else {
-        oled.drawStr(88, 12, "---", 2);
+        oled.drawStr(88, 16, "---", 2);
     }
 #endif
 }
@@ -360,11 +360,11 @@ void DisplayManager::drawWelcome() {
     tft.setCursor((160 - w) / 2, 105); tft.print(initText);
 #else
     // Center "PulseGuard" BIG=2
-    // Length: 10 chars -> width = 10 * 12 = 120 pixels. Centered at x = 4.
-    oled.drawStr(4, 2, "PulseGuard", 2);
+    // Length: 10 chars -> width = 10 * 12 = 120 pixels. Centered at x = 4, y = 12.
+    oled.drawStr(4, 12, "PulseGuard", 2);
     // Center "Initializing..." BIG=1
-    // Length: 15 chars -> width = 15 * 6 = 90 pixels. Centered at x = 19.
-    oled.drawStr(19, 22, "Initializing...", 1);
+    // Length: 15 chars -> width = 15 * 6 = 90 pixels. Centered at x = 19, y = 36.
+    oled.drawStr(19, 36, "Initializing...", 1);
 #endif
 }
 
@@ -383,14 +383,14 @@ void DisplayManager::drawPowerOff(int sleep_counter) {
     tft.getTextBounds(secStr, 0, 0, &x1, &y1, &w, &h);
     tft.setCursor((160 - w) / 2, 75); tft.print(secStr);
 #else
-    // "POWER OFF" length: 9 chars -> 9 * 6 = 54 pixels. Centered at x = 37.
-    oled.drawStr(37, 2, "POWER OFF", 1);
+    // "POWER OFF" length: 9 chars -> 9 * 6 = 54 pixels. Centered at x = 37, y = 12.
+    oled.drawStr(37, 12, "POWER OFF", 1);
     // Large countdown digit BIG=2. Length: 1-2 chars -> width = 12..24. Centered at x = 58 or 52.
     char secStr[8];
     sprintf(secStr, "%d s", secondsLeft);
     int len = strlen(secStr);
     int start_x = (128 - (len * 12)) / 2;
-    oled.drawStr(start_x, 14, secStr, 2);
+    oled.drawStr(start_x, 32, secStr, 2);
 #endif
 }
 
@@ -416,10 +416,10 @@ void DisplayManager::drawWiFiSetup() {
     tft.getTextBounds(l2, 0, 0, &x1, &y1, &w, &h);
     tft.setCursor((160 - w) / 2, 100); tft.print(l2);
 #else
-    // "PulseGuard-IoT" length: 15 chars -> 15 * 6 = 90 pixels. Centered at x = 19.
-    oled.drawStr(19, 4, AP_NAME, 1);
-    // "192.168.4.1" length: 11 chars -> 11 * 6 = 66 pixels. Centered at x = 31.
-    oled.drawStr(31, 18, "192.168.4.1", 1);
+    // "PulseGuard-IoT" length: 15 chars -> 15 * 6 = 90 pixels. Centered at x = 19, y = 16.
+    oled.drawStr(19, 16, AP_NAME, 1);
+    // "192.168.4.1" length: 11 chars -> 11 * 6 = 66 pixels. Centered at x = 31, y = 36.
+    oled.drawStr(31, 36, "192.168.4.1", 1);
 #endif
 }
 
@@ -436,10 +436,10 @@ void DisplayManager::drawResetSuccess() {
     tft.getTextBounds(m2, 0, 0, &x1, &y1, &w, &h);
     tft.setCursor((160 - w) / 2, 75); tft.print(m2);
 #else
-    // "SYSTEM RESET" length: 12 chars -> 12 * 6 = 72 pixels. Centered at x = 28.
-    oled.drawStr(28, 4, "SYSTEM RESET", 1);
-    // "SUCCESS !" length: 9 chars -> 9 * 6 = 54 pixels. Centered at x = 37.
-    oled.drawStr(37, 18, "SUCCESS !", 1);
+    // "SYSTEM RESET" length: 12 chars -> 12 * 6 = 72 pixels. Centered at x = 28, y = 16.
+    oled.drawStr(28, 16, "SYSTEM RESET", 1);
+    // "SUCCESS !" length: 9 chars -> 9 * 6 = 54 pixels. Centered at x = 37, y = 36.
+    oled.drawStr(37, 36, "SUCCESS !", 1);
 #endif
 }
 
@@ -451,10 +451,10 @@ void DisplayManager::drawCompletion() {
     tft.setTextSize(1); tft.setTextColor(ST7735_WHITE, ST7735_BLACK);
     tft.setCursor(30, 85); tft.print("System Sleeping...");
 #else
-    // "COMPLETED !" length: 11 chars -> 11 * 6 = 66 pixels. Centered at x = 31.
-    oled.drawStr(31, 4, "COMPLETED !", 1);
-    // "System Sleeping..." length: 18 chars -> 18 * 6 = 108 pixels. Centered at x = 10.
-    oled.drawStr(10, 18, "System Sleeping...", 1);
+    // "COMPLETED !" length: 11 chars -> 11 * 6 = 66 pixels. Centered at x = 31, y = 16.
+    oled.drawStr(31, 16, "COMPLETED !", 1);
+    // "System Sleeping..." length: 18 chars -> 18 * 6 = 108 pixels. Centered at x = 10, y = 36.
+    oled.drawStr(10, 36, "System Sleeping...", 1);
 #endif
 }
 
