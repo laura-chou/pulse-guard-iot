@@ -23,7 +23,7 @@ enum DisplayType {
 
 // --- 4-Digit 7-Segment Display Pins (共陰極 Common Cathode) ---
 // 段碼接腳 (A~G, DP) - 輸出 HIGH 點亮
-#define SEG_A     12
+#define SEG_A     23 // 避免使用 GPIO 12 啟動選址腳位 (Strapping Pin)
 #define SEG_B     13
 #define SEG_C     14
 #define SEG_D     25
