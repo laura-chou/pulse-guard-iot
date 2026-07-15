@@ -40,17 +40,17 @@ void handleResetScreen();
 void setup() {
     Serial.begin(115200);
     delay(100);
-    Serial.println("[DEBUG] --- System Booting Up ---");
+    Serial.println("[DEBUG] --- PulseGuard IoT System Booting ---");
 
-    // Initialize I2C bus first to ensure all I2C peripherals can communicate
-    Serial.println("[DEBUG] Initializing I2C Wire on Pins SDA=21, SCL=22...");
+    // Initialize I2C bus FIRST so that OLED and MAX30102 can initialize correctly on GPIO 21, 22
+    Serial.println("[DEBUG] Initializing I2C SDA=21, SCL=22...");
     Wire.begin(21, 22);
 
     // Initialize modules
-    Serial.println("[DEBUG] Initializing Peripherals (Button, Buzzer, 7-Segment)...");
+    Serial.println("[DEBUG] Initializing peripherals (LED, Button, Buzzer, 7-Segment)...");
     Periph.begin();
 
-    Serial.println("[DEBUG] Initializing Display...");
+    Serial.println("[DEBUG] Initializing display...");
     DisplayMgr.begin();
     Serial.println("[DEBUG] Drawing Welcome screen...");
     DisplayMgr.updateScreen(3, 0, 0, STATUS_NORMAL, 0, 0); // Show Welcome screen
@@ -60,12 +60,12 @@ void setup() {
 
     Serial.println("[DEBUG] Initializing Sensor Processor...");
     if (!SensorProc.begin()) {
-        Serial.println("[DEBUG] ERROR: Sensor initialization failed! Halting system.");
+        Serial.println("[DEBUG] ERROR: Sensor processor (MAX30102) initialization failed! Halting.");
         DisplayMgr.updateScreen(0, 0, 0, STATUS_NORMAL, 0, 0); // Show Device Error screen
         while (1); // Halt on I2C error
     }
-    Serial.println("[DEBUG] Sensor Processor successfully initialized.");
-    Serial.println("[DEBUG] --- Setup Completed successfully ---");
+    Serial.println("[DEBUG] Sensor processor successfully initialized.");
+    Serial.println("[DEBUG] --- Boot up finished successfully ---");
 }
 
 /**
@@ -74,11 +74,6 @@ void setup() {
 void loop() {
     // 1. Wait for MQTT Connection and the initial RESET packet
     if (!NetworkMgr.isBootResetSent()) {
-        static unsigned long lastMqttLog = 0;
-        if (millis() - lastMqttLog > 3000) {
-            Serial.println("[DEBUG] Waiting for MQTT Connection and initial RESET message...");
-            lastMqttLog = millis();
-        }
         SensorProc.update(); // Keep sensor buffer clear
         vTaskDelay(10 / portTICK_PERIOD_MS);
         return;
@@ -87,21 +82,14 @@ void loop() {
     // 2. Initial UI Transition after boot
     static bool initialScreenSwitched = false;
     if (!initialScreenSwitched) {
-        Serial.println("[DEBUG] Initial boot RESET message sent. Switching to 'Place Finger' screen.");
         DisplayMgr.updateScreen(1, 0, 0, STATUS_NORMAL, 0, 0); // Show "Place Finger"
         initialScreenSwitched = true;
     }
 
     // 3. Update Hardware Peripherals (Button, Buzzer)
     Periph.update();
-    if (Periph.isShortPressDetected()) {
-        Serial.println("[DEBUG] Button Short Press Detected.");
-        handleShortPress();
-    }
-    if (Periph.isLongPressDetected()) {
-        Serial.println("[DEBUG] Button Long Press (Reset) Detected!");
-        handleLongPress();
-    }
+    if (Periph.isShortPressDetected()) handleShortPress();
+    if (Periph.isLongPressDetected()) handleLongPress();
 
     // 4. Handle persistent Reset Screen display period
     if (isShowingReset) {
@@ -113,14 +101,8 @@ void loop() {
     if (!SensorProc.update()) return; // No new samples, yield loop
     unsigned long now = millis();
 
-    static bool prevFingerDetected = false;
-    bool currentFingerDetected = SensorProc.isFingerDetected();
-
-    if (!currentFingerDetected) {
+    if (!SensorProc.isFingerDetected()) {
         // --- CASE A: Finger Removed ---
-        if (prevFingerDetected) {
-            Serial.println("[DEBUG] Finger Removed. Resetting timer and counters.");
-        }
         totalFingerSeconds = 0;
         lastTimerUpdate = 0;
 
@@ -136,21 +118,13 @@ void loop() {
         if (now - lastSleepCounterTime >= 200) {
             lastSleepCounterTime = now;
             ++sleep_counter;
-            if (sleep_counter % 10 == 0) {
-                Serial.print("[DEBUG] Idle Sleep Counter: ");
-                Serial.println(sleep_counter);
-            }
             if (sleep_counter > 100) {
-                Serial.println("[DEBUG] Sleep counter reached limit. Entering Deep Sleep now...");
                 Periph.goSleep(); // 20s idle -> deep sleep
                 sleep_counter = 0;
             }
         }
     } else {
         // --- CASE B: Finger Detected (Measuring) ---
-        if (!prevFingerDetected) {
-            Serial.println("[DEBUG] Finger Placed. Starting Measurement.");
-        }
         sleep_counter = 0;
         updateTimer();
 
@@ -165,14 +139,7 @@ void loop() {
             Periph.setLed(true);
             ledOn = true;
 
-            Serial.print("[DEBUG] Beat Detected! Current Avg BPM: ");
-            Serial.print(SensorProc.getBeatAvg());
-            Serial.print(", SpO2: ");
-            Serial.print(SensorProc.getSPO2());
-            Serial.print("%, Status: ");
-            Serial.println(SensorProc.getStatus());
-
-            // Trigger status-specific buzzer beeps (after 10s stabilization)
+            // Trigger status-specific buzzer beeps (after 5s stabilization)
             if (now - SensorProc.getFingerOnStartTime() >= STABILIZATION_MS) {
                 DeviceStatus status = SensorProc.getStatus();
                 if (status == STATUS_NORMAL) Periph.triggerBeeps(1);
@@ -192,7 +159,6 @@ void loop() {
                                    SensorProc.getFingerOnStartTime());
         }
     }
-    prevFingerDetected = currentFingerDetected;
 
     // Turn off heartbeat indicator LED after 25ms
     if (ledOn && (now - lastBeatTime) > 25) {
