@@ -33,19 +33,12 @@ enum DisplayType {
 #define SEG_DP    33 // 冒號/小數點
 
 // 位碼選擇接腳 (Digit 1~4) - 輸出 LOW 啟用該位數 (Common Cathode)
-// 為了避免在 OLED_SSD1306 模式下與 TFT 控制引腳 (GPIO 16, 17, 5) 衝突
-// 導致七段顯示器異常全亮與鬼影，將其配置至無衝突的閒置 GPIO 腳位
-#if (DISPLAY_TYPE == OLED_SSD1306)
-#define DIG_1     12 // 原：4 (避免與 TFT_BLK 衝突)
-#define DIG_2     14 // 原：16 (避免與 TFT_DC 衝突)
-#define DIG_3     27 // 原：17 (避免與 TFT_RST 衝突，重分配至無衝突腳位)
-#define DIG_4     2  // 原：5 (避免與 TFT_CS 衝突)
-#else
+// 由於 TFT 顯示器與 4位7段顯示器在實體硬體上不會同時存在，
+// 且為了避免與段碼接腳 SEG_C (14) 及 SEG_F (27) 重複，這裡統一回歸並維持原始無重複的預設配置：
 #define DIG_1     4
 #define DIG_2     16
 #define DIG_3     17
 #define DIG_4     5
-#endif
 
 // --- Peripheral Pins ---
 #define LED LED_BUILTIN
