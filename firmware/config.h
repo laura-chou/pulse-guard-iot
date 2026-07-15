@@ -9,11 +9,11 @@
  */
 
 // --- Display Mode Settings ---
-enum DisplayType {
-    TFT_ST7735,
-    OLED_SSD1306
-};
-#define DISPLAY_TYPE OLED_SSD1306
+// 必須使用預處理器 #define 定義整數，否則 enum 在 #if 預處理器條件判斷中會被當成 0 處理，導致嚴重的判斷邏輯錯誤
+#define DISPLAY_TYPE_TFT_ST7735  0
+#define DISPLAY_TYPE_OLED_SSD1306 1
+
+#define DISPLAY_TYPE DISPLAY_TYPE_OLED_SSD1306
 
 // --- TFT Display Pins ---
 #define TFT_BLK    4

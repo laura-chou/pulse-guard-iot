@@ -3,7 +3,7 @@
 
 #include "config.h"
 
-#if (DISPLAY_TYPE == TFT_ST7735)
+#if (DISPLAY_TYPE == DISPLAY_TYPE_TFT_ST7735)
 #include <Adafruit_GFX.h>
 #include <Adafruit_ST7735.h>
 #include <SPI.h>
@@ -11,7 +11,7 @@
 #include "ssd1306h.h"
 #endif
 
-#if (DISPLAY_TYPE == OLED_SSD1306)
+#if (DISPLAY_TYPE == DISPLAY_TYPE_OLED_SSD1306)
 #define MAXWAVE 44 // Screen width for waveform on OLED
 #else
 #define MAXWAVE 160 // Screen width for waveform on TFT
@@ -26,7 +26,7 @@ public:
     Waveform();
     void record(int waveval);
     void scale();
-#if (DISPLAY_TYPE == TFT_ST7735)
+#if (DISPLAY_TYPE == DISPLAY_TYPE_TFT_ST7735)
     void draw(Adafruit_ST7735 &tft, uint8_t X);
 #else
     void draw(SSD1306 &oled, uint8_t X);
@@ -79,7 +79,7 @@ public:
     void fillScreen(uint16_t color);
 
 private:
-#if (DISPLAY_TYPE == TFT_ST7735)
+#if (DISPLAY_TYPE == DISPLAY_TYPE_TFT_ST7735)
     Adafruit_ST7735 tft;
 #else
     SSD1306 oled;
@@ -103,7 +103,7 @@ private:
     void drawResetSuccess();
     void drawCompletion();
 
-#if (DISPLAY_TYPE == TFT_ST7735)
+#if (DISPLAY_TYPE == DISPLAY_TYPE_TFT_ST7735)
     // UI components for Measuring screen on TFT
     void drawHeader(DeviceStatus currentStatus, uint32_t totalFingerSeconds);
     void drawData(int beatAvg, int SPO2);

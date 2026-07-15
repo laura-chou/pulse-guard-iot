@@ -2,7 +2,7 @@
 #include "sensor_processor.h"
 #include "display_manager.h"
 
-#if (DISPLAY_TYPE == OLED_SSD1306)
+#if (DISPLAY_TYPE == DISPLAY_TYPE_OLED_SSD1306)
 // Common Cathode segment mapping for numbers 0-9
 // DP, G, F, E, D, C, B, A order (with DP as MSB, A as LSB)
 static const uint8_t segment_map[] = {
@@ -39,11 +39,11 @@ Peripherals::Peripherals() :
     beepsToPlay(0),
     isBuzzerOn(false),
     lastBuzzerToggleTime(0)
-#if (DISPLAY_TYPE == OLED_SSD1306)
+#if (DISPLAY_TYPE == DISPLAY_TYPE_OLED_SSD1306)
     , segmentDisplayEnabled(false)
 #endif
 {
-#if (DISPLAY_TYPE == OLED_SSD1306)
+#if (DISPLAY_TYPE == DISPLAY_TYPE_OLED_SSD1306)
     memset(segmentDigits, 0, sizeof(segmentDigits));
 #endif
 }
@@ -54,7 +54,7 @@ void Peripherals::begin() {
     pinMode(BUZZER_PIN, OUTPUT);
     noTone(BUZZER_PIN);
 
-#if (DISPLAY_TYPE == OLED_SSD1306)
+#if (DISPLAY_TYPE == DISPLAY_TYPE_OLED_SSD1306)
     // Initialize segment and digit pins as OUTPUT
     for (int i = 0; i < 8; i++) {
         pinMode(segmentPins[i], OUTPUT);
@@ -162,7 +162,7 @@ void Peripherals::setLed(bool on) {
 
 void Peripherals::goSleep() {
     // 1. UI Feedback & segment shutdown
-#if (DISPLAY_TYPE == OLED_SSD1306)
+#if (DISPLAY_TYPE == DISPLAY_TYPE_OLED_SSD1306)
     enableSegmentDisplay(false);
     // Set segment and digit pins to INPUT to minimize current leakage during deep sleep
     for (int i = 0; i < 8; i++) {
@@ -191,7 +191,7 @@ void Peripherals::goSleep() {
     esp_deep_sleep_start();
 }
 
-#if (DISPLAY_TYPE == OLED_SSD1306)
+#if (DISPLAY_TYPE == DISPLAY_TYPE_OLED_SSD1306)
 void Peripherals::setSegmentTime(uint32_t totalSeconds) {
     uint32_t mins = totalSeconds / 60;
     uint32_t secs = totalSeconds % 60;

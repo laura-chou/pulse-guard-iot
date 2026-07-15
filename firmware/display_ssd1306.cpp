@@ -1,6 +1,6 @@
 #include "display_manager.h"
 
-#if (DISPLAY_TYPE == OLED_SSD1306)
+#if (DISPLAY_TYPE == DISPLAY_TYPE_OLED_SSD1306)
 
 Waveform::Waveform() : wavep(0) {
     memset(waveform, 128, MAXWAVE);

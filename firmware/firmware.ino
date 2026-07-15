@@ -106,7 +106,7 @@ void loop() {
         totalFingerSeconds = 0;
         lastTimerUpdate = 0;
 
-#if (DISPLAY_TYPE == OLED_SSD1306)
+#if (DISPLAY_TYPE == DISPLAY_TYPE_OLED_SSD1306)
         Periph.enableSegmentDisplay(false);
 #endif
 
@@ -128,7 +128,7 @@ void loop() {
         sleep_counter = 0;
         updateTimer();
 
-#if (DISPLAY_TYPE == OLED_SSD1306)
+#if (DISPLAY_TYPE == DISPLAY_TYPE_OLED_SSD1306)
         Periph.enableSegmentDisplay(true);
         Periph.setSegmentTime(totalFingerSeconds);
 #endif
@@ -192,7 +192,7 @@ void handleLongPress() {
     isShowingReset = true;
     resetMessageStartTime = millis();
 
-#if (DISPLAY_TYPE == OLED_SSD1306)
+#if (DISPLAY_TYPE == DISPLAY_TYPE_OLED_SSD1306)
     Periph.enableSegmentDisplay(false);
 #endif
 }
@@ -242,7 +242,7 @@ void handleCompletion() {
     // Show completion screen and enter deep sleep
     DisplayMgr.updateScreen(7, 0, 0, STATUS_NORMAL, 0, 0);
 
-#if (DISPLAY_TYPE == OLED_SSD1306)
+#if (DISPLAY_TYPE == DISPLAY_TYPE_OLED_SSD1306)
     Periph.enableSegmentDisplay(false);
 #endif
 
