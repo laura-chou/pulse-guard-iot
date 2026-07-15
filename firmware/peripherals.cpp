@@ -173,7 +173,7 @@ void Peripherals::goSleep() {
     }
 #endif
 
-    DisplayMgr.fillScreen(ST7735_BLACK);
+    DisplayMgr.fillScreen(0); // Pass 0 (Black) so it is independent of specific TFT/OLED color macros
     DisplayMgr.enableDisplay(false);
     noTone(BUZZER_PIN);
 
