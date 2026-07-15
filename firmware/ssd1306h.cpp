@@ -26,8 +26,8 @@ static const uint8_t ssd1306_configuration[] PROGMEM = {
 #endif
   0xD3, 0x00,   // Set Display Offset
   0x40,         // Set Display Start line
-  0xA1,         // Set Segment re-map, mirror, A0/A1
-  0xC8,         // Set COM Output Scan Direction, flip, C0/C8
+  0xA0,         // Set Segment re-map (Rotated 180 degrees)
+  0xC0,         // Set COM Output Scan Direction (Rotated 180 degrees)
 #ifdef SCREEN_128X32
   0xDA, 0x02,   // Set COM Pins hardware configuration, Sequential
 #else // SCREEN_128X64 / SCREEN_64X32

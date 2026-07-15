@@ -48,7 +48,7 @@ public:
      */
     void setLed(bool on);
 
-#if (DISPLAY_TYPE == DISPLAY_TYPE_OLED_SSD1306)
+#if (DISPLAY_TYPE == OLED_SSD1306)
     /**
      * @brief Sets the displayed time on the 4-digit 7-segment display.
      */
@@ -78,7 +78,7 @@ private:
     bool isBuzzerOn;
     uint32_t lastBuzzerToggleTime;
 
-#if (DISPLAY_TYPE == DISPLAY_TYPE_OLED_SSD1306)
+#if (DISPLAY_TYPE == OLED_SSD1306)
     // 7-segment display state
     bool segmentDisplayEnabled;
     uint8_t segmentDigits[4];

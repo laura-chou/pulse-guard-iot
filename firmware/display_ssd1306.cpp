@@ -1,6 +1,6 @@
 #include "display_manager.h"
 
-#if (DISPLAY_TYPE == DISPLAY_TYPE_OLED_SSD1306)
+#if (DISPLAY_TYPE == OLED_SSD1306)
 
 Waveform::Waveform() : wavep(0) {
     memset(waveform, 128, MAXWAVE);
@@ -22,7 +22,8 @@ void Waveform::scale() {
     uint8_t range = maxw - minw; if (range == 0) range = 1;
     uint8_t index = wavep;
     for (int i = 0; i < MAXWAVE; i++) {
-        disp_wave[i] = 30 - ((uint16_t)(waveform[index] - minw) * 28) / range;
+        // Map samples to height range Y: 2~45 for the top blue area (Y: 0~47)
+        disp_wave[i] = 45 - ((uint16_t)(waveform[index] - minw) * 43) / range;
         index = (index + 1) % MAXWAVE;
     }
 }
@@ -99,29 +100,47 @@ void DisplayManager::drawPlaceFinger() {
 void DisplayManager::drawMeasuring(int beatAvg, int SPO2, DeviceStatus currentStatus, uint32_t totalFingerSeconds, uint32_t fingerOnStartTime) {
     bool isWarmingUp = (fingerOnStartTime == 0 || (millis() - fingerOnStartTime < STABILIZATION_MS));
 
+    // 1. 上方藍色區域（Y: 0~47）
     if (isWarmingUp) {
-        oled.drawStr(22, 12, "Stabilizing...", 1);
+        oled.drawStr(22, 20, "Stabilizing...", 1);
     } else {
         wave.scale();
-        wave.draw(oled, 42);
+        wave.draw(oled, 0); // 橫向滾動心率波形滿畫幅 128 寬度更新
     }
 
-    oled.drawStr(2, 2, "HR", 1);
+    // 2. 下方黃色區域（Y: 48~63）並排顯示「HR: [數值] bpm」與「SpO2: [數值]%」
+    // 左半部 - HR: [數值] bpm
+    oled.drawStr(2, 52, "HR:", 1);
     if (beatAvg > 0) {
         char bpmStr[8];
         sprintf(bpmStr, "%d", beatAvg);
-        oled.drawStr(2, 12, bpmStr, 2);
+        oled.drawStr(20, 48, bpmStr, 2); // 數值使用 BIG=2 高度 16px 填滿黃色區塊
+        if (beatAvg >= 100) {
+            oled.drawStr(56, 52, "bpm", 1);
+        } else {
+            oled.drawStr(44, 52, "bpm", 1);
+        }
     } else {
-        oled.drawStr(2, 12, "---", 2);
+        oled.drawStr(20, 48, "---", 2);
+        oled.drawStr(56, 52, "bpm", 1);
     }
 
-    oled.drawStr(88, 2, "O2", 1);
+    // 右半部 - SpO2: [數值]%
+    int spo2_x = (beatAvg >= 100) ? 72 : 68; // 動態微調以避免 3位數 HR 與 SpO2 重疊
+    oled.drawStr(spo2_x, 52, "SpO2:", 1);
     if (SPO2 > 0) {
         char spo2Str[8];
         sprintf(spo2Str, "%d", SPO2);
-        oled.drawStr(88, 12, spo2Str, 2);
+        int val_x = spo2_x + 30;
+        if (val_x + 24 > 122) val_x = 122 - 24; // 邊界限幅
+        oled.drawStr(val_x, 48, spo2Str, 2);    // 數值使用 BIG=2 高度 16px 填滿黃色區塊
+
+        int pct_x = val_x + (SPO2 == 100 ? 36 : 24);
+        if (pct_x > 122) pct_x = 122; // 確保百分比符號不會超出螢幕邊界
+        oled.drawStr(pct_x, 52, "%", 1);
     } else {
-        oled.drawStr(88, 12, "---", 2);
+        oled.drawStr(spo2_x + 30, 48, "---", 2);
+        oled.drawStr(spo2_x + 54, 52, "%", 1);
     }
 }
 
