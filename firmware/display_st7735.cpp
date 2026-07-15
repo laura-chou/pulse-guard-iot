@@ -1,4 +1,5 @@
 #include "display_manager.h"
+#include <WiFi.h>
 
 #if (DISPLAY_TYPE == TFT_ST7735)
 
@@ -282,9 +283,9 @@ void DisplayManager::drawWiFiSetup() {
     tft.setCursor((160 - w) / 2, 75); tft.print(AP_NAME);
 
     tft.setTextColor(ST7735_CYAN, ST7735_BLACK);
-    const char* l2 = "IP: 192.168.4.1";
-    tft.getTextBounds(l2, 0, 0, &x1, &y1, &w, &h);
-    tft.setCursor((160 - w) / 2, 100); tft.print(l2);
+    String ipStr = "IP: " + WiFi.softAPIP().toString();
+    tft.getTextBounds(ipStr.c_str(), 0, 0, &x1, &y1, &w, &h);
+    tft.setCursor((160 - w) / 2, 100); tft.print(ipStr.c_str());
 }
 
 void DisplayManager::drawResetSuccess() {

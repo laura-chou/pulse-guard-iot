@@ -103,12 +103,15 @@ void loop() {
 
     if (!SensorProc.isFingerDetected()) {
         // --- CASE A: Finger Removed ---
-        totalFingerSeconds = 0;
-        lastTimerUpdate = 0;
+        // 只有當進入關機倒數 (sleep_counter > 50，即手指離開超過 10 秒) 時，計時才歸零
+        if (sleep_counter > 50) {
+            totalFingerSeconds = 0;
+            lastTimerUpdate = 0;
 
 #if (DISPLAY_TYPE == OLED_SSD1306)
-        Periph.enableSegmentDisplay(false);
+            Periph.enableSegmentDisplay(false);
 #endif
+        }
 
         // Switch between "Place Finger" and "Power Off" countdown
         int current_msg = (sleep_counter <= 50 ? 1 : 4);
