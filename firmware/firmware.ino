@@ -103,13 +103,10 @@ void loop() {
 
     if (!SensorProc.isFingerDetected()) {
         // --- CASE A: Finger Removed ---
-        // 只有當進入關機倒數 (sleep_counter > 50，即手指離開超過 10 秒) 時，計時才歸零
+        // 手指離開期間（包含「請放置手指」與「關機倒數」共 20 秒內）完全不歸零！
         if (sleep_counter > 50) {
-            totalFingerSeconds = 0;
-            lastTimerUpdate = 0;
-
 #if (DISPLAY_TYPE == OLED_SSD1306)
-            Periph.enableSegmentDisplay(false);
+            Periph.enableSegmentDisplay(false); // 10秒後熄滅七段顯示器（但秒數不歸零）
 #endif
         }
 
@@ -122,6 +119,9 @@ void loop() {
             lastSleepCounterTime = now;
             ++sleep_counter;
             if (sleep_counter > 100) {
+                // 只有在設備真正要進入深度睡眠關機時，才將累積秒數與計時基準清零
+                totalFingerSeconds = 0;
+                lastTimerUpdate = 0;
                 Periph.goSleep(); // 20s idle -> deep sleep
                 sleep_counter = 0;
             }

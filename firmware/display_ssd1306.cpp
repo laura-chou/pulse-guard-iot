@@ -103,11 +103,11 @@ void DisplayManager::drawMeasuring(int beatAvg, int SPO2, DeviceStatus currentSt
 
     // --- 1. 上方藍色區域（Y: 0~47）：左右對稱雙柱設計 ---
 
-    // (A) 左半部：心率區塊 (HR, X: 0~60, Y: 0~47)
+    // (A) 左半部：心率區塊 (HR, X: 0~63, Y: 0~47)
     // 標題：在左上角 (X: 4, Y: 6) 顯示小字體 HR (scale 1)
     oled.drawStr(4, 6, "HR", 1);
 
-    // 數值：將 beatAvg 轉為字串後，以大字體 (scale 2) 顯示，根據長度置中，Y 座標設為 24。若 <= 0 顯示 "---"
+    // 數值：將 beatAvg 轉為字串後，以大字體 (scale 2) 顯示，根據長度置中，Y 座標設為 20。若 <= 0 顯示 "---"
     char bpmStr[8];
     int hr_len = 0;
     if (beatAvg > 0) {
@@ -117,12 +117,12 @@ void DisplayManager::drawMeasuring(int beatAvg, int SPO2, DeviceStatus currentSt
         strcpy(bpmStr, "---");
         hr_len = 3;
     }
-    // 大字體 (scale 2) 每字寬度為 12px
-    int hr_val_x = (60 - (hr_len * 12)) / 2;
-    oled.drawStr(hr_val_x, 24, bpmStr, 2);
+    // 大字體 (scale 2) 每字寬度為 12px，左半部為 X: 0~63
+    int hr_val_x = (63 - (hr_len * 12)) / 2;
+    oled.drawStr(hr_val_x, 20, bpmStr, 2);
 
-    // 單位：在左下角固定位置 (X: 4, Y: 38) 顯示小字體 bpm (scale 1)，防止 3 位數時與右側發生重疊
-    oled.drawStr(4, 38, "bpm", 1);
+    // 單位：在左半部的右下角固定位置 (X: 40, Y: 36) 顯示小字體 bpm (scale 1)
+    oled.drawStr(40, 36, "bpm", 1);
 
 
     // (B) 中央分隔線
@@ -130,11 +130,11 @@ void DisplayManager::drawMeasuring(int beatAvg, int SPO2, DeviceStatus currentSt
     oled.drawLine(63, 6, 63, 42);
 
 
-    // (C) 右半部：血氧區塊 (SpO2, X: 66~128, Y: 0~47)
+    // (C) 右半部：血氧區塊 (SpO2, X: 64~128, Y: 0~47)
     // 標題：在右半部左上角 (X: 70, Y: 6) 顯示小字體 SpO2 (scale 1)
     oled.drawStr(70, 6, "SpO2", 1);
 
-    // 數值：將 SPO2 轉為字串後，以大字體 (scale 2) 顯示，同樣動態計算 X 座標使其在右半部置中，Y 座標設為 24。若 <= 0 則顯示 "---"
+    // 數值：將 SPO2 轉為字串後，以大字體 (scale 2) 顯示，同樣動態計算 X 座標使其在右半部置中，Y 座標設為 20。若 <= 0 則顯示 "---"
     char spo2Str[8];
     int o2_len = 0;
     if (SPO2 > 0) {
@@ -144,14 +144,12 @@ void DisplayManager::drawMeasuring(int beatAvg, int SPO2, DeviceStatus currentSt
         strcpy(spo2Str, "---");
         o2_len = 3;
     }
-    // 右半部寬度為 62px (從 X: 66 到 128)，置中 X = 66 + (62 - width) / 2
-    int o2_val_x = 66 + (62 - (o2_len * 12)) / 2;
-    oled.drawStr(o2_val_x, 24, spo2Str, 2);
+    // 右半部寬度為 64px (從 X: 64 到 128)，置中 X = 64 + (64 - width) / 2
+    int o2_val_x = 64 + (64 - (o2_len * 12)) / 2;
+    oled.drawStr(o2_val_x, 20, spo2Str, 2);
 
-    // 單位：在數值的右側顯示小字體 % (scale 1)
-    int o2_unit_x = o2_val_x + (o2_len * 12) + 2;
-    if (o2_unit_x > 122) o2_unit_x = 122; // 確保不超出 128 螢幕邊界
-    oled.drawStr(o2_unit_x, 24, "%", 1);
+    // 單位：在右半部的右下角固定位置 (X: 110, Y: 36) 顯示小字體 % (scale 1)
+    oled.drawStr(110, 36, "%", 1);
 
 
     // --- 2. 下方黃色區域（Y: 48~63）顯示即時波形 ---
