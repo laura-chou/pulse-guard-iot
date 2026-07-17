@@ -9,7 +9,7 @@
  */
 
 // --- Display Mode Settings ---
-// 必須使用預處理器 #define 定義整數，否則 enum 在 #if 預處理器條件判斷中會被當成 0 處理，導致嚴重的判斷邏輯錯誤
+// Must use preprocessor #define for integer values, otherwise enum will be treated as 0 in #if conditional checks, causing serious logic errors
 #define TFT_ST7735   0
 #define OLED_SSD1306 1
 
@@ -21,20 +21,20 @@
 #define TFT_RST   17
 #define TFT_CS     5
 
-// --- 4-Digit 7-Segment Display Pins (共陰極 Common Cathode) ---
-// 段碼接腳 (A~G, DP) - 輸出 HIGH 點亮
-#define SEG_A     23 // 避免使用 GPIO 12 啟動選址腳位 (Strapping Pin)
+// --- 4-Digit 7-Segment Display Pins (Common Cathode) ---
+// Segment pins (A~G, DP) - output HIGH to light up
+#define SEG_A     23 // Avoid using GPIO 12 which is a strapping pin
 #define SEG_B     13
 #define SEG_C     14
 #define SEG_D     25
 #define SEG_E     26
 #define SEG_F     27
 #define SEG_G     32
-#define SEG_DP    33 // 冒號/小數點
+#define SEG_DP    33 // Colon / Decimal point
 
-// 位碼選擇接腳 (Digit 1~4) - 輸出 LOW 啟用該位數 (Common Cathode)
-// 由於 TFT 顯示器與 4位7段顯示器在實體硬體上不會同時存在，
-// 且為了避免與段碼接腳 SEG_C (14) 及 SEG_F (27) 重複，這裡統一回歸並維持原始無重複的預設配置：
+// Digit select pins (Digit 1~4) - output LOW to enable the digit (Common Cathode)
+// Since the TFT display and 4-digit 7-segment display do not exist at the same time in physical hardware,
+// and to avoid overlapping with segment pins SEG_C (14) and SEG_F (27), this keeps the original non-overlapping default configuration:
 #define DIG_1     4
 #define DIG_2     16
 #define DIG_3     17
@@ -44,6 +44,10 @@
 #define LED LED_BUILTIN
 #define BUTTON 15
 #define BUZZER_PIN 19
+
+// --- Dual I2C Pins for MAX30102 (OLED Mode only) ---
+#define MAX30102_SDA 18
+#define MAX30102_SCL 2
 
 // --- MQTT & Network Settings ---
 const char* const AP_NAME = "PulseGuard-IoT";      // Access Point name for WiFi Setup

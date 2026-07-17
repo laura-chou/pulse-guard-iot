@@ -20,7 +20,11 @@ bool SensorProcessor::wasBeatDetected() {
 }
 
 bool SensorProcessor::begin() {
-    if (!sensor.begin()) return false;
+#if (DISPLAY_TYPE == OLED_SSD1306)
+    if (!sensor.begin(Wire1)) return false;
+#else
+    if (!sensor.begin(Wire)) return false;
+#endif
     sensor.setup(); // Default setup for SpO2 mode
     return true;
 }

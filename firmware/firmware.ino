@@ -46,6 +46,12 @@ void setup() {
     Serial.println("[DEBUG] Initializing I2C SDA=21, SCL=22...");
     Wire.begin(21, 22);
 
+#if (DISPLAY_TYPE == OLED_SSD1306)
+    // Initialize Wire1 for MAX30102 on GPIO pins 18 (SDA) and 2 (SCL) to avoid I2C bus congestion
+    Serial.println("[DEBUG] Initializing Wire1 SDA=18, SCL=2 for MAX30102...");
+    Wire1.begin(MAX30102_SDA, MAX30102_SCL);
+#endif
+
     // Initialize modules
     Serial.println("[DEBUG] Initializing peripherals (LED, Button, Buzzer, 7-Segment)...");
     Periph.begin();
@@ -103,10 +109,10 @@ void loop() {
 
     if (!SensorProc.isFingerDetected()) {
         // --- CASE A: Finger Removed ---
-        // 手指離開期間（包含「請放置手指」與「關機倒數」共 20 秒內）完全不歸零！
+        // During the finger-removed period (including "Place Finger" and "Power Off" countdown within 20s), do not reset time!
         if (sleep_counter > 50) {
 #if (DISPLAY_TYPE == OLED_SSD1306)
-            Periph.enableSegmentDisplay(false); // 10秒後熄滅七段顯示器（但秒數不歸零）
+            Periph.enableSegmentDisplay(false); // Turn off 7-segment display after 10 seconds (but do not clear the seconds)
 #endif
         }
 
@@ -119,7 +125,7 @@ void loop() {
             lastSleepCounterTime = now;
             ++sleep_counter;
             if (sleep_counter > 100) {
-                // 只有在設備真正要進入深度睡眠關機時，才將累積秒數與計時基準清零
+                // Only reset the cumulative seconds and timing reference when the device is actually entering deep sleep
                 totalFingerSeconds = 0;
                 lastTimerUpdate = 0;
                 Periph.goSleep(); // 20s idle -> deep sleep

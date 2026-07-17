@@ -101,13 +101,13 @@ void DisplayManager::drawPlaceFinger() {
 void DisplayManager::drawMeasuring(int beatAvg, int SPO2, DeviceStatus currentStatus, uint32_t totalFingerSeconds, uint32_t fingerOnStartTime) {
     bool isWarmingUp = (fingerOnStartTime == 0 || (millis() - fingerOnStartTime < STABILIZATION_MS));
 
-    // --- 1. 上方藍色區域（Y: 0~47）：左右對稱雙柱設計 ---
+    // --- 1. Top Blue Area (Y: 0~47): Symmetrical Dual-column Layout ---
 
-    // (A) 左半部：心率區塊 (HR, X: 0~63, Y: 0~47)
-    // 標題：在左上角 (X: 4, Y: 6) 顯示小字體 HR (scale 1)
+    // (A) Left Half: Heart Rate Section (HR, X: 0~63, Y: 0~47)
+    // Title: Display small font "HR" (scale 1) at the top-left corner (X: 4, Y: 6)
     oled.drawStr(4, 6, "HR", 1);
 
-    // 數值：將 beatAvg 轉為字串後，以大字體 (scale 2) 顯示，根據長度置中，Y 座標設為 20。若 <= 0 顯示 "---"
+    // Value: Convert beatAvg to string and display with large font (scale 2), centered dynamically, Y-coordinate is 20. If <= 0, display "---"
     char bpmStr[8];
     int hr_len = 0;
     if (beatAvg > 0) {
@@ -117,24 +117,24 @@ void DisplayManager::drawMeasuring(int beatAvg, int SPO2, DeviceStatus currentSt
         strcpy(bpmStr, "---");
         hr_len = 3;
     }
-    // 大字體 (scale 2) 每字寬度為 12px，左半部為 X: 0~63
+    // Large font (scale 2) width is 12px per character. Left half is X: 0~63
     int hr_val_x = (63 - (hr_len * 12)) / 2;
     oled.drawStr(hr_val_x, 20, bpmStr, 2);
 
-    // 單位：在左半部的右下角固定位置 (X: 40, Y: 36) 顯示小字體 bpm (scale 1)
+    // Unit: Display small font "bpm" (scale 1) at fixed position (X: 40, Y: 36) of the left half
     oled.drawStr(40, 36, "bpm", 1);
 
 
-    // (B) 中央分隔線
-    // 在 X: 63 的位置，使用 oled.drawLine() 畫一條垂直線，Y 座標從 6 到 42，將左右兩邊隔開。
+    // (B) Central Divider Line
+    // Draw a vertical line using oled.drawLine() at X: 63, Y: 6 to 42, separating the left and right halves.
     oled.drawLine(63, 6, 63, 42);
 
 
-    // (C) 右半部：血氧區塊 (SpO2, X: 64~128, Y: 0~47)
-    // 標題：在右半部左上角 (X: 70, Y: 6) 顯示小字體 SpO2 (scale 1)
+    // (C) Right Half: Blood Oxygen Section (SpO2, X: 64~128, Y: 0~47)
+    // Title: Display small font "SpO2" (scale 1) at top-left corner of the right half (X: 70, Y: 6)
     oled.drawStr(70, 6, "SpO2", 1);
 
-    // 數值：將 SPO2 轉為字串後，以大字體 (scale 2) 顯示，同樣動態計算 X 座標使其在右半部置中，Y 座標設為 20。若 <= 0 則顯示 "---"
+    // Value: Convert SPO2 to string and display with large font (scale 2), centered dynamically in the right half, Y-coordinate is 20. If <= 0, display "---"
     char spo2Str[8];
     int o2_len = 0;
     if (SPO2 > 0) {
@@ -144,20 +144,20 @@ void DisplayManager::drawMeasuring(int beatAvg, int SPO2, DeviceStatus currentSt
         strcpy(spo2Str, "---");
         o2_len = 3;
     }
-    // 右半部寬度為 64px (從 X: 64 到 128)，置中 X = 64 + (64 - width) / 2
+    // Right half width is 64px (from X: 64 to 128). Center X = 64 + (64 - width) / 2
     int o2_val_x = 64 + (64 - (o2_len * 12)) / 2;
     oled.drawStr(o2_val_x, 20, spo2Str, 2);
 
-    // 單位：在右半部的右下角固定位置 (X: 110, Y: 36) 顯示小字體 % (scale 1)
+    // Unit: Display small font "%" (scale 1) at fixed position (X: 110, Y: 36) of the right half
     oled.drawStr(110, 36, "%", 1);
 
 
-    // --- 2. 下方黃色區域（Y: 48~63）顯示即時波形 ---
+    // --- 2. Bottom Yellow Area (Y: 48~63): Real-time Waveform Display ---
     if (isWarmingUp) {
         oled.drawStr(22, 52, "Stabilizing...", 1);
     } else {
         wave.scale();
-        wave.draw(oled, 0); // 橫向滾動黃色心率波形滿畫幅 128 寬度更新
+        wave.draw(oled, 0); // Horizontal scroll yellow PPG waveform with full-screen 128-pixel width update
     }
 }
 
@@ -179,7 +179,7 @@ void DisplayManager::drawPowerOff(int sleep_counter) {
 void DisplayManager::drawWiFiSetup() {
     oled.drawStr(19, 4, AP_NAME, 1);
     String ipStr = WiFi.softAPIP().toString();
-    // 居中計算並顯示動態 AP IP
+    // Calculate centering and display dynamic AP IP
     int start_x = (128 - (ipStr.length() * 6)) / 2;
     if (start_x < 0) start_x = 0;
     oled.drawStr(start_x, 18, ipStr.c_str(), 1);
