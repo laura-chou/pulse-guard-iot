@@ -89,13 +89,13 @@ void DisplayManager::updateScreen(int msg, int beatAvg, int SPO2, DeviceStatus c
 }
 
 void DisplayManager::drawDeviceError() {
-    oled.drawStr(28, 4, "DEVICE ERROR", 1);
-    oled.drawStr(19, 18, "Check I2C Wire!", 1);
+    oled.drawStr(28, 20, "DEVICE ERROR", 1);
+    oled.drawStr(19, 34, "Check I2C Wire!", 1);
 }
 
 void DisplayManager::drawPlaceFinger() {
-    oled.drawStr(28, 4, "PLACE FINGER", 1);
-    oled.drawStr(22, 18, "IR Filter: Avg", 1);
+    oled.drawStr(28, 20, "PLACE FINGER", 1);
+    oled.drawStr(22, 34, "IR Filter: Avg", 1);
 }
 
 void DisplayManager::drawMeasuring(int beatAvg, int SPO2, DeviceStatus currentStatus, uint32_t totalFingerSeconds, uint32_t fingerOnStartTime) {
@@ -159,11 +159,12 @@ void DisplayManager::drawMeasuring(int beatAvg, int SPO2, DeviceStatus currentSt
         wave.scale();
         wave.draw(oled, 0); // Horizontal scroll yellow PPG waveform with full-screen 128-pixel width update
     }
+
 }
 
 void DisplayManager::drawWelcome() {
-    oled.drawStr(4, 2, "PulseGuard", 2);
-    oled.drawStr(19, 22, "Initializing...", 1);
+    oled.drawStr(4, 20, "PulseGuard", 2);
+    oled.drawStr(19, 40, "Initializing...", 1);
 }
 
 void DisplayManager::drawPowerOff(int sleep_counter) {
@@ -172,8 +173,8 @@ void DisplayManager::drawPowerOff(int sleep_counter) {
     sprintf(secStr, "%d s", secondsLeft);
     int len = strlen(secStr);
     int start_x = (128 - (len * 12)) / 2;
-    oled.drawStr(37, 2, "POWER OFF", 1);
-    oled.drawStr(start_x, 14, secStr, 2);
+    oled.drawStr(37, 20, "POWER OFF", 1);
+    oled.drawStr(start_x, 34, secStr, 2);
 }
 
 void DisplayManager::drawWiFiSetup() {
@@ -186,13 +187,13 @@ void DisplayManager::drawWiFiSetup() {
 }
 
 void DisplayManager::drawResetSuccess() {
-    oled.drawStr(28, 4, "SYSTEM RESET", 1);
-    oled.drawStr(37, 18, "SUCCESS !", 1);
+    oled.drawStr(28, 20, "SYSTEM RESET", 1);
+    oled.drawStr(37, 34, "SUCCESS !", 1);
 }
 
 void DisplayManager::drawCompletion() {
-    oled.drawStr(31, 4, "COMPLETED !", 1);
-    oled.drawStr(10, 18, "System Sleeping...", 1);
+    oled.drawStr(31, 20, "COMPLETED !", 1);
+    oled.drawStr(10, 34, "System Sleeping...", 1);
 }
 
 DisplayManager DisplayMgr;
