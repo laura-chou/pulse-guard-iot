@@ -63,9 +63,23 @@ const locales = {
         },
         hardware: {
             title: "Hardware Configuration",
+            tabs: {
+                tft: "TFT ST7735 Configuration",
+                oled: "OLED SSD1306 Configuration"
+            },
             tft: {
                 title: "TFT Display",
                 pin_header: "TFT Pin",
+                esp_header: "ESP32 Pin"
+            },
+            oled: {
+                title: "OLED Display",
+                pin_header: "OLED Pin",
+                esp_header: "ESP32 Pin"
+            },
+            segment: {
+                title: "7-Segment Display",
+                pin_header: "Segment Pin",
                 esp_header: "ESP32 Pin"
             },
             sensor: {
@@ -77,7 +91,7 @@ const locales = {
                 title: "Control Button",
                 pin_header: "Button Pin",
                 esp_header: "ESP32 Pin",
-                signal: "OUT / SIGNAL"
+                signal: "SIGNAL"
             },
             buzzer: {
                 title: "Buzzer",
@@ -170,9 +184,23 @@ const locales = {
         },
         hardware: {
             title: "硬體腳位配置",
+            tabs: {
+                tft: "TFT ST7735 配置",
+                oled: "OLED SSD1306 配置"
+            },
             tft: {
                 title: "TFT 腳位",
                 pin_header: "TFT 腳位",
+                esp_header: "ESP32 腳位"
+            },
+            oled: {
+                title: "OLED 腳位",
+                pin_header: "OLED 腳位",
+                esp_header: "ESP32 腳位"
+            },
+            segment: {
+                title: "7 段顯示器腳位",
+                pin_header: "7 段腳位",
                 esp_header: "ESP32 腳位"
             },
             sensor: {
@@ -182,9 +210,9 @@ const locales = {
             },
             button: {
                 title: "BUTTON 腳位",
-                pin_header: "訊號語意",
+                pin_header: "BUTTON 腳位",
                 esp_header: "ESP32 腳位",
-                signal: "訊號語意"
+                signal: "SIGNAL"
             },
             buzzer: {
                 title: "BUZZER 腳位",

@@ -273,92 +273,224 @@ graph TD
                 <h2 class="section-title" data-i18n="hardware.title"></h2>
             </div>
 
-            <div class="row g-4 mb-5">
-                <div class="col-lg-6">
-                    <div class="pinout-container h-100 d-flex align-items-center justify-content-center" style="min-height: 350px;">
-                        <img src="img/tft-hardware.jpg" alt="Hardware Setup" class="img-preview" style="max-height: 320px; width: auto; object-fit: contain;">
-                    </div>
-                </div>
-                <div class="col-lg-6">
-                    <div class="pinout-container h-100">
-                        <h4 class="mb-4 fw-bold" data-i18n="hardware.tft.title"></h4>
-                        <table class="pinout-table">
-                            <thead>
-                                <tr>
-                                    <th data-i18n="hardware.tft.pin_header"></th>
-                                    <th data-i18n="hardware.tft.esp_header"></th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr><td>LED</td><td>GPIO 4</td></tr>
-                                <tr><td>SCK / SCL</td><td>GPIO 18</td></tr>
-                                <tr><td>SDA / MOSI</td><td>GPIO 23</td></tr>
-                                <tr><td>A0 / DC</td><td>GPIO 16</td></tr>
-                                <tr><td>RESET (RST)</td><td>GPIO 17</td></tr>
-                                <tr><td>CS</td><td>GPIO 5</td></tr>
-                                <tr><td>GND</td><td>GND</td></tr>
-                                <tr><td>VCC</td><td>5V</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
+            <!-- Tab Switcher Navigation -->
+            <ul class="nav nav-tabs hardware-tabs justify-content-center border-bottom-0" id="hardwareTab" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="tft-tab" data-bs-toggle="tab" data-bs-target="#tft" type="button" role="tab" aria-controls="tft" aria-selected="true" data-i18n="hardware.tabs.tft"></button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="oled-tab" data-bs-toggle="tab" data-bs-target="#oled" type="button" role="tab" aria-controls="oled" aria-selected="false" data-i18n="hardware.tabs.oled"></button>
+                </li>
+            </ul>
 
-            <div class="row g-4">
-                <!-- MAX30102 Card -->
-                <div class="col-md-4">
-                    <div class="pinout-container h-100">
-                        <h4 class="mb-4 fw-bold text-center" data-i18n="hardware.sensor.title"></h4>
-                        <table class="pinout-table">
-                            <thead>
-                                <tr>
-                                    <th data-i18n="hardware.sensor.pin_header"></th>
-                                    <th data-i18n="hardware.sensor.esp_header"></th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr><td>VIN</td><td>3.3V</td></tr>
-                                <tr><td>SDA</td><td>GPIO 21</td></tr>
-                                <tr><td>SCL</td><td>GPIO 22</td></tr>
-                                <tr><td>GND</td><td>GND</td></tr>
-                            </tbody>
-                        </table>
+            <!-- Tab Contents -->
+            <div class="tab-content" id="hardwareTabContent">
+                <!-- TFT ST7735 Tab -->
+                <div class="tab-pane fade show active" id="tft" role="tabpanel" aria-labelledby="tft-tab">
+                    <div class="row g-4 mb-5">
+                        <div class="col-lg-6">
+                            <div class="pinout-container h-100 d-flex align-items-center justify-content-center" style="min-height: 350px;">
+                                <img src="img/tft-hardware.jpg" alt="TFT Hardware Setup" class="img-preview" style="max-height: 320px; width: auto; object-fit: contain;">
+                            </div>
+                        </div>
+                        <div class="col-lg-6">
+                            <div class="pinout-container h-100">
+                                <h4 class="mb-4 fw-bold" data-i18n="hardware.tft.title"></h4>
+                                <table class="pinout-table">
+                                    <thead>
+                                        <tr>
+                                            <th data-i18n="hardware.tft.pin_header"></th>
+                                            <th data-i18n="hardware.tft.esp_header"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr><td>LED</td><td>GPIO 4</td></tr>
+                                        <tr><td>SCK / SCL</td><td>GPIO 18</td></tr>
+                                        <tr><td>SDA / MOSI</td><td>GPIO 23</td></tr>
+                                        <tr><td>A0 / DC</td><td>GPIO 16</td></tr>
+                                        <tr><td>RESET (RST)</td><td>GPIO 17</td></tr>
+                                        <tr><td>CS</td><td>GPIO 5</td></tr>
+                                        <tr><td>GND</td><td>GND</td></tr>
+                                        <tr><td>VCC</td><td>5V</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row g-4">
+                        <!-- MAX30102 Card -->
+                        <div class="col-md-4">
+                            <div class="pinout-container h-100">
+                                <h4 class="mb-4 fw-bold text-center" data-i18n="hardware.sensor.title"></h4>
+                                <table class="pinout-table">
+                                    <thead>
+                                        <tr>
+                                            <th data-i18n="hardware.sensor.pin_header"></th>
+                                            <th data-i18n="hardware.sensor.esp_header"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr><td>VIN</td><td>3.3V</td></tr>
+                                        <tr><td>SDA</td><td>GPIO 21</td></tr>
+                                        <tr><td>SCL</td><td>GPIO 22</td></tr>
+                                        <tr><td>GND</td><td>GND</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <!-- BUTTON Card -->
+                        <div class="col-md-4">
+                            <div class="pinout-container h-100">
+                                <h4 class="mb-4 fw-bold text-center" data-i18n="hardware.button.title"></h4>
+                                <table class="pinout-table">
+                                    <thead>
+                                        <tr>
+                                            <th data-i18n="hardware.button.pin_header"></th>
+                                            <th data-i18n="hardware.button.esp_header"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr><td data-i18n="hardware.button.signal"></td><td>GPIO 15</td></tr>
+                                        <tr><td>GND</td><td>GND</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <!-- BUZZER Card -->
+                        <div class="col-md-4">
+                            <div class="pinout-container h-100">
+                                <h4 class="mb-4 fw-bold text-center" data-i18n="hardware.buzzer.title"></h4>
+                                <table class="pinout-table">
+                                    <thead>
+                                        <tr>
+                                            <th data-i18n="hardware.buzzer.pin_header"></th>
+                                            <th data-i18n="hardware.buzzer.esp_header"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr><td data-i18n="hardware.buzzer.positive"></td><td>GPIO 19</td></tr>
+                                        <tr><td data-i18n="hardware.buzzer.negative"></td><td>GND</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <!-- BUTTON Card -->
-                <div class="col-md-4">
-                    <div class="pinout-container h-100">
-                        <h4 class="mb-4 fw-bold text-center" data-i18n="hardware.button.title"></h4>
-                        <table class="pinout-table">
-                            <thead>
-                                <tr>
-                                    <th data-i18n="hardware.button.pin_header"></th>
-                                    <th data-i18n="hardware.button.esp_header"></th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr><td data-i18n="hardware.button.signal"></td><td>GPIO 15</td></tr>
-                                <tr><td>GND</td><td>GND</td></tr>
-                            </tbody>
-                        </table>
+
+                <!-- OLED SSD1306 Tab -->
+                <div class="tab-pane fade" id="oled" role="tabpanel" aria-labelledby="oled-tab">
+                    <div class="row g-4 mb-5">
+                        <div class="col-lg-6">
+                            <div class="pinout-container h-100 d-flex align-items-center justify-content-center" style="min-height: 350px;">
+                                <img src="img/oled-hardware.jpg" alt="OLED Hardware Setup" class="img-preview" style="max-height: 320px; width: auto; object-fit: contain;">
+                            </div>
+                        </div>
+                        <div class="col-lg-6">
+                            <div class="pinout-container h-100">
+                                <h4 class="mb-4 fw-bold" data-i18n="hardware.oled.title"></h4>
+                                <table class="pinout-table">
+                                    <thead>
+                                        <tr>
+                                            <th data-i18n="hardware.oled.pin_header"></th>
+                                            <th data-i18n="hardware.oled.esp_header"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr><td>SDA</td><td>GPIO 21</td></tr>
+                                        <tr><td>SCL</td><td>GPIO 22</td></tr>
+                                        <tr><td>GND</td><td>GND</td></tr>
+                                        <tr><td>VCC</td><td>3.3V / 5V</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
                     </div>
-                </div>
-                <!-- BUZZER Card -->
-                <div class="col-md-4">
-                    <div class="pinout-container h-100">
-                        <h4 class="mb-4 fw-bold text-center" data-i18n="hardware.buzzer.title"></h4>
-                        <table class="pinout-table">
-                            <thead>
-                                <tr>
-                                    <th data-i18n="hardware.buzzer.pin_header"></th>
-                                    <th data-i18n="hardware.buzzer.esp_header"></th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr><td data-i18n="hardware.buzzer.positive"></td><td>GPIO 19</td></tr>
-                                <tr><td data-i18n="hardware.buzzer.negative"></td><td>GND</td></tr>
-                            </tbody>
-                        </table>
+
+                    <div class="row g-4">
+                        <!-- MAX30102 Card (OLED Mode: Secondary Isolated I2C Bus) -->
+                        <div class="col-md-6 col-lg-3">
+                            <div class="pinout-container h-100">
+                                <h4 class="mb-4 fw-bold text-center" data-i18n="hardware.sensor.title"></h4>
+                                <table class="pinout-table">
+                                    <thead>
+                                        <tr>
+                                            <th data-i18n="hardware.sensor.pin_header"></th>
+                                            <th data-i18n="hardware.sensor.esp_header"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr><td>VIN</td><td>3.3V</td></tr>
+                                        <tr><td>SDA</td><td>GPIO 18</td></tr>
+                                        <tr><td>SCL</td><td>GPIO 4</td></tr>
+                                        <tr><td>GND</td><td>GND</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <!-- 3-Digit 7-Segment Display Card -->
+                        <div class="col-md-6 col-lg-3">
+                            <div class="pinout-container h-100">
+                                <h4 class="mb-4 fw-bold text-center" data-i18n="hardware.segment.title"></h4>
+                                <table class="pinout-table">
+                                    <thead>
+                                        <tr>
+                                            <th data-i18n="hardware.segment.pin_header"></th>
+                                            <th data-i18n="hardware.segment.esp_header"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr><td>SEG A</td><td>GPIO 23</td></tr>
+                                        <tr><td>SEG B</td><td>GPIO 13</td></tr>
+                                        <tr><td>SEG C</td><td>GPIO 14</td></tr>
+                                        <tr><td>SEG D</td><td>GPIO 25</td></tr>
+                                        <tr><td>SEG E</td><td>GPIO 26</td></tr>
+                                        <tr><td>SEG F</td><td>GPIO 27</td></tr>
+                                        <tr><td>SEG G</td><td>GPIO 32</td></tr>
+                                        <tr><td>SEG DP</td><td>GPIO 33</td></tr>
+                                        <tr><td>DIG 2</td><td>GPIO 16</td></tr>
+                                        <tr><td>DIG 3</td><td>GPIO 17</td></tr>
+                                        <tr><td>DIG 4</td><td>GPIO 5</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <!-- BUTTON Card -->
+                        <div class="col-md-6 col-lg-3">
+                            <div class="pinout-container h-100">
+                                <h4 class="mb-4 fw-bold text-center" data-i18n="hardware.button.title"></h4>
+                                <table class="pinout-table">
+                                    <thead>
+                                        <tr>
+                                            <th data-i18n="hardware.button.pin_header"></th>
+                                            <th data-i18n="hardware.button.esp_header"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr><td data-i18n="hardware.button.signal"></td><td>GPIO 15</td></tr>
+                                        <tr><td>GND</td><td>GND</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <!-- BUZZER Card -->
+                        <div class="col-md-6 col-lg-3">
+                            <div class="pinout-container h-100">
+                                <h4 class="mb-4 fw-bold text-center" data-i18n="hardware.buzzer.title"></h4>
+                                <table class="pinout-table">
+                                    <thead>
+                                        <tr>
+                                            <th data-i18n="hardware.buzzer.pin_header"></th>
+                                            <th data-i18n="hardware.buzzer.esp_header"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr><td data-i18n="hardware.buzzer.positive"></td><td>GPIO 19</td></tr>
+                                        <tr><td data-i18n="hardware.buzzer.negative"></td><td>GND</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

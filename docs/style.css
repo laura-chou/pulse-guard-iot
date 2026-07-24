@@ -236,6 +236,34 @@ footer {
     border-radius: 2px;
 }
 
+/* Custom Nav Pills/Tabs Styles */
+.hardware-tabs {
+    border-bottom: 1px solid var(--border-color);
+    margin-bottom: 35px;
+}
+
+.hardware-tabs .nav-link {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-weight: 600;
+    font-size: 1.1rem;
+    padding: 12px 24px;
+    border-bottom: 3px solid transparent;
+    border-radius: 0;
+    transition: all 0.3s ease;
+}
+
+.hardware-tabs .nav-link:hover {
+    color: var(--text-main);
+}
+
+.hardware-tabs .nav-link.active {
+    color: var(--primary-green) !important;
+    background: transparent !important;
+    border-bottom: 3px solid var(--primary-green);
+}
+
 /* Pinout Table Styles */
 .pinout-container {
     background-color: var(--card-bg);
