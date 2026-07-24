@@ -78,6 +78,19 @@ void SensorProcessor::processSamples() {
             // Perform health analysis on every beat
             calculateHealth(irValue, redValue);
         }
+
+        if (now - fingerOnStartTime >= STABILIZATION_MS) {
+            if (SPO2 > 0 && beatAvg > 0) {
+                if (now - lastPublishTime >= 1000) {
+                    lastPublishTime = now;
+                    SensorData outData;
+                    outData.bpm = beatAvg;
+                    outData.spo2 = SPO2;
+                    outData.status = currentStatus;
+                    NetworkMgr.sendData(outData);
+                }
+            }
+        }
     }
 }
 
@@ -137,16 +150,6 @@ void SensorProcessor::calculateHealth(uint32_t irValue, uint32_t redValue) {
                 currentStatus = STATUS_WARNING;
             } else {
                 currentStatus = STATUS_NORMAL;
-            }
-
-            // Publish data to MQTT every 1 second if stable
-            if (now - lastPublishTime > 1000) {
-                SensorData outData;
-                outData.bpm = beatAvg;
-                outData.spo2 = SPO2;
-                outData.status = currentStatus;
-                NetworkMgr.sendData(outData);
-                lastPublishTime = now;
             }
         }
     }
