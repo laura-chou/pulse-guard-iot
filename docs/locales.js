@@ -91,14 +91,15 @@ const locales = {
                 title: "Control Button",
                 pin_header: "Button Pin",
                 esp_header: "ESP32 Pin",
-                signal: "SIGNAL"
+                pin_a: "Pin A",
+                pin_b: "Pin B"
             },
             buzzer: {
                 title: "Buzzer",
                 pin_header: "Buzzer Pin",
                 esp_header: "ESP32 Pin",
                 positive: "+ (Positive)",
-                negative: "- (GND)"
+                negative: "- (Negative)"
             }
         },
         portals: {
@@ -199,8 +200,8 @@ const locales = {
                 esp_header: "ESP32 腳位"
             },
             segment: {
-                title: "7 段顯示器腳位",
-                pin_header: "7 段腳位",
+                title: "七段顯示器腳位",
+                pin_header: "顯示器腳位",
                 esp_header: "ESP32 腳位"
             },
             sensor: {
@@ -212,14 +213,15 @@ const locales = {
                 title: "BUTTON 腳位",
                 pin_header: "BUTTON 腳位",
                 esp_header: "ESP32 腳位",
-                signal: "SIGNAL"
+                pin_a: "Pin A",
+                pin_b: "Pin B"
             },
             buzzer: {
                 title: "BUZZER 腳位",
                 pin_header: "BUZZER 腳位",
                 esp_header: "ESP32 腳位",
                 positive: "+ (Positive)",
-                negative: "GND"
+                negative: "- (Negative)"
             }
         },
         portals: {
