@@ -178,12 +178,12 @@ void DisplayManager::drawPowerOff(int sleep_counter) {
 }
 
 void DisplayManager::drawWiFiSetup() {
-    oled.drawStr(19, 4, AP_NAME, 1);
+    oled.drawStr(19, 20, AP_NAME, 1);
     String ipStr = WiFi.softAPIP().toString();
     // Calculate centering and display dynamic AP IP
     int start_x = (128 - (ipStr.length() * 6)) / 2;
     if (start_x < 0) start_x = 0;
-    oled.drawStr(start_x, 18, ipStr.c_str(), 1);
+    oled.drawStr(start_x, 34, ipStr.c_str(), 1);
 }
 
 void DisplayManager::drawResetSuccess() {
