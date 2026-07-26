@@ -1,0 +1,45 @@
+name: Sync Folders to Other Repo
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'api/**'
+      - 'dashboard/**'
+      - 'vercel.json'
+  workflow_dispatch:
+
+jobs:
+  sync-to-repo:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Prepare and Push Data
+        env:
+          TARGET_TOKEN: ${{ secrets.TARGET_REPO_TOKEN }}
+        run: |
+          # 1. 建立獨立的暫存資料夾
+          mkdir -p ../repo_deploy
+          
+          # 2. 複製 api、dashboard 以及根目錄的 vercel.json 到暫存區
+          cp -r api ../repo_deploy/
+          cp -r dashboard ../repo_deploy/
+          cp vercel.json ../repo_deploy/
+          
+          # 3. 關鍵步驟：刪除 dashboard 裡面的 test 資料夾
+          rm -rf ../repo_deploy/dashboard/test
+          
+          # 4. 初始化暫存區 Git 並提交
+          cd ../repo_deploy
+          git init -b main
+          git config --global user.email "actions@github.com"
+          git config --global user.name "GitHub Actions"
+          
+          git add .
+          git commit -m "deploy: sync api, dashboard and vercel.json (excluded tests)"
+          
+          # 5. 強制推送到他人的目標倉庫
+          git remote add target https://x-access-token:$TARGET_TOKEN@github.com/debbieyiu/pulse-guard.git
+          git push target main --force

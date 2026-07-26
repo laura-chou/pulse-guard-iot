@@ -16,6 +16,7 @@ jobs:
       - name: Push to Hugging Face
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          DEBBIE_HF_TOKEN: ${{ secrets.DEBBIE_HF_TOKEN }}
         run: |
           # 1. 建立一個乾淨的暫存資料夾
           mkdir -p ../hf_space_deploy
@@ -39,3 +40,6 @@ jobs:
           # 6. 強制推送到 Hugging Face Space
           git remote add hf https://Chou1210:$HF_TOKEN@huggingface.co/spaces/Chou1210/pulseguard-analytics
           git push hf main --force
+
+          git remote add hf_second https://eibbed:$DEBBIE_HF_TOKEN@huggingface.co/spaces/eibbed/PulseGuard
+          git push hf_second main --force
