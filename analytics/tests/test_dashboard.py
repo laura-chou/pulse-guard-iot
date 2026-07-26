@@ -63,21 +63,46 @@ def test_fetch_data_logic(mock_mongo_client):
     mock_db.__getitem__.return_value = mock_col
 
     naive_now = datetime(2026, 6, 9, 0, 0, 0)
-    mock_cursor = [{'timestamp': naive_now, 'analysis_status': 'NORMAL', 'avg_bpm': 70, 'spo2': 98}]
-    mock_col.find.return_value.sort.return_value = mock_cursor
+
+    # 模擬 daily aggregation 回傳的資料
+    mock_daily_cursor = [{
+        'date': '2026-06-09',
+        'bpm_min': 60.0,
+        'bpm_max': 120.0,
+        'bpm_mean': 80.0,
+        'spo2_min': 95.0
+    }]
+    # 模擬 hourly aggregation 回傳的資料
+    mock_hourly_cursor = [{
+        'timestamp': naive_now,
+        'analysis_status': 'NORMAL',
+        'avg_bpm': 70,
+        'spo2': 98,
+        'device_id': 'MOCK_DEVICE_001'
+    }]
+
+    # 第一次調用 aggregate 回傳 daily cursor，第二次調用回傳 hourly cursor
+    mock_col.aggregate.side_effect = [mock_daily_cursor, mock_hourly_cursor]
     mock_col.distinct.return_value = ["session-123"]
 
     # 測試正式環境
     with patch('core.database.MongoClient', return_value=mock_mongo_client.return_value):
-        df, err = database.fetch_data.__wrapped__(date(2026, 5, 1), date(2026, 5, 31), env="prod")
+        df_hourly, df_daily, err = database.fetch_data.__wrapped__(date(2026, 5, 1), date(2026, 5, 31), env="prod")
 
-    args, _ = mock_col.find.call_args
-    assert args[0]['data_source'] == "prod"
-    assert args[0]['session_id'] == {"$in": ["session-123"]}
+    # 驗證 distinct 呼叫
+    mock_col.distinct.assert_called_once()
+
+    # 驗證 aggregate 被呼叫兩次
+    assert mock_col.aggregate.call_count == 2
+    err_msg = "Expected aggregate to be called with query matching 'prod'"
+    daily_call_args = mock_col.aggregate.call_args_list[0][0][0]
+    assert daily_call_args[0]['$match']['data_source'] == "prod"
+    assert daily_call_args[0]['$match']['session_id'] == {"$in": ["session-123"]}
     assert err is False
 
-    assert df['timestamp'].dt.tz == pytz.timezone('Asia/Taipei')
-    assert '_id' not in df.columns
+    assert df_hourly['timestamp'].dt.tz == pytz.timezone('Asia/Taipei')
+    assert '_id' not in df_hourly.columns
+    assert not df_daily.empty
 
 # 3. Language selection
 def test_language_selection():
@@ -103,12 +128,20 @@ def test_calculate_kpis(sample_df):
     assert warning == 1
 
 # 5. Data Aggregation: get_daily_summary
-def test_get_daily_summary(sample_df):
+def test_get_daily_summary():
     """
-    [測試目的] 驗證日聚合邏輯 (用於生理趨勢圖)。
+    [測試目的] 驗證日聚合格式轉換邏輯。
     """
-    summary = processor.get_daily_summary(sample_df)
+    raw_daily = pd.DataFrame({
+        'date': ['2026-05-01', '2026-05-02'],
+        'bpm_min': [70.4, 75.0],
+        'bpm_max': [150.1, 75.0],
+        'bpm_mean': [98.5, 75.0],
+        'spo2_min': [88.789, 99.1]
+    })
+    summary = processor.get_daily_summary(raw_daily)
     assert len(summary) == 2
+    assert summary.iloc[0]['date'] == date(2026, 5, 1)
     assert pytest.approx(summary.iloc[0]['bpm_min']) == 70.4
     assert pytest.approx(summary.iloc[0]['bpm_max']) == 150.1
     assert pytest.approx(summary.iloc[0]['spo2_min']) == 88.789
@@ -116,11 +149,9 @@ def test_get_daily_summary(sample_df):
 # 6. Data De-duplication: get_hourly_deduplicated
 def test_get_hourly_deduplicated(sample_df):
     """
-    [測試目的] 驗證「小時去重」機制。
+    [測試目的] 驗證「小時去重」機制現在為 Pass-through 直接回傳。
     """
     dedup = processor.get_hourly_deduplicated(sample_df)
-    may1_10am_row = dedup[(dedup['timestamp'].dt.date == date(2026, 5, 1)) & (dedup['timestamp'].dt.hour == 10)]
-    assert len(may1_10am_row) == 1
-    assert may1_10am_row.iloc[0]['analysis_status'] == 'WARNING'
-    assert len(dedup) == 4
+    assert len(dedup) == len(sample_df)
+    assert (dedup == sample_df).all().all()
 

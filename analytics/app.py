@@ -79,11 +79,9 @@ def main():
     st.sidebar.markdown('<div style="height: 600px;"></div>', unsafe_allow_html=True)
 
     # --- 數據抓取與處理 ---
-    fetched_df, connection_error = fetch_data(start_date, end_date, env=env_mode, device_id=device_id)
+    df_hourly_raw, df_daily_raw, connection_error = fetch_data(start_date, end_date, env=env_mode, device_id=device_id)
 
-    raw_df = fetched_df
-
-    if raw_df.empty:
+    if df_hourly_raw.empty and df_daily_raw.empty:
         if connection_error:
             st.error(t['db_connection_error_mock'])
         else:
@@ -111,9 +109,11 @@ def main():
         render_aggrid(mock_display, t, t['col_status'])
 
     else:
-        df = raw_df[raw_df['analysis_status'].isin(selected_statuses)].copy()
-        df_daily = get_daily_summary(df)
-        df_hourly = get_hourly_deduplicated(df)
+        # 在記憶體中篩選 selected_statuses (符合選項 B)
+        df_hourly = df_hourly_raw[df_hourly_raw['analysis_status'].isin(selected_statuses)].copy()
+
+        df_daily = get_daily_summary(df_daily_raw)
+        df_hourly = get_hourly_deduplicated(df_hourly)
         total_samples, danger_count, warning_count = calculate_kpis(df_hourly)
 
         col1, col2, col3 = st.columns(3)
@@ -250,7 +250,7 @@ def main():
                 }
                 display_df = display_df.rename(columns=column_mapping)
                 render_aggrid(display_df, t, t['col_status'])
-                csv = df.to_csv(index=False).encode('utf-8-sig')
+                csv = df_hourly.to_csv(index=False).encode('utf-8-sig')
                 st.download_button(label=t['download_csv'], data=csv, file_name=f"pulseguard_analytics_{datetime.now().strftime('%Y%m%d')}.csv", mime='text/csv')
             else:
                 st.success(t['no_abnormal_events'])

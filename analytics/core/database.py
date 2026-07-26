@@ -8,14 +8,14 @@ from core.config import local_tz
 
 @st.cache_data(ttl=600)
 def fetch_data(start_date, end_date, env="prod", device_id="MOCK_DEVICE_001"):
-    """從 MongoDB 讀取數據並進行預處理，返回 (DataFrame, 是否發生錯誤)"""
+    """從 MongoDB 讀取數據並進行降採樣，返回 (df_hourly, df_daily, 是否發生錯誤)"""
     try:
         client = MongoClient(os.getenv("MONGO_URI"), serverSelectionTimeoutMS=2000)
         # 測試連線
         client.admin.command('ping')
     except Exception as e:
         # 返回空 DataFrame 與 錯誤標記
-        return pd.DataFrame(), True
+        return pd.DataFrame(), pd.DataFrame(), True
 
     db_name = os.getenv("MONGO_DB_NAME")
     col_name = os.getenv("MONGO_COL_NAME")
@@ -37,20 +37,9 @@ def fetch_data(start_date, end_date, env="prod", device_id="MOCK_DEVICE_001"):
     completed_sessions = collection.distinct("session_id", completed_sessions_query)
 
     if not completed_sessions:
-        return pd.DataFrame(), False
+        return pd.DataFrame(), pd.DataFrame(), False
 
-    # 2. 執行查詢並按時間排序，僅查詢已完成的 session 數據，且排除 COMPLETED/TIMEOUT 這些事件紀錄本身
-    projection = {
-        "timestamp": 1,
-        "analysis_status": 1,
-        "avg_bpm": 1,
-        "ema_bpm": 1,
-        "delta_bpm": 1,
-        "spo2": 1,
-        "reason_codes": 1,
-        "device_id": 1,
-        "_id": 0
-    }
+    # 2. 定義基本過濾條件，排除 COMPLETED/TIMEOUT 等事件紀錄
     query = {
         "timestamp": {"$gte": start_dt, "$lte": end_dt},
         "analysis_status": {"$nin": ["RESET", "ABORTED", "COMPLETED", "TIMEOUT"]},
@@ -58,20 +47,99 @@ def fetch_data(start_date, end_date, env="prod", device_id="MOCK_DEVICE_001"):
         "device_id": device_id,
         "session_id": {"$in": completed_sessions}
     }
-    cursor = collection.find(query, projection).sort("timestamp", 1)
 
-    df = pd.DataFrame(list(cursor))
-    if not df.empty:
+    # 3. 執行「日聚合 (Daily Summary)」Aggregation Pipeline
+    pipeline_daily = [
+        {"$match": query},
+        {
+            "$group": {
+                "_id": {
+                    "$dateToString": {
+                        "format": "%Y-%m-%d",
+                        "date": "$timestamp",
+                        "timezone": "Asia/Taipei"
+                    }
+                },
+                "bpm_min": {"$min": "$avg_bpm"},
+                "bpm_max": {"$max": "$avg_bpm"},
+                "bpm_mean": {"$avg": "$avg_bpm"},
+                "spo2_min": {"$min": "$spo2"}
+            }
+        },
+        {"$sort": {"_id": 1}},
+        {
+            "$project": {
+                "_id": 0,
+                "date": "$_id",
+                "bpm_min": 1,
+                "bpm_max": 1,
+                "bpm_mean": 1,
+                "spo2_min": 1
+            }
+        }
+    ]
+    cursor_daily = collection.aggregate(pipeline_daily)
+    df_daily = pd.DataFrame(list(cursor_daily))
+    if df_daily.empty:
+        df_daily = pd.DataFrame(columns=['date', 'bpm_min', 'bpm_max', 'bpm_mean', 'spo2_min'])
+
+    # 4. 執行「小時去重 (Hourly Deduplicated)」Aggregation Pipeline
+    pipeline_hourly = [
+        {"$match": query},
+        {
+            "$addFields": {
+                "priority": {
+                    "$switch": {
+                        "branches": [
+                            {"case": {"$eq": ["$analysis_status", "DANGER"]}, "then": 2},
+                            {"case": {"$eq": ["$analysis_status", "WARNING"]}, "then": 1},
+                            {"case": {"$eq": ["$analysis_status", "NORMAL"]}, "then": 0}
+                        ],
+                        "default": 0
+                    }
+                },
+                "hour": {
+                    "$dateToString": {
+                        "format": "%Y-%m-%d %H:00:00",
+                        "date": "$timestamp",
+                        "timezone": "Asia/Taipei"
+                    }
+                }
+            }
+        },
+        {"$sort": {"priority": -1, "timestamp": 1}},
+        {
+            "$group": {
+                "_id": "$hour",
+                "timestamp": {"$first": "$timestamp"},
+                "analysis_status": {"$first": "$analysis_status"},
+                "avg_bpm": {"$first": "$avg_bpm"},
+                "ema_bpm": {"$first": "$ema_bpm"},
+                "delta_bpm": {"$first": "$delta_bpm"},
+                "spo2": {"$first": "$spo2"},
+                "reason_codes": {"$first": "$reason_codes"},
+                "device_id": {"$first": "$device_id"}
+            }
+        },
+        {"$sort": {"timestamp": 1}}
+    ]
+    cursor_hourly = collection.aggregate(pipeline_hourly)
+    df_hourly = pd.DataFrame(list(cursor_hourly))
+
+    if not df_hourly.empty:
         # 處理時區轉換
-        df['timestamp'] = pd.to_datetime(df['timestamp'])
-        if df['timestamp'].dt.tz is None:
-            df['timestamp'] = df['timestamp'].dt.tz_localize(pytz.utc)
-        df['timestamp'] = df['timestamp'].dt.tz_convert(local_tz)
+        df_hourly['timestamp'] = pd.to_datetime(df_hourly['timestamp'])
+        if df_hourly['timestamp'].dt.tz is None:
+            df_hourly['timestamp'] = df_hourly['timestamp'].dt.tz_localize(pytz.utc)
+        df_hourly['timestamp'] = df_hourly['timestamp'].dt.tz_convert(local_tz)
 
         # 移除 MongoDB 內部 ID
-        if '_id' in df.columns:
-            df.drop(columns=['_id'], inplace=True)
-    return df, False
+        if '_id' in df_hourly.columns:
+            df_hourly.drop(columns=['_id'], inplace=True)
+    else:
+        df_hourly = pd.DataFrame(columns=['timestamp', 'analysis_status', 'avg_bpm', 'ema_bpm', 'delta_bpm', 'spo2', 'reason_codes', 'device_id'])
+
+    return df_hourly, df_daily, False
 
 def get_mock_data(env, t):
     """建立模擬數據供展示 (僅在資料庫連線失敗時)"""
