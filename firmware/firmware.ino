@@ -47,8 +47,8 @@ void setup() {
     Wire.begin(21, 22);
 
 #if (DISPLAY_TYPE == OLED_SSD1306)
-    // Initialize Wire1 for MAX30102 on GPIO pins 18 (SDA) and 4 (SCL) to avoid I2C bus congestion
-    Serial.println("[DEBUG] Initializing Wire1 SDA=18, SCL=4 for MAX30102...");
+    // Initialize Wire1 for MAX30102 on GPIO pins 19 (SDA) and 18 (SCL) to avoid I2C bus congestion
+    Serial.println("[DEBUG] Initializing Wire1 SDA=19, SCL=18 for MAX30102...");
     Wire1.begin(MAX30102_SDA, MAX30102_SCL);
 #endif
 

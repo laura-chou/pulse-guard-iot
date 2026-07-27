@@ -19,7 +19,7 @@ static const uint8_t segment_map[] = {
 };
 
 static const uint8_t segmentPins[] = { SEG_A, SEG_B, SEG_C, SEG_D, SEG_E, SEG_F, SEG_G, SEG_DP };
-static const uint8_t digitPins[] = { DIG_2, DIG_3, DIG_4 };
+static const uint8_t digitPins[] = { DIG_4, DIG_3, DIG_2 };
 
 // FreeRTOS task function for multiplexing the 7-segment display
 static void segmentMuxTask(void *pvParameters) {

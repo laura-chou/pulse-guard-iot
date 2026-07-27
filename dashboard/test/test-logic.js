@@ -21,17 +21,28 @@ applyTranslations(currentLang);
 const connStatus = document.getElementById('connection-status');
 const deviceIdInput = document.getElementById('device-id');
 
-// Prevent empty device ID
+function getActiveDeviceId() {
+    return deviceIdInput?.value.trim() || DEFAULT_DEVICE_ID;
+}
+
+function updateMonitorLink() {
+    const monitorLink = document.getElementById('monitorLink');
+    if (monitorLink) {
+        monitorLink.href = `monitor.html?lang=${currentLang}&did=${encodeURIComponent(getActiveDeviceId())}`;
+    }
+}
+
+// Prevent empty device ID & listen to changes
 if (deviceIdInput) {
+    deviceIdInput.addEventListener('input', () => {
+        updateMonitorLink();
+    });
     deviceIdInput.addEventListener('blur', () => {
         if (!deviceIdInput.value.trim()) {
             deviceIdInput.value = DEFAULT_DEVICE_ID;
         }
+        updateMonitorLink();
     });
-}
-
-function getActiveDeviceId() {
-    return deviceIdInput?.value.trim() || DEFAULT_DEVICE_ID;
 }
 
 const neonGreen = getCSSVar('--neon-green');
@@ -302,14 +313,7 @@ document.getElementById('autoSendBtn').addEventListener('click', window.toggleAu
 document.getElementById('executeScenarioBtn').addEventListener('click', window.executeScenario);
 document.getElementById('clearLogBtn').addEventListener('click', window.clearLog);
 
-// Sync language to monitor link
-const monitorLink = document.getElementById('monitorLink');
-if (monitorLink) {
-    const urlParams = new URLSearchParams(window.location.search);
-    const lang = urlParams.get('lang');
-    if (lang) {
-        monitorLink.href = `monitor.html?lang=${lang}`;
-    }
-}
+// Initialize monitor link on load
+updateMonitorLink();
 
 autoConnect();

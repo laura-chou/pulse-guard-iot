@@ -204,8 +204,11 @@ export async function initDashboard(config) {
     // Environment strictly from config
     const currentEnv = config.env || 'prod';
 
-    // Device ID Logic: 'test' defaults to MOCK, 'prod' requires URL param 'did'
-    let targetDeviceId = (currentEnv === 'test') ? 'MOCK_DEVICE_001' : params.get('did');
+    // Device ID Logic: prioritize URL parameter 'did'
+    let targetDeviceId = params.get('did');
+    if (!targetDeviceId && currentEnv === 'test') {
+        targetDeviceId = 'MOCK_DEVICE_001';
+    }
 
     // 3. UI Elements
     const connStatus = document.getElementById('connection-status');
