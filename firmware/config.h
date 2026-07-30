@@ -23,7 +23,7 @@
 
 // --- 4-Digit 7-Segment Display Pins (Common Cathode) ---
 // Segment pins (A~G, DP) - output HIGH to light up
-#define SEG_A     23 // Avoid using GPIO 12 which is a strapping pin
+#define SEG_A     15 // Avoid using GPIO 12 which is a strapping pin
 #define SEG_B     14
 #define SEG_C     33
 #define SEG_D     26
@@ -33,15 +33,15 @@
 #define SEG_DP    25 // Colon / Decimal point
 
 // Digit select pins (Digit 2~4) - output LOW to enable the digit (Common Cathode)
-// Digit 1 (DIG_1 on GPIO 4) has been removed and repurposed for BUZZER_PIN.
+// Digit 1 is unused
 #define DIG_2     5
 #define DIG_3     17
 #define DIG_4     16
 
 // --- Peripheral Pins ---
 #define LED LED_BUILTIN
-#define BUTTON 15
-#define BUZZER_PIN 4
+#define BUTTON 4
+#define BUZZER_PIN 23
 
 // --- Dual I2C Pins for MAX30102 (OLED Mode only) ---
 #define MAX30102_SDA 19
