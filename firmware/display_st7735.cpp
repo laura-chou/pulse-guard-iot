@@ -57,6 +57,10 @@ DisplayManager::DisplayManager() :
 void DisplayManager::begin() {
     pinMode(TFT_BLK, OUTPUT);
     digitalWrite(TFT_BLK, HIGH);
+
+    // Set custom hardware SPI pins for ESP32 before initializing the TFT
+    SPI.begin(TFT_SCK, -1, TFT_MOSI, TFT_CS);
+
     tft.initR(INITR_BLACKTAB);
     tft.setRotation(1); // Landscape mode
     tft.fillScreen(ST7735_BLACK);
