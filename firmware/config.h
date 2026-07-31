@@ -17,11 +17,11 @@
 
 // --- TFT Display Pins ---
 #define TFT_BLK    19
-#define TFT_DC    16
-#define TFT_RST   17
-#define TFT_CS     5
 #define TFT_SCK    18
-#define TFT_MOSI   15
+#define TFT_MOSI    5
+#define TFT_DC     17
+#define TFT_RST    16
+#define TFT_CS     15
 
 // --- 4-Digit 7-Segment Display Pins (Common Cathode) ---
 // Segment pins (A~G, DP) - output HIGH to light up
