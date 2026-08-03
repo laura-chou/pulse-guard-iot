@@ -3,6 +3,8 @@
 
 #if (DISPLAY_TYPE == OLED_SSD1306)
 
+extern uint32_t totalFingerSeconds;
+
 Waveform::Waveform() : wavep(0) {
     memset(waveform, 128, MAXWAVE);
 }
@@ -154,11 +156,16 @@ void DisplayManager::drawMeasuring(int beatAvg, int SPO2, DeviceStatus currentSt
 
     // --- 2. Bottom Yellow Area (Y: 48~63): Real-time Waveform Display ---
     if (isWarmingUp) {
-        oled.drawStr(22, 52, "Stabilizing...", 1);
+        oled.drawStr(2, 52, "Stabilizing", 1);
     } else {
         wave.scale();
-        wave.draw(oled, 0); // Horizontal scroll yellow PPG waveform with full-screen 128-pixel width update
+        wave.draw(oled, 0); // Horizontal scroll yellow PPG waveform with left-side 80-pixel width update
     }
+
+    // Always draw cumulative timer on the right side of the bottom yellow area
+    char timeStr[8];
+    sprintf(timeStr, "%d:%02d", totalFingerSeconds / 60, totalFingerSeconds % 60);
+    oled.drawStr(80, 48, timeStr, 2);
 
 }
 

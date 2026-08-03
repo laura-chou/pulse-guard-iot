@@ -53,7 +53,7 @@ void setup() {
 #endif
 
     // Initialize modules
-    Serial.println("[DEBUG] Initializing peripherals (LED, Button, Buzzer, 7-Segment)...");
+    Serial.println("[DEBUG] Initializing peripherals (LED, Button, Buzzer, Status LEDs)...");
     Periph.begin();
 
     Serial.println("[DEBUG] Initializing display...");
@@ -109,12 +109,9 @@ void loop() {
 
     if (!SensorProc.isFingerDetected()) {
         // --- CASE A: Finger Removed ---
-        // During the finger-removed period (including "Place Finger" and "Power Off" countdown within 20s), do not reset time!
-        if (sleep_counter > 50) {
 #if (DISPLAY_TYPE == OLED_SSD1306)
-            Periph.enableSegmentDisplay(false); // Turn off 7-segment display after 10 seconds (but do not clear the seconds)
+        Periph.updateStatusLeds(STATUS_NORMAL, false);
 #endif
-        }
 
         // Switch between "Place Finger" and "Power Off" countdown
         int current_msg = (sleep_counter <= 50 ? 1 : 4);
@@ -138,8 +135,9 @@ void loop() {
         updateTimer();
 
 #if (DISPLAY_TYPE == OLED_SSD1306)
-        Periph.enableSegmentDisplay(true);
-        Periph.setSegmentTime(totalFingerSeconds);
+        // Keep LEDs off during the 10-second stabilization period
+        bool isWarmingUp = (SensorProc.getFingerOnStartTime() == 0 || (millis() - SensorProc.getFingerOnStartTime() < STABILIZATION_MS));
+        Periph.updateStatusLeds(SensorProc.getStatus(), !isWarmingUp);
 #endif
 
         // Heartbeat Visual/Audio Feedback
@@ -202,7 +200,7 @@ void handleLongPress() {
     resetMessageStartTime = millis();
 
 #if (DISPLAY_TYPE == OLED_SSD1306)
-    Periph.enableSegmentDisplay(false);
+    Periph.updateStatusLeds(STATUS_NORMAL, false);
 #endif
 }
 
@@ -252,7 +250,7 @@ void handleCompletion() {
     DisplayMgr.updateScreen(7, 0, 0, STATUS_NORMAL, 0, 0);
 
 #if (DISPLAY_TYPE == OLED_SSD1306)
-    Periph.enableSegmentDisplay(false);
+    Periph.updateStatusLeds(STATUS_NORMAL, false);
 #endif
 
     delay(3000);

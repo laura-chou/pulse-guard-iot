@@ -12,7 +12,7 @@
 #endif
 
 #if (DISPLAY_TYPE == OLED_SSD1306)
-#define MAXWAVE 128 // Screen width for waveform on OLED (Full width)
+#define MAXWAVE 80 // Screen width for waveform on OLED (left side)
 #else
 #define MAXWAVE 160 // Screen width for waveform on TFT
 #endif

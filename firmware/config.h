@@ -23,22 +23,10 @@
 #define TFT_RST    16
 #define TFT_CS     15
 
-// --- 4-Digit 7-Segment Display Pins (Common Cathode) ---
-// Segment pins (A~G, DP) - output HIGH to light up
-#define SEG_A     15 // Avoid using GPIO 12 which is a strapping pin
-#define SEG_B     14
-#define SEG_C     33
-#define SEG_D     26
-#define SEG_E     27
-#define SEG_F     13
-#define SEG_G     32
-#define SEG_DP    25 // Colon / Decimal point
-
-// Digit select pins (Digit 2~4) - output LOW to enable the digit (Common Cathode)
-// Digit 1 is unused
-#define DIG_2     5
-#define DIG_3     17
-#define DIG_4     16
+// --- Status LED Pins (OLED Mode only) ---
+#define LED_RED     32
+#define LED_YELLOW  33
+#define LED_GREEN   25
 
 // --- Peripheral Pins ---
 #define LED LED_BUILTIN
@@ -46,8 +34,8 @@
 #define BUZZER_PIN 23
 
 // --- Dual I2C Pins for MAX30102 (OLED Mode only) ---
-#define MAX30102_SDA 19
-#define MAX30102_SCL 18
+#define MAX30102_SDA 18
+#define MAX30102_SCL 19
 
 // --- MQTT & Network Settings ---
 const char* const AP_NAME = "PulseGuard-IoT";      // Access Point name for WiFi Setup

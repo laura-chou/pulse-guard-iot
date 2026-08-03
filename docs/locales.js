@@ -77,9 +77,9 @@ const locales = {
                 pin_header: "OLED Pin",
                 esp_header: "ESP32 Pin"
             },
-            segment: {
-                title: "7-Segment Display",
-                pin_header: "Segment Pin",
+            leds: {
+                title: "Status LEDs",
+                pin_header: "LED Pin",
                 esp_header: "ESP32 Pin"
             },
             sensor: {
@@ -199,9 +199,9 @@ const locales = {
                 pin_header: "OLED 腳位",
                 esp_header: "ESP32 腳位"
             },
-            segment: {
-                title: "七段顯示器腳位",
-                pin_header: "顯示器腳位",
+            leds: {
+                title: "狀態指示燈腳位",
+                pin_header: "LED 腳位",
                 esp_header: "ESP32 腳位"
             },
             sensor: {

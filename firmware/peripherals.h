@@ -50,19 +50,9 @@ public:
 
 #if (DISPLAY_TYPE == OLED_SSD1306)
     /**
-     * @brief Sets the displayed time on the 3 active digits of the 7-segment display.
+     * @brief Updates status LEDs based on the current DeviceStatus and measuring state.
      */
-    void setSegmentTime(uint32_t totalSeconds);
-
-    /**
-     * @brief Enables or disables the 7-segment display multiplexing.
-     */
-    void enableSegmentDisplay(bool enable);
-
-    /**
-     * @brief Performs one multiplexing step.
-     */
-    void refreshSegments();
+    void updateStatusLeds(DeviceStatus status, bool isMeasuring);
 #endif
 
 private:
@@ -77,12 +67,6 @@ private:
     int beepsToPlay;
     bool isBuzzerOn;
     uint32_t lastBuzzerToggleTime;
-
-#if (DISPLAY_TYPE == OLED_SSD1306)
-    // 7-segment display state for 3 active digits (DIG_2, DIG_3, DIG_4)
-    bool segmentDisplayEnabled;
-    uint8_t segmentDigits[3];
-#endif
 
     void updateButton();
     void updateBuzzer();
