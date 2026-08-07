@@ -15,7 +15,7 @@ from core.processor import (
     calculate_kpis, get_daily_summary, get_hourly_deduplicated,
     get_default_range, translate_reason_codes
 )
-from components.ui import build_combined_physiological_chart, render_aggrid, load_custom_css
+from components.ui import build_combined_physiological_chart, render_dataframe, load_custom_css
 
 def main():
     # --- 1. URL 參數讀取與環境初始化 ---
@@ -106,7 +106,7 @@ def main():
                 st.markdown(f"- **{t['col_avg_bpm']}**：{t['help_avg_bpm']}")
                 st.markdown(f"- **{t['col_ema_bpm']}**：{t['help_ema_bpm']}")
                 st.markdown(f"- **{t['col_spo2']}**：{t['help_spo2']}")
-        render_aggrid(mock_display, t, t['col_status'])
+        render_dataframe(mock_display, t, t['col_status'])
 
     else:
         # 在記憶體中篩選 selected_statuses (符合選項 B)
@@ -249,7 +249,7 @@ def main():
                     'spo2': t['col_spo2']
                 }
                 display_df = display_df.rename(columns=column_mapping)
-                render_aggrid(display_df, t, t['col_status'])
+                render_dataframe(display_df, t, t['col_status'])
                 csv = df_hourly.to_csv(index=False).encode('utf-8-sig')
                 st.download_button(label=t['download_csv'], data=csv, file_name=f"pulseguard_analytics_{datetime.now().strftime('%Y%m%d')}.csv", mime='text/csv')
             else:
