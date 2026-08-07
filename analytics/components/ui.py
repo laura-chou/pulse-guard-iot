@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-from st_aggrid import AgGrid, GridOptionsBuilder, JsCode, GridUpdateMode, DataReturnMode
 
 def build_combined_physiological_chart(df_daily, t):
     """建立合併的生理趨勢圖 (心率與血氧獨立 X 軸)"""
@@ -81,100 +80,58 @@ def build_combined_physiological_chart(df_daily, t):
 
     return fig
 
-def render_aggrid(df, t, status_col_key):
+def render_dataframe(df, t, status_col_key):
     """
-    統一渲染 AG Grid 的輔助函式
+    統一渲染 st.dataframe 的輔助函式
     """
-    gb = GridOptionsBuilder.from_dataframe(df)
-
-    gb.configure_default_column(
-        suppressHeaderMenuButton=True,
-        suppressHeaderFilterButton=True,
-        filter=False,
-        headerClass='ag-center-aligned-header',
-        cellStyle={'textAlign': 'center'},
-        resizable=True
-    )
+    column_config = {}
 
     if t['col_time'] in df.columns:
-        gb.configure_column(
-            t['col_time'],
+        column_config[t['col_time']] = st.column_config.Column(
             width=180
         )
 
     numeric_cols = [t['col_avg_bpm'], t['col_ema_bpm'], t['col_spo2']]
     for col in numeric_cols:
         if col in df.columns:
-            gb.configure_column(
-                col,
-                headerClass='ag-right-aligned-header',
-                cellStyle={'textAlign': 'right'},
+            column_config[col] = st.column_config.NumberColumn(
                 width=120
             )
 
-    cellsytle_jscode = JsCode(f"""
-    function(params) {{
-        let baseStyle = {{ 'textAlign': 'center' }};
-        if (params.value === '{t['status_map']['DANGER']}') {{
-            return {{ ...baseStyle, 'color': 'white', 'backgroundColor': 'crimson' }};
-        }} else if (params.value === '{t['status_map']['WARNING']}') {{
-            return {{ ...baseStyle, 'color': 'black', 'backgroundColor': 'orange' }};
-        }} else {{
-            return baseStyle;
-        }}
-    }};
-    """)
-    gb.configure_column(
-        status_col_key,
-        cellStyle=cellsytle_jscode,
-        width=100
-    )
+    if status_col_key in df.columns:
+        column_config[status_col_key] = st.column_config.Column(
+            width=100
+        )
 
     # 異常原因 (Description) 欄位
     if t['col_desc'] in df.columns:
-        gb.configure_column(
-            t['col_desc'],
-            cellStyle={'textAlign': 'left'},
-            minWidth=200,
+        column_config[t['col_desc']] = st.column_config.Column(
             width=250
         )
+
     if t['col_no'] in df.columns:
-        gb.configure_column(
-            t['col_no'],
-            width=60,
-            cellStyle={'textAlign': 'center'}
+        column_config[t['col_no']] = st.column_config.NumberColumn(
+            width=60
         )
 
-    df['_row_id'] = [f"row_{i}" for i in range(len(df))]
+    # 定義條件格式化上色規則
+    def style_status(val):
+        if val == t['status_map']['DANGER']:
+            return "background-color: crimson; color: white;"
+        elif val == t['status_map']['WARNING']:
+            return "background-color: orange; color: black;"
+        return ""
 
-    gridOptions = gb.build()
+    # 使用 Pandas Styler (df.style.map) 套用格式化
+    styled_df = df
+    if status_col_key in df.columns:
+        styled_df = df.style.map(style_status, subset=[status_col_key])
 
-    gridOptions['getRowId'] = JsCode("""
-    function(params) {
-        if (params && params.data && params.data._row_id) {
-            return String(params.data._row_id);
-        }
-        return "fallback_" + Math.random().toString(36).substring(2, 9);
-    }
-    """)
-
-    custom_css = {
-        ".ag-header-cell-label": {
-            "justify-content": "center !important"
-        }
-    }
-
-    return AgGrid(
-        df,
-        gridOptions=gridOptions,
-        data_return_mode=DataReturnMode.FILTERED_AND_SORTED,
-        update_mode=GridUpdateMode.MODEL_CHANGED,
-        fit_columns_on_grid_load=False,
-        allow_unsafe_jscode=True,
-        theme='streamlit',
-        height=400,
-        width='100%',
-        custom_css=custom_css
+    return st.dataframe(
+        styled_df,
+        column_config=column_config,
+        hide_index=True,
+        use_container_width=True
     )
 
 def load_custom_css():

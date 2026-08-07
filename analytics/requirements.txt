@@ -5,6 +5,5 @@ plotly
 pytz
 python-dotenv
 dnspython
-streamlit-aggrid
 pytest
 pytest-cov

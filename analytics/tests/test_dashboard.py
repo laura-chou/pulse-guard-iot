@@ -155,3 +155,51 @@ def test_get_hourly_deduplicated(sample_df):
     assert len(dedup) == len(sample_df)
     assert (dedup == sample_df).all().all()
 
+# 7. UI Rendering: render_dataframe
+@patch('components.ui.st.dataframe')
+def test_render_dataframe(mock_st_dataframe):
+    """
+    [測試目的] 驗證 render_dataframe 會正確設定欄位、上色樣式並呼叫 st.dataframe。
+    """
+    t = {
+        'col_time': 'Time',
+        'col_avg_bpm': 'Avg BPM',
+        'col_ema_bpm': 'EMA BPM',
+        'col_spo2': 'SpO2',
+        'col_desc': 'Description',
+        'col_no': 'No.',
+        'status_map': {
+            'DANGER': 'DANGER_ZH',
+            'WARNING': 'WARNING_ZH',
+            'NORMAL': 'NORMAL_ZH'
+        }
+    }
+    df = pd.DataFrame({
+        'Time': ['2026-05-01 10:00:00'],
+        'No.': [1],
+        'Status': ['DANGER_ZH'],
+        'Description': ['High heart rate'],
+        'Avg BPM': [145.0],
+        'EMA BPM': [142.5],
+        'SpO2': [88]
+    })
+
+    ui.render_dataframe(df, t, 'Status')
+
+    # 驗證 st.dataframe 確實被呼叫
+    mock_st_dataframe.assert_called_once()
+    args, kwargs = mock_st_dataframe.call_args
+
+    # 驗證 hide_index 與 use_container_width
+    assert kwargs.get('hide_index') is True
+    assert kwargs.get('use_container_width') is True
+
+    # 驗證 column_config 中的設定
+    column_config = kwargs.get('column_config')
+    assert 'Time' in column_config
+    assert 'Avg BPM' in column_config
+    assert 'EMA BPM' in column_config
+    assert 'SpO2' in column_config
+    assert 'Status' in column_config
+    assert 'Description' in column_config
+    assert 'No.' in column_config
