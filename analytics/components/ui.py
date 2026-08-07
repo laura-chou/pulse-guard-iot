@@ -131,7 +131,7 @@ def render_dataframe(df, t, status_col_key):
         styled_df,
         column_config=column_config,
         hide_index=True,
-        use_container_width=True
+        width="stretch"
     )
 
 def load_custom_css():

@@ -190,9 +190,9 @@ def test_render_dataframe(mock_st_dataframe):
     mock_st_dataframe.assert_called_once()
     args, kwargs = mock_st_dataframe.call_args
 
-    # 驗證 hide_index 與 use_container_width
+    # 驗證 hide_index 與 width
     assert kwargs.get('hide_index') is True
-    assert kwargs.get('use_container_width') is True
+    assert kwargs.get('width') == 'stretch'
 
     # 驗證 column_config 中的設定
     column_config = kwargs.get('column_config')
