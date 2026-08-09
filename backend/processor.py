@@ -13,7 +13,7 @@ from database import DatabaseHandler
 logger = logging.getLogger(__name__)
 
 class DeviceState:
-    def __init__(self, data_source: str, device_id: str):
+    def __init__(self, data_source: str, device_id: str, max_len: int = 100):
         self.data_source = data_source
         self.device_id = device_id
         self.bpm_window: deque = deque(maxlen=15)
@@ -24,7 +24,8 @@ class DeviceState:
         self.first_write_done: bool = False
         self.last_write_time: float = 0
         self.last_seen: float = time.time()
-        self.lock: threading.Lock = threading.Lock()
+        self.lock: threading.RLock = threading.RLock()
+        self.retry_queue: deque = deque(maxlen=max_len)
 
     def reset_and_delete(self, db_handler: Optional[DatabaseHandler]):
         """重置狀態並從資料庫刪除當前 Session 的所有數據"""
@@ -43,6 +44,7 @@ class DeviceState:
             self.current_session_id = None
             self.first_write_done = False
             self.last_write_time = 0
+            self.retry_queue.clear()
 
     def reset_state_only(self):
         """僅重置狀態，但不從資料庫刪除當前 Session 的任何數據"""
@@ -56,12 +58,59 @@ class DeviceState:
             self.last_write_time = 0
 
 class StreamProcessor:
-    def __init__(self, db_configs: Dict[str, Dict[str, Any]]):
+    def __init__(self, db_configs: Dict[str, Dict[str, Any]], retry_queue_max_len: int = 100):
         self.db_configs = db_configs
+        self.retry_queue_max_len = retry_queue_max_len
         self.db_handlers: Dict[str, DatabaseHandler] = {}
         self.db_lock = threading.Lock()
         self.device_states: Dict[Tuple[str, str], DeviceState] = {}
         self.device_states_lock: threading.Lock = threading.Lock()
+
+    def _write_or_queue_record(self, state: DeviceState, record: Dict[str, Any]) -> bool:
+        """
+        將記錄寫入資料庫或放入 retry_queue。
+        此方法預期在 state.lock 的保護下呼叫。
+        """
+        device_id = state.device_id
+        db_handler = self._get_db_handler(device_id)
+
+        # 1. 檢查連線
+        if db_handler:
+            # 如果 queue 裡有累積的資料，嘗試批次寫入
+            if state.retry_queue:
+                queued_records = list(state.retry_queue)
+                logger.info(f"[{device_id}] Found {len(queued_records)} items in retry queue. Attempting bulk insert.")
+                if db_handler.insert_many(queued_records):
+                    state.retry_queue.clear()
+                    logger.info(f"[{device_id}] Bulk insert of {len(queued_records)} cached items succeeded.")
+
+                    # 批次寫入成功後，接著寫入當前最新的這筆資料
+                    if db_handler.insert_one(record):
+                        logger.info(f"[{device_id}] Current record saved successfully after resolving queue.")
+                        return True
+                    else:
+                        # 批次寫入成功，但最新資料寫入失敗：將最新資料放入剛清空的 queue 中
+                        state.retry_queue.append(record)
+                        logger.error(f"[{device_id}] Bulk insert succeeded but current record failed. Current record queued.")
+                        return False
+                else:
+                    # 批次寫入失敗：歷史資料繼續保留在佇列中，最新資料也直接放入佇列 (依 FIFO 淘汰)
+                    state.retry_queue.append(record)
+                    logger.error(f"[{device_id}] Bulk insert failed. Current record appended to queue.")
+                    return False
+            else:
+                # Queue 為空，直接寫入最新資料
+                if db_handler.insert_one(record):
+                    return True
+                else:
+                    state.retry_queue.append(record)
+                    logger.error(f"[{device_id}] Insert failed. Record queued.")
+                    return False
+        else:
+            # 無法獲取 db_handler 或無法連線，直接放進佇列 (依 FIFO 淘汰)
+            state.retry_queue.append(record)
+            logger.error(f"[{device_id}] Database handler not available. Record queued.")
+            return False
 
     def _get_db_handler(self, device_id: str) -> Optional[DatabaseHandler]:
         """延遲載入連線池：根據 device_id 獲取資料庫處理器"""
@@ -102,7 +151,7 @@ class StreamProcessor:
         key = (data_source, device_id)
         with self.device_states_lock:
             if key not in self.device_states:
-                self.device_states[key] = DeviceState(data_source, device_id)
+                self.device_states[key] = DeviceState(data_source, device_id, max_len=self.retry_queue_max_len)
             return self.device_states[key]
 
     def process_message(self, data_source: str, device_id: str, payload: Dict[str, Any]) -> None:
@@ -178,10 +227,6 @@ class StreamProcessor:
 
                 # 8. 執行資料庫寫入
                 if should_write:
-                    db_handler = self._get_db_handler(device_id)
-                    if not db_handler:
-                        return
-
                     record = {
                         "timestamp": datetime.fromtimestamp(current_time, tz=timezone.utc),
                         "analysis_status": analysis_status,
@@ -195,11 +240,11 @@ class StreamProcessor:
                         "spo2": xt_spo2
                     }
 
-                    if db_handler.insert_one(record):
-                        state.last_write_time = current_time
-                        state.last_analysis_status = analysis_status
-                        state.first_write_done = True
-                        logger.info(f"[{device_id}] Data saved | Status: {analysis_status}")
+                    self._write_or_queue_record(state, record)
+                    # 無論寫入成功與否，皆更新狀態控制，代表本周期數據已被寫入/快取
+                    state.last_write_time = current_time
+                    state.last_analysis_status = analysis_status
+                    state.first_write_done = True
         except Exception as e:
             logger.error(f"Processing error for {device_id}: {e}")
 
@@ -211,26 +256,21 @@ class StreamProcessor:
         if state.data_source == "prod" and duration > 0 and state.current_session_id:
             report_manager.generate_and_send_report(state.current_session_id, duration, state.device_id)
 
-        # 在 Time-series Collection 中，直接插入一筆特定的 COMPLETED 事件紀錄代表量測順利結束
-        if state.current_session_id:
-            db_handler = self._get_db_handler(state.device_id)
-            if db_handler:
-                try:
-                    record = {
-                        "timestamp": datetime.fromtimestamp(time.time(), tz=timezone.utc),
-                        "analysis_status": "COMPLETED",
-                        "session_id": state.current_session_id,
-                        "data_source": state.data_source,
-                        "device_id": state.device_id,
-                        "duration_sec": duration
-                    }
-                    db_handler.insert_one(record)
-                    logger.info(f"[{state.device_id}] Inserted COMPLETED event record for session {state.current_session_id}")
-                except Exception as e:
-                    logger.error(f"[{state.device_id}] Failed to insert COMPLETED event for session {state.current_session_id}: {e}")
-
-        # 重置該裝置狀態，但不刪除資料 (因為已完成)
         with state.lock:
+            # 在 Time-series Collection 中，直接插入一筆特定的 COMPLETED 事件紀錄代表量測順利結束
+            if state.current_session_id:
+                record = {
+                    "timestamp": datetime.fromtimestamp(time.time(), tz=timezone.utc),
+                    "analysis_status": "COMPLETED",
+                    "session_id": state.current_session_id,
+                    "data_source": state.data_source,
+                    "device_id": state.device_id,
+                    "duration_sec": duration
+                }
+                self._write_or_queue_record(state, record)
+                logger.info(f"[{state.device_id}] Handled COMPLETED event record for session {state.current_session_id}")
+
+            # 重置該裝置狀態，但不刪除資料 (因為已完成)
             state.bpm_window.clear()
             state.spo2_window.clear()
             state.last_ema_bpm = None
@@ -251,23 +291,42 @@ class StreamProcessor:
 
         for state in to_cleanup:
             logger.info(f"[{state.device_id}] Session timeout detected ({timeout_sec}s). Soft-ending session...")
-            if state.current_session_id:
-                db_handler = self._get_db_handler(state.device_id)
-                if db_handler:
-                    try:
-                        record = {
-                            "timestamp": datetime.fromtimestamp(time.time(), tz=timezone.utc),
-                            "analysis_status": "TIMEOUT",
-                            "session_id": state.current_session_id,
-                            "data_source": state.data_source,
-                            "device_id": state.device_id
-                        }
-                        db_handler.insert_one(record)
-                        logger.info(f"[{state.device_id}] Inserted TIMEOUT event record for session {state.current_session_id}")
-                    except Exception as e:
-                        logger.error(f"[{state.device_id}] Failed to insert TIMEOUT event on timeout for session {state.current_session_id}: {e}")
+            with state.lock:
+                if state.current_session_id:
+                    record = {
+                        "timestamp": datetime.fromtimestamp(time.time(), tz=timezone.utc),
+                        "analysis_status": "TIMEOUT",
+                        "session_id": state.current_session_id,
+                        "data_source": state.data_source,
+                        "device_id": state.device_id
+                    }
+                    self._write_or_queue_record(state, record)
+                    logger.info(f"[{state.device_id}] Handled TIMEOUT event record for session {state.current_session_id}")
 
-            state.reset_state_only()
+                state.reset_state_only()
+
+    def flush_all_queues(self) -> None:
+        """優雅關閉時的 Best-effort 歷史緩存寫入 (Flush)"""
+        logger.info("Starting best-effort flush of all device retry queues...")
+        with self.device_states_lock:
+            states_to_flush = list(self.device_states.values())
+
+        for state in states_to_flush:
+            with state.lock:
+                if state.retry_queue:
+                    device_id = state.device_id
+                    queued_records = list(state.retry_queue)
+                    logger.info(f"[{device_id}] Flushing {len(queued_records)} remaining cached items during shutdown.")
+                    db_handler = self._get_db_handler(device_id)
+                    if db_handler:
+                        # 嘗試寫入。連線超時時間已被 MongoClient (serverSelectionTimeoutMS) 限制在 3s 內
+                        if db_handler.insert_many(queued_records):
+                            state.retry_queue.clear()
+                            logger.info(f"[{device_id}] Successfully flushed {len(queued_records)} cached items during shutdown.")
+                        else:
+                            logger.error(f"[{device_id}] Failed to flush cached items during shutdown (database offline).")
+                    else:
+                        logger.error(f"[{device_id}] Failed to flush cached items during shutdown (database handler unavailable).")
 
     def close_all_dbs(self) -> None:
         """優雅關閉機制：關閉所有已開啟的 MongoDB 連線"""
