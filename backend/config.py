@@ -15,6 +15,9 @@ class Config(BaseSettings):
     LINE_BOT_TOKENS: Dict[str, str]
     LINE_TARGET_USERS: Dict[str, str]
 
+    # Retry Queue settings
+    RETRY_QUEUE_MAX_LEN: int = 50
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

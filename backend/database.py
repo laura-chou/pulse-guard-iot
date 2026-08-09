@@ -1,6 +1,6 @@
 import logging
 from pymongo import MongoClient
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, List
 
 logger = logging.getLogger(__name__)
 
@@ -12,10 +12,15 @@ class DatabaseHandler:
         self.client: Optional[MongoClient] = None
         self.collection: Any = None
 
-    def connect(self) -> bool:
+    def connect(self, timeout_ms: int = 3000) -> bool:
         """初始化 MongoDB 連線"""
         try:
-            self.client = MongoClient(self.uri)
+            # 設定連線、通訊與伺服器選擇超時時間（預設 3000 毫秒 / 3 秒）
+            self.client = MongoClient(
+                self.uri,
+                serverSelectionTimeoutMS=timeout_ms,
+                socketTimeoutMS=timeout_ms
+            )
             db = self.client[self.db_name]
             self.collection = db[self.col_name]
             # 測試連線
@@ -36,6 +41,20 @@ class DatabaseHandler:
             return True
         except Exception as e:
             logger.error(f"MongoDB insert error: {e}")
+            return False
+
+    def insert_many(self, records: List[Dict[str, Any]]) -> bool:
+        """批次寫入數據 (Bulk Insert)"""
+        if self.collection is None:
+            logger.error("Database not connected. Cannot insert records.")
+            return False
+        if not records:
+            return True
+        try:
+            self.collection.insert_many(records)
+            return True
+        except Exception as e:
+            logger.error(f"MongoDB insert_many error: {e}")
             return False
 
     def delete_many(self, query: Dict[str, Any]) -> int:

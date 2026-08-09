@@ -91,8 +91,8 @@ graph TD
     E5 -- "MQTT Protocol" --> U1
     B4 -- "Write" --> DB
     B4 -- "LINE Messaging API" --> U4
-    DB -- "Read" --> U2
-    DB -- "Read" --> U3
+    U2 -- "Read" --> DB
+    U3 -- "Read" --> DB
 
     style Edge_Device fill:#00331a,stroke:#00E676,stroke-width:2px
     style Cloud_Backend fill:#003333,stroke:#00E5FF,stroke-width:2px
@@ -138,8 +138,8 @@ graph TD
     E5 -- "MQTT 協定" --> U1
     B4 -- "寫入" --> DB
     B4 -- "LINE Messaging API" --> U4
-    DB -- "讀取" --> U2
-    DB -- "讀取" --> U3
+    U2 -- "讀取" --> DB
+    U3 -- "讀取" --> DB
 
     style Edge_Device fill:#00331a,stroke:#00E676,stroke-width:2px
     style Cloud_Backend fill:#003333,stroke:#00E5FF,stroke-width:2px
