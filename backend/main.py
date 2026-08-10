@@ -1,3 +1,4 @@
+import sys
 import logging
 import signal
 from pydantic import ValidationError
@@ -7,7 +8,12 @@ from processor import StreamProcessor
 from mqtt_client import MQTTManager
 
 # Setup logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    stream=sys.stdout,
+    force=True
+)
 logger = logging.getLogger(__name__)
 
 def sigterm_handler(signum, frame):
