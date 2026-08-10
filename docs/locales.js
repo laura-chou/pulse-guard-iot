@@ -21,9 +21,9 @@ const locales = {
                 title: "Firmware: Dual-Core Real-time Scheduling & Power Optimization",
                 subtitle: "Based on the ESP32 and FreeRTOS real-time operating system, the firmware adopts a dual-core thread isolation architecture to ensure physiological signal capture is free from network communication and peripheral latency.",
                 tasks_title: "Dual-Core Task Scheduling:",
-                tasks_desc: "Core 1 is dedicated to high-frequency physiological signal sampling, dual filtering (DC/MA), dynamic TFT screen refresh, and button detection. Core 0 is independently responsible for Wi-Fi maintenance and TLS/SSL encrypted communication, utilizing thread-safe queues for inter-core data transmission.",
+                tasks_desc: "Core 1 is dedicated to high-frequency physiological signal sampling, dual filtering (DC/MA), dynamic screen refresh, and button detection. Core 0 is independently responsible for Wi-Fi maintenance and TLS/SSL encrypted communication, utilizing thread-safe queues for inter-core data transmission.",
                 alarm_title: "Intelligent Measurement & Alarm Logic:",
-                alarm_desc: "Features a built-in 60-second measurement cycle with the first 5 seconds as the signal stabilization period. SpO2 is calculated using an empirical formula based on the R/IR ratio. The system implements a \"Three-Level Dynamic Alarm\" (Danger/Warning/Normal) based on SpO2 and heart rate, using non-blocking time-difference control for the buzzer throughout the system to prevent traditional delay-induced sampling stalls.",
+                alarm_desc: "The system features a built-in 60-second measurement cycle with the first 5 seconds as the signal stabilization period. SpO2 is calculated using an empirical formula based on the R/IR ratio. The system implements a \"Three-Level Dynamic Alarm\" (Danger/Warning/Normal) based on SpO2 and heart rate, using non-blocking time-difference control for the buzzer throughout the system to prevent traditional delay-induced sampling stalls.",
                 power_title: "Power Saving & Robustness:",
                 power_desc: "Includes \"Finger-off Detection\" that resets the timer when no signal is detected. If the sensor remains idle for too long, the system automatically enters Deep Sleep to conserve power, supporting wake-up via button interrupt. The button also supports long-press reset, clearing system queues and sending a reset notification to the cloud via MQTT."
             },
@@ -41,7 +41,7 @@ const locales = {
                 push_title: "Active Push & Time Localization:",
                 push_desc: "Calibrates raw UTC timestamps to local Taipei time, and actively pushes structured Flex Message reports via the LINE Messaging API upon session completion.",
                 persistence_title: "Intelligent DB Persistence Strategy:",
-                persistence_desc: "Executes MongoDB data writes based on event-driven rules and timers, featuring built-in automatic disconnection fault tolerance and retry mechanisms.",
+                persistence_desc: "Executes MongoDB data writes based on event-driven rules and timers, featuring built-in lazy connection loading and exception crash-prevention mechanisms.",
                 session_title: "Dynamic Session Management:",
                 session_desc: "Dynamically generates a unique UUID upon initialization, resetting all system states and memory caches during a COMPLETED end or hardware RESET."
             },
@@ -57,7 +57,7 @@ const locales = {
                 charts_title: "Interactive Time-Series Charts:",
                 charts_desc: "Leverages Plotly for multi-axis physiological trend charts, including 90% SpO2 danger baselines. Also features vertical layout charts for Anomaly Classification Statistics and Hourly Anomaly Distribution to analyze risk factors.",
                 log_title: "Advanced Log Rendering:",
-                log_desc: "Utilizes st_aggrid with dynamic conditional rendering via JavaScript to highlight high-risk events (DANGER/WARNING)."
+                log_desc: "Utilizes Streamlit's native dataframe (st.dataframe). Conditional formatting is implemented via Pandas Styler, dynamically changing background colors based on health status (DANGER / WARNING) to enhance rendering performance and ensure no security risks from JavaScript injection."
             },
             line_report_caption: "Actual LINE Flex Message measurement report preview"
         },
@@ -143,9 +143,9 @@ const locales = {
                 title: "韌體端：雙核即時調度與功耗優化",
                 subtitle: "基於 ESP32 與 FreeRTOS 即時作業系統，採行雙核執行緒隔離架構，確保生理訊號捕捉不受網路通訊與周邊延遲干擾：",
                 tasks_title: "雙核任務調度：",
-                tasks_desc: "Core 1 專職執行高頻生理訊號採樣、雙重濾波（DC/MA）、TFT 螢幕動態刷新與按鍵偵測；Core 0 則獨立負責 Wi-Fi 連線維護與 TLS/SSL 加密通訊，並透過執行緒安全的佇列（Queue）進行雙核間的數據傳輸。",
+                tasks_desc: "Core 1 專職執行高頻生理訊號採樣、雙重濾波（DC/MA）、螢幕動態刷新與按鍵偵測；Core 0 則獨立負責 Wi-Fi 連線維護與 TLS/SSL 加密通訊，並透過執行緒安全的佇列（Queue）進行雙核間的數據傳輸。",
                 alarm_title: "智慧量測與警報邏輯：",
-                alarm_desc: "系統內建 60 秒量測機制，前 5 秒為信號穩定收斂期。血氧採紅光與紅外光比值之經驗公式計算。系統依據血氧與心率指標實施「三級動態警報」（危險/警告/正常），並全機採用非阻塞式時間差控制蜂鳴器，避免傳統延遲卡死採樣。",
+                alarm_desc: "系統內建 60 秒量測機制，前 5 秒為信號穩定收斂期。血氧依據紅光與紅外光比值之經驗公式計算。系統依據血氧與心率指標實施「三級動態警報」（危險/警告/正常），並全機採用非阻塞式時間差控制蜂鳴器，避免傳統延遲卡死採樣。",
                 power_title: "省電與防呆機制：",
                 power_desc: "具備「離手偵測」功能，當感測器無訊號時重置計時；若維持離手狀態過久，系統自動進入深層睡眠（Deep Sleep）以節省功耗，並支援按鍵中斷喚醒。此外，按鍵亦支援長按重置功能，同步清空系統佇列並對雲端 MQTT 發送重置通知。"
             },
@@ -163,7 +163,7 @@ const locales = {
                 push_title: "主動式遠端告警與時區校正：",
                 push_desc: "校正 UTC 為台北時間。量測結束時透過 LINE Messaging API 將結構化報告圖卡主動推播至手機。",
                 persistence_title: "智慧型資料庫持久化策略：",
-                persistence_desc: "採事件驅動結合定時心跳策略執行 MongoDB 寫入，並具備斷線自動容錯與重試機制。",
+                persistence_desc: "採事件驅動結合定時心跳策略執行 MongoDB 寫入，並具備延遲連線載入與例外防崩潰機制。",
                 session_title: "動態生命週期（Session）管理：",
                 session_desc: "動態生成 UUID 唯一識別碼，並於 COMPLETED 正常結束或 RESET 異常中斷時精確重置狀態與快取。"
             },
@@ -179,7 +179,7 @@ const locales = {
                 charts_title: "時序指標監控與雙軸圖表：",
                 charts_desc: "整合 Plotly 繪製多軸生理趨勢圖，將心率區間以填充色呈現，並標記 90% 血氧危險紅線；另提供「異常事件類別統計」與「24小時異常時段統計」橫向條狀圖，直觀分析健康風險。",
                 log_title: "進階異常日誌檢索與渲染：",
-                log_desc: "導入 st_aggrid 元件。透過注入 JavaScript 實作動態條件渲染，根據健康狀態（DANGER / WARNING）即時改變背景顏色。"
+                log_desc: "採用 Streamlit 原生資料表 (st.dataframe)。透過 Pandas Styler 實作條件格式化，根據健康狀態（DANGER / WARNING）動態改變背景顏色，提升渲染效能並確保無 JavaScript 注入之資安風險。"
             },
             line_report_caption: "LINE Flex Message 量測報告實際推送畫面"
         },

@@ -16,7 +16,7 @@ class Config(BaseSettings):
     LINE_TARGET_USERS: Dict[str, str]
 
     # Retry Queue settings
-    RETRY_QUEUE_MAX_LEN: int = 100
+    RETRY_QUEUE_MAX_LEN: int = 50
 
     model_config = SettingsConfigDict(
         env_file=".env",
